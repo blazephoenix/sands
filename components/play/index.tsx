@@ -1,4 +1,6 @@
+import { useAuth } from "@clerk/nextjs";
 import { useChat } from "ai/react";
+import { useRouter } from "next/router";
 import { use, useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -39,10 +41,20 @@ const markdownComponents = {
 export default function Chat() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const chatContainerRef = useRef<HTMLInputElement | null>(null);
+  const router = useRouter();
+
+  const { isLoaded, userId, sessionId, getToken } = useAuth();
+
   const { messages, input, handleInputChange, handleSubmit, isLoading } =
     useChat({
       api: "/api/chat",
     });
+
+    useEffect(() => {
+      if (!isLoaded || !userId) {
+        router.push("/");
+      }
+      }, []);
 
   useEffect(() => {
     const container = chatContainerRef.current;
@@ -60,7 +72,7 @@ export default function Chat() {
   return (
     <div
       ref={chatContainerRef}
-      className="w-[60vw] mx-auto h-[90vh] overflow-y-scroll"
+      className="w-[60vw] mx-auto h-[80vh] overflow-y-scroll"
     >
       <div className="p-2">
         {messages.map((message, index) => (
