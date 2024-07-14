@@ -11,6 +11,7 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
+    console.log("isLoaded", isLoaded, "userId", userId);
     if (!isLoaded || !userId) {
       router.push("/");
     }

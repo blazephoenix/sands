@@ -43,18 +43,19 @@ export default function Chat() {
   const chatContainerRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
 
-  const { isLoaded, userId, sessionId, getToken } = useAuth();
+  // const { isLoaded, userId, sessionId, getToken } = useAuth();
 
   const { messages, input, handleInputChange, handleSubmit, isLoading } =
     useChat({
       api: "/api/chat",
     });
 
-    useEffect(() => {
-      if (!isLoaded || !userId) {
-        router.push("/");
-      }
-      }, []);
+    // useEffect(() => {
+    //   console.log({ isLoaded, userId });
+    //   if (!isLoaded || !userId) {
+    //     router.push("/");
+    //   }
+    //   }, []);
 
   useEffect(() => {
     const container = chatContainerRef.current;
