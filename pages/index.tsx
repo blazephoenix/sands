@@ -7,14 +7,12 @@ import { useEffect } from "react";
 const inter = Inter({ subsets: ["latin"] });
 
 export default function Home() {
-  const { isLoaded, userId, sessionId, getToken } = useAuth();
+  const { isSignedIn } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!isLoaded || !userId) {
-      router.push("/");
-    }
-    }, []);
+  if (isSignedIn) {
+    router.push("/start");
+  }
 
   return (
     <main className={`${inter.className}`}>
