@@ -1,7 +1,9 @@
+"use client";
+
 import { useAuth } from "@clerk/nextjs";
 import { useChat } from "ai/react";
 import { useRouter } from "next/router";
-import { use, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -39,23 +41,19 @@ const markdownComponents = {
 };
 
 export default function Chat() {
+  const { isSignedIn } = useAuth();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const chatContainerRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
-
-  // const { isLoaded, userId, sessionId, getToken } = useAuth();
 
   const { messages, input, handleInputChange, handleSubmit, isLoading } =
     useChat({
       api: "/api/chat",
     });
 
-    // useEffect(() => {
-    //   console.log({ isLoaded, userId });
-    //   if (!isLoaded || !userId) {
-    //     router.push("/");
-    //   }
-    //   }, []);
+  if (!isSignedIn && typeof window !== "undefined") {
+    window.location.href = "/";
+  }
 
   useEffect(() => {
     const container = chatContainerRef.current;
@@ -75,6 +73,7 @@ export default function Chat() {
       ref={chatContainerRef}
       className="w-[60vw] mx-auto h-[80vh] overflow-y-scroll"
     >
+      {/* <div className="fixed top-0 p-2 mb-5 w-[60vw] text-2xl font-bold text-gray-900 my-4">Sands - Murder Mystery Simulator</div> */}
       <div className="p-2">
         {messages.map((message, index) => (
           <>
@@ -82,7 +81,9 @@ export default function Chat() {
               key={message.id}
               className="rounded-lg border-2 border-slate-200 mt-5 py-2 px-4"
             >
-              <div className="w-24 text-zinc-500">{`${message.role === 'user' ? 'You' : 'Sim'}: `}</div>
+              <div className="w-24 text-zinc-500">{`${
+                message.role === "user" ? "You" : "Sim"
+              }: `}</div>
               <div className="w-full">
                 <Markdown
                   remarkPlugins={[remarkGfm]}
