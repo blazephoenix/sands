@@ -1,60 +1,94 @@
 import { useChat } from "ai/react";
+import { use, useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 const markdownComponents = {
-  // Styling a paragraph
-  p: ({ node }: { node: any }, ...props: any) => (
-    <p className="text-base text-gray-800 mb-4 mt-2" {...props} />
+  p: ({ children, ...props }: React.PropsWithChildren<any>) => (
+    <p className="text-base text-gray-800 mb-4 mt-2" {...props}>
+      {children}
+    </p>
   ),
-  // Styling headings
-  h1: ({ node }: { node: any } & React.HTMLAttributes<HTMLHeadingElement>, ...props: any) => (
-    <h1 className="text-2xl font-bold text-gray-900 my-4" {...props} />
+  h1: ({ children, ...props }: React.PropsWithChildren<any>) => (
+    <h1 className="text-2xl font-bold text-gray-900 my-4" {...props}>
+      {children}
+    </h1>
   ),
-  h2: ({ node }: { node: any }, ...props: any) => (
-    <h2 className="text-xl font-semibold text-gray-800 my-3" {...props} />
+  h2: ({ children, ...props }: React.PropsWithChildren<any>) => (
+    <h2 className="text-xl font-semibold text-gray-800 my-3" {...props}>
+      {children}
+    </h2>
   ),
-  // Style for ordered lists
-  ol: ({ node }: { node: any }, ...props: any) => (
-    <ol className="list-decimal list-inside space-y-2 pl-4 my-2" {...props} />
+  ol: ({ children, ...props }: React.PropsWithChildren<any>) => (
+    <ol className="list-decimal list-inside space-y-2 pl-4 my-2" {...props}>
+      {children}
+    </ol>
   ),
-   // Style for unordered lists
-   ul: ({ node }: { node: any }, ...props: any) => (
-    <ul className="list-disc list-inside space-y-2 pl-4" {...props} />
+  ul: ({ children, ...props }: React.PropsWithChildren<any>) => (
+    <ul className="list-disc list-inside space-y-2 pl-4" {...props}>
+      {children}
+    </ul>
   ),
-  // Style for list items
-  li: ({ node }: { node: any }, ...props: any) => (
-    <li className="text-base text-gray-700 m-2" {...props} />
+  li: ({ children, ...props }: React.PropsWithChildren<any>) => (
+    <li className="text-base text-gray-700 m-2" {...props}>
+      <div style={{ display: "inline-block" }}>{children}</div>
+    </li>
   ),
-  // Add more custom components as needed
 };
 
 export default function Chat() {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const chatContainerRef = useRef<HTMLInputElement | null>(null);
   const { messages, input, handleInputChange, handleSubmit, isLoading } =
     useChat({
       api: "/api/chat",
     });
 
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    if (!isLoading && inputRef.current) {
+      inputRef.current.focus();
+    }
+  });
+
   return (
-    <div className="w-[60vw] mx-auto h-[90vh] overflow-y-scroll">
+    <div
+      ref={chatContainerRef}
+      className="w-[60vw] mx-auto h-[90vh] overflow-y-scroll"
+    >
       <div className="p-2">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className="rounded-lg border-2 border-slate-200 mt-5 py-2 px-4"
-          >
-            <div className="w-24 text-zinc-500">{`${message.role}: `}</div>
-            <div className="w-full">
-              <Markdown
-                remarkPlugins={[remarkGfm]}
-                //@ts-expect-error
-                components={markdownComponents}
-                className="prose"
-              >
-                {message.content}
-              </Markdown>
+        {messages.map((message, index) => (
+          <>
+            <div
+              key={message.id}
+              className="rounded-lg border-2 border-slate-200 mt-5 py-2 px-4"
+            >
+              <div className="w-24 text-zinc-500">{`${message.role === 'user' ? 'You' : 'Sim'}: `}</div>
+              <div className="w-full">
+                <Markdown
+                  remarkPlugins={[remarkGfm]}
+                  components={markdownComponents}
+                >
+                  {message.content}
+                </Markdown>
+              </div>
             </div>
-          </div>
+            {/* Check if this is the last message and isLoading is true */}
+            {index === messages.length - 1 && isLoading && (
+              <div className="rounded-lg border-2 bg-slate-100 mt-5 py-5 px-4 flex justify-start">
+                <div className="rounded-full bg-slate-300 animate-bounce w-2 h-2 mr-1" />
+                <div className="rounded-full bg-slate-300 animate-bounce w-2 h-2 duration-75 mr-1" />
+                <div className="rounded-full bg-slate-300 animate-bounce w-2 h-2 duration-100" />
+                {/* Replace this with your preferred loading indicator */}
+              </div>
+            )}
+          </>
         ))}
       </div>
 
@@ -64,7 +98,7 @@ export default function Chat() {
           className="fixed bottom-0 p-2 mb-5 w-[60vw]"
         >
           <input
-            autoFocus
+            ref={inputRef}
             value={input}
             placeholder="Send message..."
             onChange={handleInputChange}
