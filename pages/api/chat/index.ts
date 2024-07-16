@@ -1,19 +1,25 @@
-import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
-import { NextApiRequest, NextApiResponse } from 'next';
-import { presets, systemPrompt } from '../../../components/utils/constants';
+import { openai } from "@ai-sdk/openai";
+import { streamText } from "ai";
+import { NextApiRequest, NextApiResponse } from "next";
+import { presets, systemPrompt } from "../../../components/utils/constants";
+import { auth, getAuth } from "@clerk/nextjs/server";
 
 export default async function handler(
   request: NextApiRequest,
-  response: NextApiResponse,
+  response: NextApiResponse
 ) {
+  const { userId } = getAuth(request);
+
+  if (!userId) {
+    return response.status(401).json({ error: "Not authenticated" });
+  }
   const { messages } = await request.body;
 
   const result = await streamText({
-    model: openai('gpt-4o'),
+    model: openai("gpt-4o"),
     messages,
     system: systemPrompt,
-    ...presets
+    ...presets,
   });
 
   // write the AI stream to the response
