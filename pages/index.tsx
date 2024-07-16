@@ -25,26 +25,28 @@ export default function Home() {
         <Play />
       </SignedIn>
       <SignedOut>
-        <div className="flex align-middle justify-between">
-          <h1 className="text-4xl font-bold">Welcome to Sands</h1>
-          <SignInButton>
-            <button className="text-black bg-orange-300 px-6 rounded-lg hover:bg-orange-600">
-              Sign in
-            </button>
-          </SignInButton>
-        </div>
+        <div className="bg-slate-100 border-b-4 border-orange-300 shadow-inner hover:shadow-none py-24 px-48 rounded-lg">
+          <div className="flex align-middle justify-between">
+            <h1 className="text-4xl font-bold">Welcome to Sands</h1>
+            <SignInButton>
+              <button className="text-black bg-orange-300 px-6 rounded-lg hover:bg-orange-600">
+                Sign in
+              </button>
+            </SignInButton>
+          </div>
 
-        <p className="mt-2">
-          A{" "}
-          <a
-          target="_blank"
-            className="text-blue-400 hover:text-blue-600 no-underline"
-            href="https://agathachristie.fandom.com/wiki/Closed_circle#:~:text=The%20closed%20circle%20of%20suspects,a%20closed%20circle%20of%20suspects."
-          >
-            closed circle murder mystery
-          </a>{" "}
-          simulation game where you are the detective!
-        </p>
+          <p className="mt-2">
+            A{" "}
+            <a
+              target="_blank"
+              className="text-blue-400 hover:text-blue-600 no-underline"
+              href="https://agathachristie.fandom.com/wiki/Closed_circle#:~:text=The%20closed%20circle%20of%20suspects,a%20closed%20circle%20of%20suspects."
+            >
+              closed circle murder mystery
+            </a>{" "}
+            simulation game where you are the detective!
+          </p>
+        </div>
       </SignedOut>
     </main>
   );
