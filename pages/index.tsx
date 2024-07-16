@@ -18,10 +18,17 @@ export default function Home() {
         <title>Sands</title>
       </Head>
       <SignedIn>
-        <div className="flex rounded justify-end p-4 bg-slate-100">
-          <UserButton showName />
+        <div className="flex rounded justify-between p-4 bg-slate-100">
+          <div>
+            <h1 className="text-2xl font-bold">Sands</h1>
+            <span className="text-sm text-slate-600">
+              Murder Mystery Simulator
+            </span>
+          </div>
+          <div>
+            <UserButton showName />
+          </div>
         </div>
-
         <Play />
       </SignedIn>
       <SignedOut>
@@ -47,6 +54,17 @@ export default function Home() {
             simulation game where you are the detective!
           </p>
         </div>
+        <footer className="fixed bottom-20 mx-auto w-screen">
+          <div className="text-slate-600">
+            Made with &#10084; at{" "}
+            <a
+              className="text-orange-500 hover:cursor-pointer"
+              href="https://bitmonk.tech"
+            >
+              Bitmonk
+            </a>
+          </div>
+        </footer>
       </SignedOut>
     </main>
   );
