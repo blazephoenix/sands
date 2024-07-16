@@ -23,6 +23,16 @@ const markdownComponents = {
       {children}
     </h2>
   ),
+  h3: ({ children, ...props }: React.PropsWithChildren<any>) => (
+    <h2 className="text-lg font-semibold text-gray-800 my-3" {...props}>
+      {children}
+    </h2>
+  ),
+  hr: ({ children, ...props }: React.PropsWithChildren<any>) => (
+    <hr className="my-5" {...props}>
+      {children}
+    </hr>
+  ),
   ol: ({ children, ...props }: React.PropsWithChildren<any>) => (
     <ol className="list-decimal list-inside space-y-2 pl-4 my-2" {...props}>
       {children}
@@ -41,19 +51,13 @@ const markdownComponents = {
 };
 
 export default function Chat() {
-  const { isSignedIn } = useAuth();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const chatContainerRef = useRef<HTMLInputElement | null>(null);
-  const router = useRouter();
 
   const { messages, input, handleInputChange, handleSubmit, isLoading } =
     useChat({
       api: "/api/chat",
     });
-
-  if (!isSignedIn && typeof window !== "undefined") {
-    window.location.href = "/";
-  }
 
   useEffect(() => {
     const container = chatContainerRef.current;
@@ -74,6 +78,24 @@ export default function Chat() {
       className="w-[60vw] mx-auto h-[80vh] overflow-y-scroll"
     >
       {/* <div className="fixed top-0 p-2 mb-5 w-[60vw] text-2xl font-bold text-gray-900 my-4">Sands - Murder Mystery Simulator</div> */}
+      <div className="p-2">
+        <div className="rounded-lg border-2 border-slate-200 mt-5 py-2 px-4">
+          <div className="w-24 text-zinc-500"></div>
+          <div className="w-full">
+            <Markdown
+              remarkPlugins={[remarkGfm]}
+              components={markdownComponents}
+            >
+              {`### Hello!
+
+Sands is a murder mystery simulation game where you are the detective tasked with solving a case! Each case is randomly generated with unique stories and unique cases (save for the repetitive murder weapons).
+
+Type "start" to begin playing.`}
+            </Markdown>
+          </div>
+        </div>
+      </div>
+
       <div className="p-2">
         {messages.map((message, index) => (
           <>
