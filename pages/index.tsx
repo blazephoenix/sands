@@ -7,67 +7,71 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { BellRing, Check } from "lucide-react"
- 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
+import { BellRing, Check, LogInIcon } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  useAuth,
+  UserButton,
+} from "@clerk/nextjs";
+import Head from "next/head";
+import Play from "../components/play";
 
 type Props = {
-    className?: string;
-    props?: React.HTMLAttributes<HTMLDivElement>;
+  className?: string;
+  props?: React.HTMLAttributes<HTMLDivElement>;
 };
 
-export default function Home({className, ...props}: Props) {
-    const notifications = [
-        {
-            title: "Notification 1",
-            description: "Description 1",
-        },
-    ]
+export default function Home({ className, ...props }: Props) {
+  const { isSignedIn } = useAuth();
+
   return (
-    <Card className={cn("w-[380px]", className)} {...props}>
-      <CardHeader>
-        <CardTitle>Notifications</CardTitle>
-        <CardDescription>You have 3 unread messages.</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        <div className=" flex items-center space-x-4 rounded-md border p-4">
-          <BellRing />
-          <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium leading-none">
-              Push Notifications
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Send notifications to device.
-            </p>
+    <main>
+      <Head>
+        <title>Sands</title>
+      </Head>
+      <SignedIn>
+        <div className="flex rounded justify-between p-4 bg-slate-100">
+          <div>
+            <h1 className="text-2xl font-bold">Sands</h1>
+            <span className="text-sm text-slate-600">
+              Murder Mystery Simulator
+            </span>
           </div>
-          <Switch />
+          <div>
+            <UserButton showName />
+          </div>
         </div>
-        <div>
-          {notifications.map((notification, index) => (
-            <div
-              key={index}
-              className="mb-4 grid grid-cols-[25px_1fr] items-start pb-4 last:mb-0 last:pb-0"
-            >
-              <span className="flex h-2 w-2 translate-y-1 rounded-full bg-sky-500" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  {notification.title}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {notification.description}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button className="w-full">
-          <Check /> Mark all as read
-        </Button>
-      </CardFooter>
-    </Card>
+       <Play />
+      </SignedIn>
+      <SignedOut>
+        <Card className={cn("w-[380px]", className)} {...props}>
+          <CardHeader>
+            <CardTitle>
+              {" "}
+              <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+                Welcome to Sands
+              </h3>
+            </CardTitle>
+            <CardDescription>
+              A closed circle murder mystery simulation game where you are the
+              detective!
+            </CardDescription>
+          </CardHeader>
+
+          <CardFooter>
+            <SignInButton>
+              <Button className="w-full">
+                <LogInIcon /> Sign in
+              </Button>
+            </SignInButton>
+          </CardFooter>
+        </Card>
+      </SignedOut>
+    </main>
   );
 }
