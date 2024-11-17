@@ -1,8 +1,6 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
 import { useChat } from "ai/react";
-import { useRouter } from "next/router";
 import { useEffect, useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
