@@ -1,71 +1,73 @@
+import React from "react";
 import {
-  SignedIn,
-  SignedOut,
-  SignInButton,
-  useAuth,
-  UserButton,
-} from "@clerk/nextjs";
-import { Inter } from "next/font/google";
-import Head from "next/head";
-import Play from "../components/play";
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { BellRing, Check } from "lucide-react"
+ 
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
 
-const inter = Inter({ subsets: ["latin"] });
+type Props = {
+    className?: string;
+    props?: React.HTMLAttributes<HTMLDivElement>;
+};
 
-export default function Home() {
+export default function Home({className, ...props}: Props) {
+    const notifications = [
+        {
+            title: "Notification 1",
+            description: "Description 1",
+        },
+    ]
   return (
-    <main className={`${inter.className}`}>
-      <Head>
-        <title>Sands</title>
-      </Head>
-      <SignedIn>
-        <div className="flex rounded justify-between p-4 bg-slate-100">
-          <div>
-            <h1 className="text-2xl font-bold">Sands</h1>
-            <span className="text-sm text-slate-600">
-              Murder Mystery Simulator
-            </span>
+    <Card className={cn("w-[380px]", className)} {...props}>
+      <CardHeader>
+        <CardTitle>Notifications</CardTitle>
+        <CardDescription>You have 3 unread messages.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        <div className=" flex items-center space-x-4 rounded-md border p-4">
+          <BellRing />
+          <div className="flex-1 space-y-1">
+            <p className="text-sm font-medium leading-none">
+              Push Notifications
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Send notifications to device.
+            </p>
           </div>
-          <div>
-            <UserButton showName />
-          </div>
+          <Switch />
         </div>
-        <Play />
-      </SignedIn>
-      <SignedOut>
-        <div className="bg-slate-100 border-b-4 border-orange-300 shadow-inner hover:shadow-none py-24 px-48 rounded-lg">
-          <div className="flex align-middle justify-between">
-            <h1 className="text-4xl font-bold">Welcome to Sands</h1>
-            <SignInButton>
-              <button className="text-black bg-orange-300 px-6 rounded-lg hover:bg-orange-600">
-                Sign in
-              </button>
-            </SignInButton>
-          </div>
-
-          <p className="mt-2">
-            A{" "}
-            <a
-              target="_blank"
-              className="text-blue-400 hover:text-blue-600 no-underline"
-              href="https://agathachristie.fandom.com/wiki/Closed_circle#:~:text=The%20closed%20circle%20of%20suspects,a%20closed%20circle%20of%20suspects."
+        <div>
+          {notifications.map((notification, index) => (
+            <div
+              key={index}
+              className="mb-4 grid grid-cols-[25px_1fr] items-start pb-4 last:mb-0 last:pb-0"
             >
-              closed circle murder mystery
-            </a>{" "}
-            simulation game where you are the detective!
-          </p>
+              <span className="flex h-2 w-2 translate-y-1 rounded-full bg-sky-500" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium leading-none">
+                  {notification.title}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {notification.description}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
-        <footer className="fixed bottom-20 mx-auto w-screen">
-          <div className="text-slate-600">
-            Made with &#10084; at{" "}
-            <a
-              className="text-orange-500 hover:cursor-pointer"
-              href="https://bitmonk.tech"
-            >
-              Bitmonk
-            </a>
-          </div>
-        </footer>
-      </SignedOut>
-    </main>
+      </CardContent>
+      <CardFooter>
+        <Button className="w-full">
+          <Check /> Mark all as read
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }
