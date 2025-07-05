@@ -12,7 +12,10 @@ Respond in beautiful looking markdown. Give Options. Allow them to fail. Do not 
 
 export const presets = {
   temperature: 0.6,
-  max_tokens: 517,
+  // Limit the response length so the client doesn't receive more
+  // tokens than it can handle. "maxTokens" is the expected option
+  // name for the AI SDK; using "max_tokens" would be ignored.
+  maxTokens: 517,
   top_p: 1,
   frequency_penalty: 0,
   presence_penalty: 0,
