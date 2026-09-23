@@ -45,8 +45,12 @@ One playthrough of a World, from its first Turn to its Ending.
 _Avoid_: run, playthrough, game, save
 
 **Turn**:
-One Player input and everything the harness does in response to it, ending in one shipped Passage.
+One Player input and everything the harness does in response to it, ending in one shipped Passage. The Opening is the one Turn without a Player input.
 _Avoid_: step, round (reserved for one writing attempt within a Turn), move
+
+**Opening**:
+Turn 0 of every Session: the Writer sets the first scene, like the first page of a novel, before the Player acts. It is written and judged like any Turn, but nothing is read from the Player and no Outcome is resolved.
+_Avoid_: intro, prologue, first message
 
 **Player**:
 The person playing a Session, acting as the Player character.

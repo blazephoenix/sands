@@ -174,7 +174,7 @@ Kind-specific `data_json`:
 | `id` | |
 | `session_id` | |
 | `idx` | 0-based, monotonic per session |
-| `player_input` | |
+| `player_input` | Null for the Opening (turn 0) |
 | `passage` | The shipped passage |
 | `flagged` | True if shipped after 3 failed rounds |
 | `log_json` | Intent, classification, outcome, directive, every draft with rule results, discovery answers, background results, timings, Jev model version |
@@ -256,6 +256,10 @@ Expected setup time: 30–60 seconds, once per world.
 ## 9. Turn loop
 
 Target: **3–5 seconds** from submit to passage on a turn that needs no retry. All timings in this spec are estimates to be confirmed by measurement on day 1.
+
+### 9.0 The Opening (turn 0)
+
+A Session never starts blank. As soon as it is created, the harness plays its **Opening**: the Writer writes the first scene (the Player character at the start location, the first Arc under way) and the Judge rules on it like any Turn. There is no player input, so steps 2 and 3 below are skipped: nothing is read or classified, and no Outcome is resolved. The directive asks for an opening scene and allows no reveals. The Agency rule checks that the Player character does nothing beyond arriving. The Opening is turn 0, with `player_input` null. The Session page plays it automatically, with the same progress events and reveal as any Turn; a failure leaves the Session with no Turns and offers Retry.
 
 ### 9.1 Critical path (before the passage appears)
 
