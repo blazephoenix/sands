@@ -107,9 +107,11 @@ export const patchEntryRequestSchema = z.discriminatedUnion("action", [
 export type PatchEntryRequest = z.infer<typeof patchEntryRequestSchema>
 
 /**
- * `solvability` is the World's latest result after the change: recomputed for
- * World template Entries (ticket 03 makes the recomputation real), null for
- * Session copies, whose edits take effect from the next Turn.
+ * `solvability` is the World's latest result after the change: for a World
+ * template Entry, re-checked (`src/setup/solvability.ts`) and stored on the
+ * World, so `GET /api/worlds/[id]` returns the same result; `mark-seen`
+ * returns the stored result unchanged, and so does a World not yet past
+ * setup. Null for Session copies, whose edits take effect from the next Turn.
  */
 export const patchEntryResponseSchema = z.object({
   entry: entrySchema,

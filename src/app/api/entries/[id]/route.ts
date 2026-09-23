@@ -1,7 +1,8 @@
 /**
  * PATCH /api/entries/[id]: accept, reject, restore, edit or mark-seen one
  * Entry, a World template Entry or a Session copy alike. Locked Entries answer
- * 409. Ticket 03 makes this recompute solvability for template Entries.
+ * 409. A change to a World template Entry re-runs the solvability check and
+ * stores the result on the World; the response carries it (spec §8 step 4).
  */
 import { patchEntryRequestSchema, type PatchEntryResponse } from "@/domain/api"
 import { patchEntry } from "@/fixtures/entries"
