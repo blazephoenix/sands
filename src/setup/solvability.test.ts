@@ -91,11 +91,6 @@ describe("a Decisive action's required Clues", () => {
     ])
   })
 
-  it("checks every listed Clue, even when Clues needed is fewer than all of them", () => {
-    const input = withStatus(patchData(world(), "arrest", { requiresCount: 1 }), "c2", "rejected")
-    expect(checkSolvability(input).gaps.map((g) => [g.code, g.entryId])).toEqual([["missing_clue", "c2"]])
-  })
-
   it("fails on a required Clue that is a red herring", () => {
     const { gaps } = checkSolvability(patchData(world(), "c1", { redHerring: true, pointsToHidden: false }))
     expect(gaps).toEqual([
@@ -215,16 +210,22 @@ describe("Arcs", () => {
     expect(checkSolvability(moved).gaps).toEqual([
       {
         code: "arc_without_exit_condition",
-        message: "Arc 2, Midpoint, has no Exit condition. Add an Exit condition Entry with Arc: 2.",
+        message: "Arc 2, Midpoint, has no Exit condition. Add an Exit condition for Arc 2.",
         entryId: null,
         arcIndex: 1,
       },
     ])
   })
 
-  it("does not count a rejected Exit condition", () => {
-    const { gaps } = checkSolvability(withStatus(world(), "exit-2", "rejected"))
-    expect(gaps.map((g) => [g.code, g.arcIndex])).toEqual([["arc_without_exit_condition", 1]])
+  it("does not count a rejected Exit condition, and points at it so the Author can restore it", () => {
+    expect(checkSolvability(withStatus(world(), "exit-2", "rejected")).gaps).toEqual([
+      {
+        code: "arc_without_exit_condition",
+        message: "Arc 2, End, has no Exit condition. Restore Max Rober arrested, or add an Exit condition for Arc 2.",
+        entryId: "exit-2",
+        arcIndex: 1,
+      },
+    ])
   })
 })
 
@@ -234,11 +235,56 @@ describe("the gap list", () => {
     expect(checkSolvability(input).gaps.map((g) => [g.code, g.entryId ?? g.arcIndex])).toEqual([
       ["red_herring_required", "c1"],
       ["missing_clue", "c2"],
-      ["arc_without_exit_condition", 0],
+      ["arc_without_exit_condition", "exit-1"],
     ])
   })
 
   it("ignores rejected Decisive actions", () => {
     expect(checkSolvability(withStatus(withStatus(world(), "c2", "rejected"), "arrest", "rejected")).passed).toBe(true)
+  })
+})
+
+describe("Clues needed (requires_count, spec §6)", () => {
+  /** Arrest Max needs any 2 of C1, C2 and C3; C3 lies at the Yard. */
+  function twoOfThree() {
+    const input = world([
+      entry("clue", "c3", "C3 — A cufflink", { locationId: "yard", knownBy: [], reveals: "", pointsToHidden: true, redHerring: false }),
+    ])
+    return patchData(input, "arrest", { requires: ["c1", "c2", "c3"], requiresCount: 2 })
+  }
+
+  it("passes while at least n of the listed Clues are usable", () => {
+    expect(checkSolvability(withStatus(twoOfThree(), "c2", "rejected"))).toEqual({ passed: true, gaps: [] })
+  })
+
+  it("fails when fewer than n are usable, naming each unusable Clue and the shortfall", () => {
+    const input = withStatus(patchData(twoOfThree(), "c3", { redHerring: true }), "c2", "rejected")
+    expect(checkSolvability(input).gaps).toEqual([
+      {
+        code: "missing_clue",
+        message:
+          "Arrest Max Rober requires C2, which is rejected. Restore C2 or remove it from Requires. Arrest Max Rober needs 2 of its 3 Clues, and only 1 is usable.",
+        entryId: "c2",
+        arcIndex: null,
+      },
+      {
+        code: "red_herring_required",
+        message:
+          "Arrest Max Rober requires C3, which is a red herring. Set its Red herring to no, or remove C3 from Requires. Arrest Max Rober needs 2 of its 3 Clues, and only 1 is usable.",
+        entryId: "c3",
+        arcIndex: null,
+      },
+    ])
+  })
+
+  it("fails when it needs more Clues than it lists", () => {
+    expect(checkSolvability(patchData(world(), "arrest", { requiresCount: 3 })).gaps).toEqual([
+      {
+        code: "missing_clue",
+        message: "Arrest Max Rober needs 3 Clues but lists only 2. Add Clues to Requires, or lower Clues needed.",
+        entryId: "arrest",
+        arcIndex: null,
+      },
+    ])
   })
 })
