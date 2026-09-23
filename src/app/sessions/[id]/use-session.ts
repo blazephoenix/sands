@@ -10,11 +10,11 @@ import * as React from "react"
 import type { Entry } from "@/domain/entry"
 import type { TurnPhase } from "@/domain/events"
 import type { Turn } from "@/domain/session"
-import { getSessionResponseSchema, type GetSessionResponse } from "@/domain/session-view"
-import { api, apiFetch, ApiError, isAbortError } from "@/lib/api-client"
+import type { GetSessionResponse } from "@/domain/session-view"
+import { api, ApiError, isAbortError } from "@/lib/api-client"
 
 export function fetchSession(id: string, signal?: AbortSignal) {
-  return apiFetch(`/api/sessions/${encodeURIComponent(id)}`, getSessionResponseSchema, { signal })
+  return api.getSession(id, signal)
 }
 
 export type SessionLoad =

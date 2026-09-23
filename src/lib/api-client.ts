@@ -29,6 +29,7 @@ import {
   type TurnRequest,
 } from "@/domain/api"
 import { setupEventSchema, turnEventSchema } from "@/domain/events"
+import { getSessionResponseSchema } from "@/domain/session-view"
 import { SCENARIO_HEADER, SCENARIO_QUERY } from "@/fixtures/scenarios"
 
 export class ApiError extends Error {
@@ -204,6 +205,8 @@ export const api = {
 
   createSession: (body: CreateSessionRequest, signal?: AbortSignal) =>
     apiFetch("/api/sessions", createSessionResponseSchema, { method: "POST", body, signal }),
+
+  getSession: (id: string, signal?: AbortSignal) => apiFetch(`/api/sessions/${enc(id)}`, getSessionResponseSchema, { signal }),
 
   /** POST /api/worlds/[id]/setup (ticket 02). */
   streamSetup: (worldId: string, options: { signal?: AbortSignal } = {}) =>

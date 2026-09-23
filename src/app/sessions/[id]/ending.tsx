@@ -23,6 +23,7 @@ import { bandFor } from "@/engine/config"
 import { api, ApiError } from "@/lib/api-client"
 
 import { TurnSection } from "./story"
+import { withScenario, worldHref } from "@/components/worlds/world-links"
 
 type Reached = Exclude<Ending, "none">
 
@@ -74,13 +75,13 @@ export function EndingScreen({
   const { state } = finalTurn
   const clueTotal = data.entries.filter((entry) => entry.kind === "clue" && entry.status !== "rejected").length
   const band = bandFor(state.reputation)
-  const worldHref = `/worlds/${encodeURIComponent(data.world.id)}/brief`
+  const worldPageHref = withScenario(worldHref(data.world))
 
   const startNew = async () => {
     setStarting(true)
     try {
       const { session } = await api.createSession({ worldId: data.world.id })
-      router.push(`/sessions/${encodeURIComponent(session.id)}`)
+      router.push(withScenario(`/sessions/${encodeURIComponent(session.id)}`))
     } catch (error) {
       setStarting(false)
       toast.add({
@@ -145,7 +146,7 @@ export function EndingScreen({
                   </TooltipContent>
                 </Tooltip>
               ) : null}
-              <Button variant="ghost" render={<Link href={worldHref} />} nativeButton={false}>
+              <Button variant="ghost" render={<Link href={worldPageHref} />} nativeButton={false}>
                 Return to the World
               </Button>
             </CardFooter>
