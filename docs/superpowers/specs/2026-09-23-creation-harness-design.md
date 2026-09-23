@@ -59,10 +59,10 @@ Friday acceptance criteria are those in `requirements.md` §13 (15 criteria).
 
 **Build order, which is also the reverse cut order** (last item is cut first if time runs short):
 
-1. Jev smoke test (day 1, first thing — see §9.5)
-2. Brief editor (Tiptap) and brief conversion
+1. Day-1 tests (first thing): Jev smoke test (§9.5) and BlockNote custom-block test (§7.4)
+2. Brief editor (BlockNote) and brief conversion
 3. Setup: draft, validate, solvability
-4. Setup review (Tiptap cards)
+4. Setup review (BlockNote entry blocks)
 5. Turn loop with Jev
 6. Harness pane (test mode)
 7. Codex pane editing during play
@@ -70,7 +70,7 @@ Friday acceptance criteria are those in `requirements.md` §13 (15 criteria).
 9. Pacing check
 10. Baseline mode and compare view
 
-Accepted consequence: the Tiptap editor consumes about one of the two days, so **baseline and compare (criterion 14) are expected to be cut for Friday**, and pacing (criterion 11) is at risk.
+Accepted consequence: the BlockNote editor consumes about one of the two days, so **baseline and compare (criterion 14) are expected to be cut for Friday**, and pacing (criterion 11) is at risk.
 
 Non-goals (from `requirements.md` §14, plus decisions made here): voice input, saves beyond the session table, accounts, multiple concurrent worlds as a feature, importing briefs from fiction, visual polish beyond legibility, automated creativity scoring, AI-invented places or objects, rolling story summaries (see §12), event-sourced state.
 
@@ -78,26 +78,26 @@ Non-goals (from `requirements.md` §14, plus decisions made here): voice input, 
 
 ## 5. Architecture
 
-**Stack:** Next.js (App Router), shadcn/ui, Tiptap, SQLite via Drizzle + better-sqlite3, Vercel AI SDK (Grok via the xAI provider, OpenAI via the OpenAI provider), TypeSafe SDK `@typesafe-ai/sdk` for Jev (falling back to `fetch` if the SDK cannot target the endpoint we are given). **No server actions:** client components call route handlers.
+**Stack:** Next.js (App Router), shadcn/ui, BlockNote (`@blocknote/react`, MPL-2.0, built on Tiptap; no `@blocknote/xl-*` packages), SQLite via Drizzle + better-sqlite3, Vercel AI SDK (Grok via the xAI provider, OpenAI via the OpenAI provider), TypeSafe SDK `@typesafe-ai/sdk` for Jev (falling back to `fetch` if the SDK cannot target the endpoint we are given). **No server actions:** client components call route handlers.
 
 ### 5.1 Modules (`src/`)
 
 | Module | Responsibility | I/O |
 |---|---|---|
-| `brief/` | Brief schema (zod); Tiptap JSON → brief conversion; brief → YAML rendering for prompts | None |
+| `brief/` | Brief schema (zod); BlockNote document → brief conversion; brief → YAML rendering for prompts | None |
 | `models/` | `Writer`, `Drafter`, `Judge` interfaces; real implementations; fakes for tests | Model APIs |
 | `codex/` | Entry create/edit/reject; session copy; codex slice selection per turn | DB |
 | `setup/` | Draft calls, Jev validation, solvability check (pure) | Models, DB |
 | `engine/` | Turn loop orchestration; pure core: `resolve`, `direct`, `checkEndings`; `config.ts` | Via injected interfaces only |
 | `rules/` | Rule catalog: each rule builds its Jev questions, holds thresholds and a feedback template | None |
 | `db/` | Drizzle schema, client, migrations | DB |
-| `editor/` | Shared Tiptap nodes (section, card, field, mention) used by brief, setup review and codex pane | Browser |
+| `editor/` | BlockNote schema: custom typed blocks and the entry mention, shared by brief, setup review and codex pane | Browser |
 
 ### 5.2 Routes
 
 | Route | Purpose |
 |---|---|
-| `POST /api/worlds` | Create a world from a brief (Tiptap JSON) |
+| `POST /api/worlds` | Create a world from a brief (BlockNote document) |
 | `PUT /api/worlds/[id]/brief` | Save brief edits |
 | `POST /api/worlds/[id]/setup` | Run setup (draft → validate → solvability); returns progress events as NDJSON, then the result |
 | `GET /api/worlds/[id]` | World, brief, entries, solvability result |
@@ -120,7 +120,7 @@ Four tables.
 |---|---|
 | `id` | |
 | `name` | |
-| `brief_doc` | Tiptap JSON, so the editor reopens exactly as left |
+| `brief_doc` | BlockNote document JSON, so the editor reopens exactly as left |
 | `brief_json` | Validated brief; locked |
 | `setup_status` | `draft` / `drafting` / `review` / `ready` |
 | `solvability_json` | Latest solvability result |
@@ -195,24 +195,42 @@ reputation, off_script_count, warnings_given[], pacing_nudge (bool + reason), en
 
 ## 7. The brief and editors
 
-### 7.1 Brief editor (Tiptap)
+### 7.1 Brief editor (BlockNote)
 
-- **Document shape:** section nodes → card nodes → field nodes. A field node has `label`, content, and a `hidden` attribute.
-- **Predefined template:** Setting (place, period); Characters (repeatable card: name, role, age, personality, backstory, player-character flag); Arcs (repeatable card: name, description, optional exit conditions); Ending; Locations (optional, repeatable); Voice (optional: guidelines, sample passages).
-- **Custom fields:** "+ Add field" on any card adds a field with an author-typed label. Custom fields become the item's `key_facts`. "+ Add section" adds a top-level custom section, which becomes locked brief text.
-- **Custom content is prompt-only.** It reaches the writer and the judge; code cannot act on it. Only predefined fields drive mechanics.
-- **Hidden toggle** on every field marks it secret.
-- **Conversion:** a function walks the Tiptap JSON and builds the brief object, validated with zod. Validation errors carry the node position so the editor highlights the field.
-- **Storage:** Tiptap JSON and validated brief JSON. YAML is rendered from the brief JSON for prompts and export; hidden fields are rendered with a `SECRET — never state or imply` marker in the writer's prompt.
+A Notion-style block editor. The document mixes **typed blocks** (which drive mechanics) with **free prose** (which is locked text for the writer and judge).
 
-### 7.2 Shared card editor
+- **Typed blocks**, inserted with the slash menu (`/character`, `/arc`, `/location`, `/setting`, `/ending`, `/voice`):
+  - **Setting:** place, period.
+  - **Character:** name, role, age, personality, backstory, aliases, player-character flag.
+  - **Arc:** name, description, optional exit conditions. Arcs can be reordered by drag; **document order is arc order**.
+  - **Ending:** the ending condition (e.g. "the killer is caught").
+  - **Location** (optional): name, description.
+  - **Voice** (optional): guidelines, sample passages.
+- **Custom fields:** each typed block has "+ Add field" for an author-labeled field. Custom fields become the item's `key_facts`.
+- **Free prose:** any paragraph, heading or list outside a typed block becomes locked brief text, grouped under the nearest heading. It reaches the writer and the judge; code cannot act on it. Only typed-block fields drive mechanics.
+- **Hidden toggle** on every field marks it secret. Together, hidden fields are the hidden truth.
+- **New brief template:** a new world opens with one Setting block, one player Character block, three Arc blocks and one Ending block, so a sparse brief is quick to fill in.
+- **Conversion:** a function walks the BlockNote document and builds the brief object, validated with zod. Validation errors carry the block id so the editor highlights the field.
+- **Storage:** BlockNote document JSON and validated brief JSON. YAML is rendered from the brief JSON for prompts and export; hidden fields are rendered with a `SECRET — never state or imply` marker in the writer's prompt.
+- **Validation rules:** exactly one player character; at least one arc; exactly one ending; every character has a name.
 
-The same Tiptap card/field nodes render entries on the setup review page and in the in-play codex pane:
+### 7.2 Entry editor (setup review and codex pane)
 
-- Card header: kind, source, status, Jev flags, **Accept** and **Reject** buttons.
-- References use Tiptap Mention nodes (`@Whitechapel`, `@C1`). A mention can only point at an existing, non-rejected entry.
-- Editing a card sets status `edited` and re-runs solvability (setup review) or takes effect from the next turn (play).
-- Locked entries render read-only.
+The same BlockNote schema, with one typed block per entry kind (location, character, npc, faction, clue, object, exit condition, knowledge, decisive action):
+
+- **Block header:** kind, source, status, Jev flags, **Accept** and **Reject** buttons.
+- **References** use a custom inline mention (`@Whitechapel`, `@C1`). The mention menu lists only existing, non-rejected entries, so the author cannot point at something that does not exist.
+- **Editing** a block sets status `edited`, then re-runs solvability (setup review) or takes effect from the next turn (play).
+- **Locked** entries render read-only.
+- Blocks are grouped under **World** and **Plan** headings; the slash menu is limited to entry kinds (no free prose) on these surfaces.
+
+### 7.3 Licensing
+
+Use only MPL-2.0 BlockNote packages (`@blocknote/core`, `@blocknote/react`, and a UI package such as `@blocknote/shadcn` or `@blocknote/mantine`). Do not use `@blocknote/xl-*` packages (GPL-3.0 or commercial).
+
+### 7.4 Day-1 BlockNote test (1 hour)
+
+A BlockNote custom block has flat typed props plus one content area; a Character needs several multi-paragraph fields. Verify on day 1 that a typed block can hold multiple labeled, multi-paragraph fields with a per-field hidden toggle, most likely as nested child blocks (one "field" block per field) under a typed parent block. Pass: a Character block with personality, backstory and one custom field round-trips through conversion to the brief object. **Fallback** if it fails: plain Tiptap with custom nodes (section → card → field), the open-source Tiptap drag-handle extension, and a slash menu built on `@tiptap/suggestion`.
 
 ---
 
@@ -227,7 +245,7 @@ The same Tiptap card/field nodes render entries on the setup review page and in 
    - **Solvability (code, pure):** for every decisive action, each required clue exists, is not a red herring, and is reachable: either at a location connected to the start location, or held by a character with a knowledge entry revealing it at `normal` band or lower. Every arc has at least one exit condition.
    - **Jev:** one call with two `noul` questions per drafted entry — "does this contradict the brief?" and, for locations, "does this fit the setting and period?" Failures set `jev_flags`; nothing is deleted.
    - **On solvability failure:** re-run the plan call with the failure list as feedback, at most 2 times. If it still fails, show the author the exact gaps (e.g. "C4 sits at an unreachable location").
-4. **Review.** Author accepts, edits or rejects entries on the card editor. Solvability re-runs after every change. **Start** is enabled while solvability passes. Entries may remain `proposed`; proposed entries are canon (`requirements.md` §5). Historical accuracy of real places is the author's call; Jev is not relied on for factual history.
+4. **Review.** Author accepts, edits or rejects entries in the entry editor (§7.2). Solvability re-runs after every change. **Start** is enabled while solvability passes. Entries may remain `proposed`; proposed entries are canon (`requirements.md` §5). Historical accuracy of real places is the author's call; Jev is not relied on for factual history.
 
 Expected setup time: 30–60 seconds, once per world.
 
@@ -334,11 +352,11 @@ Each rule has a feedback template. A failure becomes one line to the writer, e.g
 
 ## 11. UI
 
-- **`/worlds/[id]/brief`:** Tiptap brief editor; **Run setup** button with progress.
-- **`/worlds/[id]/setup`:** card editor grouped into **World** (locations, characters, NPCs, factions, clues, objects) and **Plan** (exit conditions, knowledge, decisive actions); per-card accept / edit / reject; Jev flags; solvability banner listing any gaps; **Start**.
+- **`/worlds/[id]/brief`:** BlockNote brief editor; **Run setup** button with progress.
+- **`/worlds/[id]/setup`:** entry editor grouped into **World** (locations, characters, NPCs, factions, clues, objects) and **Plan** (exit conditions, knowledge, decisive actions); per-block accept / edit / reject; Jev flags; solvability banner listing any gaps; **Start**.
 - **`/sessions/[id]`:**
   - **Story pane** (center): passages with a client-side animated reveal; free-text input; ending screen.
-  - **Codex pane** (right drawer): the same card editor, grouped by kind, tagged by source and status, editable during play. Edits apply from the next turn.
+  - **Codex pane** (right drawer): the same entry editor, grouped by kind, tagged by source and status, editable during play. Edits apply from the next turn.
   - **Harness pane**, shown only when **test mode** is on (header switch, remembered in `localStorage`): per finished turn — intent, classification with confidence, resolved outcome, each draft with rule results and probabilities (rejected drafts struck through), flagged answers, discovery results, background results; current arc and exit conditions; clues found; knowledge revealed; reputation value and band; off-script count against threshold; pacing nudges.
   - Raw detail (prompts, full Jev payloads, timings) goes to the server console.
 - **Compare view** (last in build order, expected cut): two sessions of the same replay script side by side, harness vs baseline.
@@ -364,7 +382,7 @@ Each rule has a feedback template. A failure becomes one line to the writer, e.g
 
 ## 14. Testing
 
-- **Unit (Vitest), with fake models:** resolver (every intent × classification branch, penalties, endings, seeded death roll), solvability check, directive builder, ending check, codex slice selection, Tiptap JSON → brief conversion and validation.
+- **Unit (Vitest), with fake models:** resolver (every intent × classification branch, penalties, endings, seeded death roll), solvability check, directive builder, ending check, codex slice selection, BlockNote document → brief conversion and validation.
 - **Jev smoke test:** §9.5, day 1.
 - **Acceptance:** replay scripts against real APIs, one per criterion in `requirements.md` §13, checked by reading the session's harness log.
 
@@ -396,7 +414,8 @@ Environment: `XAI_API_KEY`, `WRITER_MODEL`, `OPENAI_API_KEY`, `DRAFTER_MODEL`, `
 ## 16. Risks
 
 1. **Jev on long prose is unproven.** Its published examples are short, dense inputs. Mitigation: day-1 smoke test; rephrase or split rules that fail; tune thresholds in playtesting.
-2. **Schedule.** Tiptap for three surfaces consumes about a day of two. Mitigation: agreed cut order (§4).
-3. **Latency estimates are unmeasured.** Mitigation: day-1 measurement; passage length and model choice are config.
-4. **Two drafts double Grok cost per turn.** Accepted for the latency gain.
-5. **Short memory.** Events older than 4 passages survive only through state and codex (§12).
+2. **Schedule.** The BlockNote editor for three surfaces consumes about a day of two. Mitigation: agreed cut order (§4).
+3. **BlockNote custom blocks with multi-field content are unverified.** Mitigation: 1-hour test on day 1 (§7.4) with a defined fallback.
+4. **Latency estimates are unmeasured.** Mitigation: day-1 measurement; passage length and model choice are config.
+5. **Two drafts double Grok cost per turn.** Accepted for the latency gain.
+6. **Short memory.** Events older than 4 passages survive only through state and codex (§12).
