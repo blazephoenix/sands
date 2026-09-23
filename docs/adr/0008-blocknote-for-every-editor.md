@@ -15,5 +15,5 @@ The Author wanted a Notion-like authoring experience. BlockNote is a Notion-styl
 ## Consequences
 
 - Only MPL-2.0 BlockNote packages are used; the `@blocknote/xl-*` packages are GPL-3.0 or commercial.
-- Unverified: whether a typed block holds several labelled multi-paragraph fields with per-field Hidden toggles. It is tested first; the fallback is plain Tiptap with custom nodes, the free drag-handle extension and a slash menu on `@tiptap/suggestion`.
+- Settled: a typed block could hold labelled, Hidden-able fields (the spec §7.4 test passed), but the Author chose plain documents with `Label: value` fields instead (ADR-0013). The Tiptap fallback was not needed.
 - The editor costs about a day of the two before the first demo, which is why the baseline is expected to be cut (ADR-0012).

@@ -5,16 +5,13 @@
  * Page tickets: do not bind these combinations to page actions.
  */
 export const EDITOR_SHORTCUTS = {
-  /** Toggle Hidden on the field holding the cursor. */
+  /** Toggle the Hidden style on the selected text (also the eye button in the formatting toolbar). */
   toggleHidden: "Mod-Shift-h",
-  /** Add a custom field after the one holding the cursor, and focus its label. */
-  addField: "Mod-Shift-Enter",
-  /** Move the current block up or down: the keyboard alternative to dragging (BlockNote built-in). */
+  /** Open the block menu for the block holding the cursor: the keyboard route to the ⠿ menu. */
+  blockMenu: "Mod-/",
+  /** Move the section (or block) holding the cursor up or down: the keyboard alternative to dragging. */
   moveUp: "Shift-Mod-ArrowUp",
   moveDown: "Shift-Mod-ArrowDown",
-  /** Next and previous field (inside typed and Entry blocks). */
-  nextField: "Tab",
-  previousField: "Shift-Tab",
 } as const
 
 export type EditorShortcut = keyof typeof EDITOR_SHORTCUTS

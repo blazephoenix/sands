@@ -2,6 +2,9 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* BlockNote's shadcn UI ships Tailwind classes; generate them (see blocknotejs.org/docs/getting-started/shadcn). */
+@source "../../node_modules/@blocknote/shadcn";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -116,6 +119,18 @@
     --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* UX bar: under reduced motion every animation is instant and every reveal completes at once. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -126,4 +141,186 @@
   html {
     @apply font-sans;
     }
+}
+/*
+ * Shared editor (src/editor): a plain BlockNote document (editor-design.md).
+ * Semantic tokens only. Unlayered on purpose: BlockNote's own CSS is
+ * unlayered, and layered rules would lose to it.
+ */
+
+/* The document sits on the page's own background. */
+.sands-editor .bn-editor {
+  background: transparent;
+}
+
+/* Section headings: a muted uppercase label line, then the name. No card, no nesting. */
+.sands-heading {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding-top: 1.25rem;
+}
+.sands-heading-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  user-select: none;
+}
+.sands-editor .sands-heading-label svg:not([class*="size-"]) {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+.sands-heading-bit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.sands-heading-flag {
+  cursor: help;
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+.sands-heading-flag[data-failed] {
+  color: var(--destructive);
+}
+.sands-heading-flag:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+.sands-heading-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.sands-heading[data-invalid] .sands-heading-label {
+  color: var(--destructive);
+}
+
+/* Rejected Entries: the heading struck through, its fields folded away. */
+.sands-heading[data-status="rejected"] .sands-heading-name {
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+}
+.sands-editor .bn-block-outer[data-sands-status="rejected"] {
+  display: none;
+}
+
+/* Fields and prose read at a comfortable measure. */
+.sands-editor .bn-inline-content {
+  max-width: 65ch;
+  line-height: 1.65;
+}
+
+/* A muted hint after an empty known "Label:". */
+.sands-field-hint {
+  color: color-mix(in oklch, var(--muted-foreground) 70%, transparent);
+  font-style: italic;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* A validation note at the end of the block it concerns. */
+.sands-field-note {
+  margin-left: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  user-select: none;
+}
+.sands-field-note[data-severity="error"] {
+  color: var(--destructive);
+}
+.sands-heading > .sands-field-note {
+  margin-left: 0;
+}
+.sands-editor .bn-block-outer[data-sands-note="error"] > .bn-block > .bn-block-content {
+  box-shadow: inset 2px 0 0 var(--destructive);
+  padding-left: 0.5rem;
+}
+
+/* Hidden text: muted, with a dashed underline. */
+.sands-hidden {
+  color: var(--muted-foreground);
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-color: var(--muted-foreground);
+  text-underline-offset: 4px;
+}
+
+/* World / Story logic dividers. */
+.sands-divider {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  margin-top: 1.75rem;
+  padding-bottom: 0.375rem;
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+.sands-divider-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.sands-divider-counts {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+/* Entry mentions */
+.sands-mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.375rem;
+  border-radius: var(--radius-sm);
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-size: 0.9em;
+  line-height: 1.5;
+  vertical-align: baseline;
+  cursor: default;
+}
+.sands-editor .sands-mention > svg:not([class*="size-"]) {
+  width: 0.8em;
+  height: 0.8em;
+  flex-shrink: 0;
+}
+.sands-mention.is-broken {
+  border: 1px dashed var(--destructive);
+  background: transparent;
+  color: var(--destructive);
+  text-decoration: line-through;
+}
+
+/* Jump-to highlight (validation summary, solvability gaps). */
+.sands-editor .bn-block[data-flash] {
+  border-radius: var(--radius-md);
+  animation: sands-flash 1.6s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sands-editor .bn-block[data-flash] {
+    animation: none;
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@keyframes sands-flash {
+  0%,
+  40% {
+    box-shadow: 0 0 0 3px var(--ring);
+  }
+  100% {
+    box-shadow: 0 0 0 3px transparent;
+  }
 }
