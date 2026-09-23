@@ -197,18 +197,20 @@ reputation, off_script_count, warnings_given[], pacing_nudge (bool + reason), en
 
 ### 7.1 Brief editor (BlockNote)
 
-A Notion-style block editor. The document mixes **typed blocks** (which drive mechanics) with **free prose** (which is locked text for the writer and judge).
+A Notion-style block editor. The document mixes **section headings with `Label: value` fields** (which drive mechanics) with **free prose** (which is locked text for the writer and judge).
 
-- **Typed blocks**, inserted with the slash menu (`/character`, `/arc`, `/location`, `/setting`, `/ending`, `/voice`):
-  - **Setting:** place, period.
-  - **Character:** name, role, age, personality, backstory, aliases, player-character flag.
-  - **Arc:** name, description, optional exit conditions. Arcs can be reordered by drag; **document order is arc order**.
-  - **Ending:** the ending condition (e.g. "the killer is caught").
-  - **Location** (optional): name, description.
-  - **Voice** (optional): guidelines, sample passages.
-- **Custom fields:** each typed block has "+ Add field" for an author-labeled field. Custom fields become the item's `key_facts`.
-- **Free prose:** any paragraph, heading or list outside a typed block becomes locked brief text, grouped under the nearest heading. It reaches the writer and the judge; code cannot act on it. Only typed-block fields drive mechanics.
-- **Hidden toggle** on every field marks it secret. Together, hidden fields are the hidden truth.
+- **The editor is a plain BlockNote document** (Author's choice from a UI prototype, 2026-09-23): no form controls inside blocks; every control lives in BlockNote's own menus (slash menu, ⠿ side menu, formatting toolbar).
+- **Section headings** are the only custom blocks, inserted with the slash menu (`/character`, `/arc`, `/location`, `/setting`, `/ending`, `/voice`): an icon and kind label, then the name for Character, Arc and Location. They have no children. **Document order is arc order.**
+- **Fields** are ordinary paragraphs under a section heading that read `Label: value` (Shift+Enter for a second line). The known labels per kind are:
+  - **Setting:** Place, Period.
+  - **Character:** Role, Age, Personality, Backstory, Aliases. **Player character** is a prop on the heading, toggled from the ⠿ menu.
+  - **Arc:** Description, Exit condition.
+  - **Ending:** Condition (e.g. "the killer is caught").
+  - **Location** (optional): Description.
+  - **Voice** (optional): Guidelines, Sample passage.
+- **Custom fields:** any other label is an Author-labelled field and becomes the item's `key_facts`. A near-miss of a known label is reported as a probable typo.
+- **Free prose:** any block that is not `Label: value` under a section heading becomes locked brief text, grouped under the nearest standard heading, and ends the current section. It reaches the writer and the judge; code cannot act on it. Only section headings and their fields drive mechanics.
+- **Hidden** is a text style applied from the formatting toolbar; a field whose value carries it is secret. Together, hidden fields are the hidden truth.
 - **New brief template:** a new world opens with one Setting block, one player Character block, three Arc blocks and one Ending block, so a sparse brief is quick to fill in.
 - **Conversion:** a function walks the BlockNote document and builds the brief object, validated with zod. Validation errors carry the block id so the editor highlights the field.
 - **Storage:** BlockNote document JSON and validated brief JSON. YAML is rendered from the brief JSON for prompts and export; hidden fields are rendered with a `SECRET — never state or imply` marker in the writer's prompt.
@@ -216,9 +218,9 @@ A Notion-style block editor. The document mixes **typed blocks** (which drive me
 
 ### 7.2 Entry editor (setup review and codex pane)
 
-The same BlockNote schema, with one typed block per entry kind (location, character, npc, faction, clue, object, exit condition, knowledge, decisive action):
+The same BlockNote editor and pattern as §7.1, with one section heading per entry kind (location, character, npc, faction, clue, object, exit condition, knowledge, decisive action):
 
-- **Block header:** kind, source, status, Jev flags, **Accept** and **Reject** buttons.
+- **Entry heading:** kind icon and kind, handle, source, status and Jev-flag marker as a plain-text label line, then the name. **Accept**, **Reject** and **Restore** are in the ⠿ menu. Fields are `Label: value` paragraphs, including kind-specific data (e.g. `Red herring: yes`, `Requires: @C1, @C3`).
 - **References** use a custom inline mention (`@Whitechapel`, `@C1`). The mention menu lists only existing, non-rejected entries, so the author cannot point at something that does not exist.
 - **Editing** a block sets status `edited`, then re-runs solvability (setup review) or takes effect from the next turn (play).
 - **Locked** entries render read-only.
@@ -228,7 +230,7 @@ The same BlockNote schema, with one typed block per entry kind (location, charac
 
 Use only MPL-2.0 BlockNote packages (`@blocknote/core`, `@blocknote/react`, and a UI package such as `@blocknote/shadcn` or `@blocknote/mantine`). Do not use `@blocknote/xl-*` packages (GPL-3.0 or commercial).
 
-### 7.4 Day-1 BlockNote test (1 hour)
+### 7.4 Day-1 BlockNote test (1 hour) — passed; superseded by the §7.1 design
 
 A BlockNote custom block has flat typed props plus one content area; a Character needs several multi-paragraph fields. Verify on day 1 that a typed block can hold multiple labeled, multi-paragraph fields with a per-field hidden toggle, most likely as nested child blocks (one "field" block per field) under a typed parent block. Pass: a Character block with personality, backstory and one custom field round-trips through conversion to the brief object. **Fallback** if it fails: plain Tiptap with custom nodes (section → card → field), the open-source Tiptap drag-handle extension, and a slash menu built on `@tiptap/suggestion`.
 
