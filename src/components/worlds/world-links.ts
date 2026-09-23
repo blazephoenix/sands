@@ -23,7 +23,27 @@ export function setupReviewHref(worldId: string) {
   return `/worlds/${encodeURIComponent(worldId)}/setup`
 }
 
-/** Where a World opens from the Worlds home: its Brief until setup has run, then the setup review. */
+/** The World page: a playable World's Sessions. For any other World it sends the Author on to `worldHref`. */
+export function worldPageHref(worldId: string) {
+  return `/worlds/${encodeURIComponent(worldId)}`
+}
+
+export function sessionHref(sessionId: string) {
+  return `/sessions/${encodeURIComponent(sessionId)}`
+}
+
+/**
+ * Where a World opens: its Brief until setup has run, the setup review while
+ * the Author reviews, and the World page, with its Sessions, once it is ready.
+ */
 export function worldHref(world: { id: string; setupStatus: SetupStatus }) {
-  return world.setupStatus === "draft" || world.setupStatus === "drafting" ? briefHref(world.id) : setupReviewHref(world.id)
+  switch (world.setupStatus) {
+    case "draft":
+    case "drafting":
+      return briefHref(world.id)
+    case "review":
+      return setupReviewHref(world.id)
+    case "ready":
+      return worldPageHref(world.id)
+  }
 }

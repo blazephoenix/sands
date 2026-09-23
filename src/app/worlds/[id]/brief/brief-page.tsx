@@ -519,7 +519,7 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
 
   return (
     <PageFrame>
-      <ShellBreadcrumbs items={worldCrumbs({ id: worldId, name }, "Brief")} />
+      <ShellBreadcrumbs items={worldCrumbs({ id: worldId, name, setupStatus: world.setupStatus }, "Brief")} />
       <ShellActions>
         <SaveIndicator status={status} onSaveNow={() => void saveNow()} confirmKey={confirmKey} />
         {locked ? (

@@ -17,13 +17,14 @@ import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import type { Ending } from "@/domain/session"
+import { playerTurnCount, type Ending } from "@/domain/session"
 import type { GetSessionResponse } from "@/domain/session-view"
 import { bandFor } from "@/engine/config"
 import { api, ApiError } from "@/lib/api-client"
 
+import { sessionHref, withScenario, worldHref } from "@/components/worlds/world-links"
+
 import { TurnSection } from "./story"
-import { withScenario, worldHref } from "@/components/worlds/world-links"
 
 type Reached = Exclude<Ending, "none">
 
@@ -81,7 +82,7 @@ export function EndingScreen({
     setStarting(true)
     try {
       const { session } = await api.createSession({ worldId: data.world.id })
-      router.push(withScenario(`/sessions/${encodeURIComponent(session.id)}`))
+      router.push(withScenario(sessionHref(session.id)))
     } catch (error) {
       setStarting(false)
       toast.add({
@@ -116,7 +117,7 @@ export function EndingScreen({
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-3 gap-4 text-center">
-                <Stat label="Turns played" value={String(data.turns.length)} />
+                <Stat label="Turns played" value={String(playerTurnCount(data.turns.length))} />
                 <Stat label="Clues found" value={clueTotal > 0 ? `${state.cluesFound.length} of ${clueTotal}` : String(state.cluesFound.length)} />
                 <Stat
                   label="Reputation"

@@ -23,6 +23,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import { withScenario, worldHref } from "@/components/worlds/world-links"
+import type { SetupStatus } from "@/domain/world"
 
 type Slots = {
   breadcrumbs: HTMLElement | null
@@ -88,9 +90,12 @@ export function ShellBreadcrumbs({ items }: { items: Crumb[] }) {
   )
 }
 
-/** Breadcrumbs for a page of a World: World name (linking to its Brief), then the page. */
-export function worldCrumbs(world: { id: string; name: string }, page: "Brief" | "Setup" | { session: string; href?: string }): Crumb[] {
-  const worldCrumb: Crumb = { label: world.name || "Untitled World", href: `/worlds/${encodeURIComponent(world.id)}/brief` }
-  if (typeof page === "string") return [worldCrumb, { label: page }]
-  return [worldCrumb, { label: "Setup", href: `/worlds/${encodeURIComponent(world.id)}/setup` }, { label: page.session }]
+/**
+ * Breadcrumbs for a page of a World: the World's name, linking to where the
+ * World opens (`worldHref`: the World page once it is ready), then the page.
+ * A Session page reads World › Session N. Keeps the page's `?scenario=`.
+ */
+export function worldCrumbs(world: { id: string; name: string; setupStatus: SetupStatus }, page: "Brief" | "Setup" | { session: string }): Crumb[] {
+  const worldCrumb: Crumb = { label: world.name || "Untitled World", href: withScenario(worldHref(world)) }
+  return [worldCrumb, { label: typeof page === "string" ? page : page.session }]
 }

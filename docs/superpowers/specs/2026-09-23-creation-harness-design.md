@@ -359,6 +359,7 @@ Each rule has a feedback template. A failure becomes one line to the writer, e.g
 ## 11. UI
 
 - **`/worlds/[id]/brief`:** BlockNote brief editor; **Run setup** button with progress.
+- **`/worlds/[id]`:** a ready world's sessions, most recent first, and **New Session**. A world that is not ready goes to its brief or its setup review.
 - **`/worlds/[id]/setup`:** entry editor grouped into **World** (locations, characters, NPCs, factions, clues, objects) and **Story logic** (exit conditions, knowledge, decisive actions); per-block accept / edit / reject; Jev flags; solvability banner listing any gaps; **Start**.
 - **`/sessions/[id]`:**
   - **Story pane** (center): passages with a client-side animated reveal; free-text input; ending screen.
