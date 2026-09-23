@@ -35,7 +35,7 @@ export type SolvabilityInput = {
 }
 
 /** "C1 — Matching knife wounds" -> "C1"; a Clue without a handle goes by its name. */
-function clueHandle(clue: Entry) {
+export function clueHandle(clue: Pick<Entry, "name">) {
   return /^([A-Z]{1,2}\d{1,3})\b/u.exec(clue.name.trim())?.[1] ?? (clue.name.trim() || "An unnamed Clue")
 }
 
