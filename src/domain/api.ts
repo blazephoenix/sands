@@ -7,7 +7,7 @@ import { z } from "zod"
 
 import { entryContentSchema, entrySchema, entryStatusSchema } from "./entry"
 import { endingSchema, sessionSchema } from "./session"
-import { solvabilityResultSchema, worldSchema } from "./world"
+import { setupStatusSchema, solvabilityResultSchema, worldSchema } from "./world"
 
 /** Every non-2xx JSON response. `message` states the cause and the next step. */
 export const apiErrorBodySchema = z.object({
@@ -34,6 +34,59 @@ export const getWorldResponseSchema = z.object({
   sessions: z.array(sessionSummarySchema),
 })
 export type GetWorldResponse = z.infer<typeof getWorldResponseSchema>
+
+/** One row of the Worlds home. */
+export const worldSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  setupStatus: setupStatusSchema,
+  sessionCount: z.number().int().min(0),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+})
+export type WorldSummary = z.infer<typeof worldSummarySchema>
+
+/**
+ * GET /api/worlds: every World, most recently updated first. Not in spec §5.2;
+ * added by ticket 02 for the Worlds home.
+ */
+export const listWorldsResponseSchema = z.object({
+  worlds: z.array(worldSummarySchema),
+})
+export type ListWorldsResponse = z.infer<typeof listWorldsResponseSchema>
+
+/**
+ * POST /api/worlds: create a World in `draft`. With no `briefDoc`, the Brief
+ * starts as the new-Brief template (spec §7.1).
+ */
+export const createWorldRequestSchema = z.object({
+  name: z.string().trim().max(200).default(""),
+  briefDoc: z.array(z.unknown()).optional(),
+})
+export type CreateWorldRequest = z.input<typeof createWorldRequestSchema>
+
+export const createWorldResponseSchema = z.object({ world: worldSchema })
+export type CreateWorldResponse = z.infer<typeof createWorldResponseSchema>
+
+/**
+ * PUT /api/worlds/[id]/brief: autosave. Sends the whole Brief document and/or
+ * the World's name. The server converts the document and stores the validated
+ * Brief when it passes §7.1 (null otherwise). The Brief is locked once setup
+ * has started: a `briefDoc` for a World past `draft` answers 409. The name can
+ * change at any time.
+ */
+export const saveBriefRequestSchema = z
+  .object({
+    name: z.string().trim().max(200).optional(),
+    briefDoc: z.array(z.unknown()).optional(),
+  })
+  .refine((body) => body.name !== undefined || body.briefDoc !== undefined, {
+    message: "Send a name, a Brief document, or both.",
+  })
+export type SaveBriefRequest = z.input<typeof saveBriefRequestSchema>
+
+export const saveBriefResponseSchema = z.object({ world: worldSchema })
+export type SaveBriefResponse = z.infer<typeof saveBriefResponseSchema>
 
 /**
  * PATCH /api/entries/[id]: accept, edit or reject an Entry, a World template

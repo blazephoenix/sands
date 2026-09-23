@@ -16,11 +16,16 @@ import {
   apiErrorBodySchema,
   createEntryResponseSchema,
   createSessionResponseSchema,
+  createWorldResponseSchema,
   getWorldResponseSchema,
+  listWorldsResponseSchema,
   patchEntryResponseSchema,
+  saveBriefResponseSchema,
   type CreateEntryRequest,
   type CreateSessionRequest,
+  type CreateWorldRequest,
   type PatchEntryRequest,
+  type SaveBriefRequest,
   type TurnRequest,
 } from "@/domain/api"
 import { setupEventSchema, turnEventSchema } from "@/domain/events"
@@ -58,9 +63,11 @@ type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
   body?: unknown
   signal?: AbortSignal
+  /** Let the request outlive the page (a last save as the page unloads). Bodies over 64 KB are refused by the browser. */
+  keepalive?: boolean
 }
 
-async function send(path: string, { method = "GET", body, signal }: RequestOptions, accept: string): Promise<Response> {
+async function send(path: string, { method = "GET", body, signal, keepalive }: RequestOptions, accept: string): Promise<Response> {
   const headers: Record<string, string> = { accept }
   if (body !== undefined) headers["content-type"] = "application/json"
   const scenario = currentScenario()
@@ -73,6 +80,7 @@ async function send(path: string, { method = "GET", body, signal }: RequestOptio
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
       signal,
+      keepalive,
       cache: "no-store",
     })
   } catch (error) {
@@ -176,6 +184,17 @@ const enc = encodeURIComponent
 /** Typed calls for the shared routes, plus the two streaming routes tickets 02 and 04 implement. */
 export const api = {
   getWorld: (id: string, signal?: AbortSignal) => apiFetch(`/api/worlds/${enc(id)}`, getWorldResponseSchema, { signal }),
+
+  /** GET /api/worlds (ticket 02): the Worlds home list. */
+  listWorlds: (signal?: AbortSignal) => apiFetch("/api/worlds", listWorldsResponseSchema, { signal }),
+
+  /** POST /api/worlds (ticket 02): a new World in draft, its Brief the new-Brief template unless one is given. */
+  createWorld: (body: CreateWorldRequest = {}, signal?: AbortSignal) =>
+    apiFetch("/api/worlds", createWorldResponseSchema, { method: "POST", body, signal }),
+
+  /** PUT /api/worlds/[id]/brief (ticket 02): autosave of the Brief document and the World's name. */
+  saveBrief: (worldId: string, body: SaveBriefRequest, options: { signal?: AbortSignal; keepalive?: boolean } = {}) =>
+    apiFetch(`/api/worlds/${enc(worldId)}/brief`, saveBriefResponseSchema, { method: "PUT", body, ...options }),
 
   patchEntry: (id: string, body: PatchEntryRequest, signal?: AbortSignal) =>
     apiFetch(`/api/entries/${enc(id)}`, patchEntryResponseSchema, { method: "PATCH", body, signal }),
