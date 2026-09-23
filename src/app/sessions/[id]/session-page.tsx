@@ -7,15 +7,21 @@
  */
 import * as React from "react"
 import Link from "next/link"
-import { SearchXIcon, TriangleAlertIcon } from "lucide-react"
+import { BookOpenIcon, SearchXIcon, TriangleAlertIcon } from "lucide-react"
 
-import { ShellBreadcrumbs, worldCrumbs } from "@/components/app-shell"
+import { ShellActions, ShellBreadcrumbs, worldCrumbs } from "@/components/app-shell"
+import { ShortcutKeys } from "@/components/shortcut-keys"
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { GetSessionResponse } from "@/domain/session-view"
+import { useSingleKeyShortcut } from "@/lib/keyboard"
 import { cn } from "@/lib/utils"
 
+import { CodexPane, unseenPlayEntries } from "./codex-pane"
 import { EndingScreen } from "./ending"
 import { Composer, PROSE, StoryEmpty, StorySkeleton, TurnSection, scrollToElement } from "./story"
 import { useSession } from "./use-session"
@@ -74,7 +80,7 @@ export function playerNameOf(data: GetSessionResponse) {
 }
 
 function SessionView({ data, session }: { data: GetSessionResponse; session: SessionState }) {
-  const { run, playTurn, revealing, finishReveal, backgroundPending } = session
+  const { run, playTurn, revealing, finishReveal, backgroundPending, update, localEntries } = session
   const [draft, setDraft] = React.useState("")
   const [announcement, setAnnouncement] = React.useState("")
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
@@ -83,6 +89,11 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
   const playerName = playerNameOf(data)
   const ended = data.session.ending !== "none"
   const turns = ended ? data.turns.slice(0, -1) : data.turns
+
+  const [sheet, setSheet] = React.useState<"codex" | "harness" | null>(null)
+  const toggleSheet = (which: "codex" | "harness") => setSheet((open) => (open === which ? null : which))
+  useSingleKeyShortcut("c", () => toggleSheet("codex"))
+  const newEntries = unseenPlayEntries(data.entries).length
 
   // On load: the latest Turn in view, the cursor in the input.
   React.useEffect(() => {
@@ -129,6 +140,32 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
   return (
     <div className="flex flex-1 flex-col">
       <ShellBreadcrumbs items={worldCrumbs(data.world, { session: `Session ${data.sessionNumber}` })} />
+      <ShellActions>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                variant={sheet === "codex" ? "secondary" : "ghost"}
+                size="sm"
+                aria-expanded={sheet === "codex"}
+                aria-label={newEntries > 0 ? `Codex, ${newEntries} new` : "Codex"}
+                onClick={() => toggleSheet("codex")}
+              />
+            }
+          >
+            <BookOpenIcon data-icon="inline-start" />
+            Codex
+            {/* Always rendered, so the header does not shift when a new Entry lands. */}
+            <Badge variant="secondary" className={cn("tabular-nums", newEntries === 0 && "invisible")} aria-hidden>
+              {newEntries} new
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            {sheet === "codex" ? "Close the Codex" : "Open the Codex"}
+            <ShortcutKeys shortcut="c" />
+          </TooltipContent>
+        </Tooltip>
+      </ShellActions>
       <h1 className="sr-only">
         {data.world.name}, Session {data.sessionNumber}
       </h1>
@@ -167,6 +204,7 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
             revealing={revealing === data.turns.at(-1)?.id}
             onRevealed={finishReveal}
             headingRef={endingRef}
+            onOpenCodex={() => setSheet("codex")}
           />
         ) : null}
       </article>
@@ -183,6 +221,20 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
           inputRef={inputRef}
         />
       )}
+
+      <Sheet open={sheet !== null} onOpenChange={(open) => (open ? undefined : setSheet(null))}>
+        <SheetContent side="right" finalFocus={ended ? true : inputRef} className="w-full gap-0 data-[side=right]:sm:max-w-2xl">
+          {sheet === "codex" ? (
+            <>
+              <SheetHeader>
+                <SheetTitle>Codex</SheetTitle>
+                <SheetDescription>This Session&apos;s Entries. Edits and status changes apply from the next Turn.</SheetDescription>
+              </SheetHeader>
+              <CodexPane data={data} update={update} localEntries={localEntries} />
+            </>
+          ) : null}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
