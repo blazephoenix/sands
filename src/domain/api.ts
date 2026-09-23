@@ -21,6 +21,7 @@ export type ApiErrorBody = z.infer<typeof apiErrorBodySchema>
 export const sessionSummarySchema = z.object({
   id: z.string(),
   ending: endingSchema,
+  /** Every Turn, the Opening included; `playerTurnCount` gives the Turns the Player played. */
   turnCount: z.number().int().min(0),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
@@ -144,8 +145,16 @@ export const createSessionResponseSchema = z.object({
 })
 export type CreateSessionResponse = z.infer<typeof createSessionResponseSchema>
 
-/** POST /api/sessions/[id]/turn: the Player's input. The response is an NDJSON stream of `TurnEvent`s. */
+/**
+ * POST /api/sessions/[id]/turn: the Player's input, or `null` to play the
+ * Opening (spec §9.0), mirroring the Turn's `playerInput`. The response is an
+ * NDJSON stream of `TurnEvent`s.
+ *
+ * 409 when the request does not fit the Session: an Opening for a Session
+ * that already has Turns (or whose Opening is being written right now), or a
+ * Player input for a Session that has not had its Opening yet.
+ */
 export const turnRequestSchema = z.object({
-  input: z.string().trim().min(1, "Type what Jacob does before sending."),
+  input: z.string().trim().min(1, "Type what Jacob does before sending.").nullable(),
 })
 export type TurnRequest = z.infer<typeof turnRequestSchema>

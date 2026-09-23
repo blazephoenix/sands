@@ -1,21 +1,32 @@
 /**
- * POST /api/sessions/[id]/turn: play one Turn (spec §9.1). Streams NDJSON
- * progress, then the whole Turn; never prose (ADR-0003). Nothing is saved
- * unless a Passage ships, so a failure or a disconnect changes nothing.
+ * POST /api/sessions/[id]/turn: play one Turn (spec §9.1), or the Opening
+ * with `input: null` (spec §9.0). Streams NDJSON progress, then the whole
+ * Turn; never prose (ADR-0003). Nothing is saved unless a Passage ships, so a
+ * failure or a disconnect changes nothing.
+ *
+ * 409 before streaming when the request does not fit the Session: it has
+ * ended; an Opening is asked of a Session that already has Turns, or whose
+ * Opening another request is writing now; a Player input is sent to a
+ * Session that has not had its Opening.
  *
  * Fixture-backed: it plays the Turn script with realistic timing (3-5 s).
  * Scenarios: `judge-outage` fails while judging Round 1; `second-round` and
  * `flagged-turn` force extra Rounds; `background-pending` makes the Turn wait
- * for the last Turn's background work; `ending-*` force an Ending.
+ * for the last Turn's background work; `ending-*` force an Ending. The
+ * Opening honours `judge-outage`, `second-round` and `flagged-turn`; it has no
+ * earlier background work to wait for and no Ending to force.
  */
 import { turnRequestSchema } from "@/domain/api"
 import type { TurnEvent } from "@/domain/events"
 import type { ScenarioId } from "@/fixtures/scenarios"
 import { StoreError } from "@/fixtures/store"
 import {
+  claimOpening,
   commitTurn,
   getSession,
+  listTurns,
   pendingBackground,
+  planOpening,
   planTurn,
   settleBackground,
   type ForcedEnding,
@@ -73,7 +84,15 @@ export const POST = handle(async (request: Request, { params }: Context) => {
   if (session.ending !== "none") {
     throw new HttpError(409, "conflict", "This Session has ended. Start a new Session from its World to play again.")
   }
+  const hasTurns = listTurns(id).length > 0
+  if (input === null && hasTurns) {
+    throw new HttpError(409, "conflict", "This Session has already had its Opening. Reload the page to see it.")
+  }
+  if (input !== null && !hasTurns) {
+    throw new HttpError(409, "conflict", "This Session has not had its Opening yet. Reload the page to play it, then act.")
+  }
   const scenarios = getScenarios(request)
+  if (input === null) return playOpening(request, id, scenarios)
 
   return ndjsonResponse<TurnEvent>(
     async (emit, elapsed, signal) => {
@@ -122,3 +141,41 @@ export const POST = handle(async (request: Request, { params }: Context) => {
     { request }
   )
 })
+
+/**
+ * The Opening: writing and judging, then the whole Passage, like any Turn
+ * minus reading the input and resolving an Outcome. Claimed for the whole
+ * stream, so a second tab or a doubled request gets 409 instead of writing a
+ * second Opening; the claim is released however the stream ends.
+ */
+function playOpening(request: Request, id: string, scenarios: Set<ScenarioId>) {
+  const release = claimOpening(id)
+  return ndjsonResponse<TurnEvent>(
+    async (emit, elapsed, signal) => {
+      try {
+        const plan = planOpening(id, { rounds: roundsMode(scenarios) })
+        for (const step of plan.phases) {
+          emit({ type: "phase", phase: step.phase, round: step.round, at: elapsed() })
+          if (!(await pause(jitter(step.ms), signal))) return
+          if (scenarios.has("judge-outage") && step.phase === "judging") {
+            emit({
+              type: "error",
+              code: "judge_outage",
+              message: `The Judge did not answer while judging the Opening's Round ${step.round ?? 1}, so the Opening was not shipped. Try again in a moment.`,
+              at: elapsed(),
+            })
+            return
+          }
+        }
+        const { turn, session } = commitTurn(plan)
+        emit({ type: "result", turn, session, entries: [], at: elapsed() })
+      } catch (error) {
+        if (!(error instanceof StoreError)) throw error
+        emit({ type: "error", code: error.code === "not_found" ? "not_found" : "conflict", message: error.message, at: elapsed() })
+      } finally {
+        release()
+      }
+    },
+    { request }
+  )
+}

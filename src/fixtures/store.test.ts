@@ -27,7 +27,8 @@ describe("fixture store", () => {
 
   it("has a mid-play Session with a second Round, a flagged Turn and pending background work", () => {
     const turns = listTurns(SESSION_IDS.midPlay)
-    expect(turns).toHaveLength(6)
+    // The Opening, then six Turns.
+    expect(turns).toHaveLength(7)
     expect(turns.some((t) => t.log.rounds.length === 2 && t.log.rounds[0].drafts.every((d) => !d.passed))).toBe(true)
     expect(turns.some((t) => t.flagged && t.log.rounds.length === 3)).toBe(true)
     expect(turns.at(-1)?.backgroundStatus).toBe("pending")

@@ -103,7 +103,7 @@ Non-goals (from `docs/requirements.md` §14, plus decisions made here): voice in
 | `GET /api/worlds/[id]` | World, brief, entries, solvability result |
 | `PATCH /api/entries/[id]` | Accept, edit or reject an entry (world template or session copy) |
 | `POST /api/sessions` | Start a session from a world |
-| `POST /api/sessions/[id]/turn` | Play one turn; returns progress events as NDJSON, then the approved passage and turn summary |
+| `POST /api/sessions/[id]/turn` | Play one turn, or the Opening with `input: null` (ADR-0014); returns progress events as NDJSON, then the approved passage and turn summary |
 | `GET /api/sessions/[id]` | Story, current state, entries, harness log |
 
 The turn route does not stream passage text; the passage is final before it is sent. The client performs the animated reveal (animation design is later work).
