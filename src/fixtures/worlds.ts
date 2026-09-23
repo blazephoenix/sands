@@ -8,18 +8,18 @@
  * - `w-thames-ledger`    drafting: setup is running.
  * - `w-fog`              draft: a half-written Brief that does not pass §7.1 yet.
  *
- * Ticket 02 adds its fixture data (and create / save operations) here.
+ * Ticket 02's operations (list, create, save the Brief) are at the end.
  */
 import { documentToBrief } from "@/brief/from-document"
-import { briefSection, headingBlock, paragraphBlock, sequentialIds } from "@/brief/to-document"
-import type { SessionSummary } from "@/domain/api"
+import { briefSection, headingBlock, newBriefTemplate, paragraphBlock, randomId, sequentialIds } from "@/brief/to-document"
+import type { SessionSummary, WorldSummary } from "@/domain/api"
 import type { Brief } from "@/domain/brief"
 import type { Entry } from "@/domain/entry"
 import type { SolvabilityResult, World } from "@/domain/world"
 import type { SandsBlock } from "@/editor/schema-config"
 
 import { fixtureTime, WORLD_IDS } from "./ids"
-import { getStore, StoreError } from "./store"
+import { getStore, newId, nowIso, StoreError } from "./store"
 
 export { WORLD_IDS } from "./ids"
 
@@ -259,4 +259,75 @@ export function sessionSummaries(worldId: string): SessionSummary[] {
 export function saveWorld(world: World): World {
   getStore().worlds.set(world.id, world)
   return world
+}
+
+/** The Worlds home rows, most recently updated first. */
+export function worldSummaries(): WorldSummary[] {
+  const store = getStore()
+  const sessionCounts = new Map<string, number>()
+  for (const session of store.sessions.values()) {
+    sessionCounts.set(session.worldId, (sessionCounts.get(session.worldId) ?? 0) + 1)
+  }
+  return listWorlds().map((world) => ({
+    id: world.id,
+    name: world.name,
+    setupStatus: world.setupStatus,
+    sessionCount: sessionCounts.get(world.id) ?? 0,
+    createdAt: world.createdAt,
+    updatedAt: world.updatedAt,
+  }))
+}
+
+/**
+ * Converts a Brief document, refusing anything conversion cannot read. Returns
+ * the validated Brief, or null while the document does not pass §7.1.
+ */
+function briefOf(briefDoc: unknown[]): Brief | null {
+  let conversion: ReturnType<typeof documentToBrief>
+  try {
+    conversion = documentToBrief(briefDoc as SandsBlock[])
+  } catch {
+    throw new StoreError("invalid", "The Brief document is malformed, so it was not saved. Reload the page and try again.")
+  }
+  return conversion.validation.success ? conversion.validation.brief : null
+}
+
+/** Creates a World in `draft`, its Brief the new-Brief template (spec §7.1) unless a document is given. */
+export function createWorld(request: { name: string; briefDoc?: unknown[] }): World {
+  const briefDoc = request.briefDoc ?? newBriefTemplate(randomId)
+  const now = nowIso()
+  const world: World = {
+    id: newId("w"),
+    name: request.name,
+    briefDoc,
+    brief: briefOf(briefDoc),
+    setupStatus: "draft",
+    solvability: null,
+    createdAt: now,
+    updatedAt: now,
+  }
+  return saveWorld(world)
+}
+
+/**
+ * Autosave: stores the Brief document (and its validated Brief, or null) and
+ * the name. The Brief is locked once setup has started (spec §6: `brief_json`
+ * is locked); the name can change at any time.
+ */
+export function saveBrief(worldId: string, request: { name?: string; briefDoc?: unknown[] }): World {
+  const world = getWorld(worldId)
+  let next: World = { ...world }
+  if (request.briefDoc !== undefined) {
+    if (world.setupStatus !== "draft") {
+      throw new StoreError(
+        "conflict",
+        world.setupStatus === "drafting"
+          ? "Setup is running, so the Brief is locked. Your last edits were not saved; wait for setup to finish or fail."
+          : "Setup has run, so the Brief is locked. Change the World in the setup review instead."
+      )
+    }
+    next = { ...next, briefDoc: request.briefDoc, brief: briefOf(request.briefDoc) }
+  }
+  if (request.name !== undefined) next = { ...next, name: request.name }
+  return saveWorld({ ...next, updatedAt: nowIso() })
 }
