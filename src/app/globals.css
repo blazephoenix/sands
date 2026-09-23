@@ -201,6 +201,21 @@
   font-weight: 600;
   line-height: 1.4;
 }
+/*
+ * An empty name's placeholder (BlockNote's ::after on the block) sits on the
+ * name line, not beside the heading: padding-top + label line + gap.
+ */
+.sands-editor .bn-block-content:has(> .sands-heading) {
+  position: relative;
+}
+.sands-editor .bn-block-content:has(> .sands-heading):has(.ProseMirror-trailingBreak:only-child)::after {
+  position: absolute;
+  top: calc(1.25rem + 1.125rem + 0.125rem);
+  left: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
 .sands-heading[data-invalid] .sands-heading-label {
   color: var(--destructive);
 }
