@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-23
 **Due:** Friday 2026-09-25
-**Source requirements:** `requirements.md`
+**Source requirements:** `docs/requirements.md`
 **Status:** Design approved in brainstorming; awaiting spec review
 
 ---
@@ -13,7 +13,7 @@ Test one thesis: **can an AI be creative when working within human-authored cons
 
 An author writes a brief. The AI expands it, writes the story, and invents what the author left open. Code enforces the brief's rules. Jev judges every passage. The author can see and edit every AI invention.
 
-This is a **writing harness**, not a mystery engine. The code knows generic story mechanics; the specific story (a murder case, a romance, anything) lives in the brief's data. For Friday, exactly one brief is played: the 1888 London case from `requirements.md` §2.
+This is a **writing harness**, not a mystery engine. The code knows generic story mechanics; the specific story (a murder case, a romance, anything) lives in the brief's data. For Friday, exactly one brief is played: the 1888 London case from `docs/requirements.md` §2.
 
 The MVP passes if a viewer can see:
 
@@ -55,7 +55,7 @@ The MVP passes if a viewer can see:
 
 ## 4. Scope and cut order
 
-Friday acceptance criteria are those in `requirements.md` §13 (15 criteria).
+Friday acceptance criteria are those in `docs/requirements.md` §13 (15 criteria).
 
 **Build order, which is also the reverse cut order** (last item is cut first if time runs short):
 
@@ -72,7 +72,7 @@ Friday acceptance criteria are those in `requirements.md` §13 (15 criteria).
 
 Accepted consequence: the BlockNote editor consumes about one of the two days, so **baseline and compare (criterion 14) are expected to be cut for Friday**, and pacing (criterion 11) is at risk.
 
-Non-goals (from `requirements.md` §14, plus decisions made here): voice input, saves beyond the session table, accounts, multiple concurrent worlds as a feature, importing briefs from fiction, visual polish beyond legibility, automated creativity scoring, AI-invented places or objects, rolling story summaries (see §12), event-sourced state.
+Non-goals (from `docs/requirements.md` §14, plus decisions made here): voice input, saves beyond the session table, accounts, multiple concurrent worlds as a feature, importing briefs from fiction, visual polish beyond legibility, automated creativity scoring, AI-invented places or objects, rolling story summaries (see §12), event-sourced state.
 
 ---
 
@@ -245,7 +245,7 @@ A BlockNote custom block has flat typed props plus one content area; a Character
    - **Solvability (code, pure):** for every decisive action, each required clue exists, is not a red herring, and is reachable: either at a location connected to the start location, or held by a character with a knowledge entry revealing it at `normal` band or lower. Every arc has at least one exit condition.
    - **Jev:** one call with two `noul` questions per drafted entry — "does this contradict the brief?" and, for locations, "does this fit the setting and period?" Failures set `jev_flags`; nothing is deleted.
    - **On solvability failure:** re-run the story logic call with the failure list as feedback, at most 2 times. If it still fails, show the author the exact gaps (e.g. "C4 sits at an unreachable location").
-4. **Review.** Author accepts, edits or rejects entries in the entry editor (§7.2). Solvability re-runs after every change. **Start** is enabled while solvability passes. Entries may remain `proposed`; proposed entries are canon (`requirements.md` §5). Historical accuracy of real places is the author's call; Jev is not relied on for factual history.
+4. **Review.** Author accepts, edits or rejects entries in the entry editor (§7.2). Solvability re-runs after every change. **Start** is enabled while solvability passes. Entries may remain `proposed`; proposed entries are canon (`docs/requirements.md` §5). Historical accuracy of real places is the author's call; Jev is not relied on for factual history.
 
 Expected setup time: 30–60 seconds, once per world.
 
@@ -333,7 +333,7 @@ Before building the turn loop, write about 10 short passages set in the 1888 wor
 | Arc | "Does the draft depict events from `later_arcs`, or contradict `current_arc`?" |
 | Location | "Is the draft set somewhere other than the current location, or does it contradict that location's entry?" and "Does the draft introduce a named place a character could travel to that is not in `codex`?" (Detail inside a location, such as a back office, is description and allowed.) |
 | Knowledge | "Does a character reveal information that is not in `allowed_reveals` or `knowledge_revealed`?" and "Does the narration reveal or imply `hidden_truth` beyond what `clues_found` supports?" |
-| Unplanned clue | "Does the draft present evidence implicating the hidden character that is not one of the discoverable or found clues?" (Replaces the blocking part of `requirements.md` §8 step 8.) |
+| Unplanned clue | "Does the draft present evidence implicating the hidden character that is not one of the discoverable or found clues?" (Replaces the blocking part of `docs/requirements.md` §8 step 8.) |
 | Outcome | "Does the draft contradict `outcome`?" |
 | Agency | "Does the player character say or do more than `player_input`?" |
 | Period | "Does the draft contain anachronisms for `setting`?" |
@@ -384,7 +384,7 @@ Each rule has a feedback template. A failure becomes one line to the writer, e.g
 
 - **Unit (Vitest), with fake models:** resolver (every intent × classification branch, penalties, endings, seeded death roll), solvability check, directive builder, ending check, codex slice selection, BlockNote document → brief conversion and validation.
 - **Jev smoke test:** §9.5, day 1.
-- **Acceptance:** replay scripts against real APIs, one per criterion in `requirements.md` §13, checked by reading the session's harness log.
+- **Acceptance:** replay scripts against real APIs, one per criterion in `docs/requirements.md` §13, checked by reading the session's harness log.
 
 ---
 
