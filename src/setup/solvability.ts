@@ -107,7 +107,7 @@ function whyUnreachable(clue: EntryOfKind<"clue">, handle: string, graph: Graph)
   if (location) {
     parts.push(
       !isLiveEntry(location)
-        ? `${handle} sits at ${location.name}, which is rejected.`
+        ? `${handle} sits at ${location.name}, which was removed.`
         : starts.length === 0
           ? `${handle} sits at ${location.name}, but no Location is the start location. Set Start location to yes on one.`
           : `${handle} sits at an unreachable location: no connections lead from ${starts[0].name} to ${location.name}.`
@@ -123,7 +123,7 @@ function whyUnreachable(clue: EntryOfKind<"clue">, handle: string, graph: Graph)
   }
   if (revealing.length > 0) {
     const gone = people(revealing.map((k) => k.data.characterId))
-    parts.push(`${handle} is revealed only by ${names(gone)}, who ${gone.length > 1 ? "are" : "is"} rejected.`)
+    parts.push(`${handle} is revealed only by ${names(gone)}, who ${gone.length > 1 ? "were" : "was"} removed.`)
   } else if (clue.data.knownBy.length > 0) {
     parts.push(
       `${handle} is known by ${names(people(clue.data.knownBy))}, but no Knowledge reveals it. Add Knowledge that reveals ${handle} at normal Band or lower.`
@@ -146,7 +146,7 @@ function whyUnusable(action: EntryOfKind<"decisive_action">, clueId: string, gra
   if (!isLiveEntry(clue)) {
     return {
       code: "missing_clue",
-      message: `${actionName(action)} requires ${handle}, which is rejected. Restore ${handle} or remove it from Requires.`,
+      message: `${actionName(action)} requires ${handle}, which was removed. Restore ${handle} or remove it from Requires.`,
       entryId: clue.id,
     }
   }
@@ -201,7 +201,7 @@ export function checkSolvability(input: SolvabilityInput): SolvabilityCheck {
     const label = arc.name.trim() ? `Arc ${index + 1}, ${arc.name.trim()},` : `Arc ${index + 1}`
     const removed = forArc[0]
     const fix = removed
-      ? `Restore ${removed.name.trim() || "its rejected Exit condition"}, or add an Exit condition for Arc ${index + 1}.`
+      ? `Restore ${removed.name.trim() || "its removed Exit condition"}, or add an Exit condition for Arc ${index + 1}.`
       : `Add an Exit condition for Arc ${index + 1}.`
     gap("arc_without_exit_condition", `${label} has no Exit condition. ${fix}`, removed?.id ?? null, index)
   })

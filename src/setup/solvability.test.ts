@@ -84,7 +84,7 @@ describe("a Decisive action's required Clues", () => {
     expect(gaps).toEqual([
       {
         code: "missing_clue",
-        message: "Arrest Max Rober requires C2, which is rejected. Restore C2 or remove it from Requires.",
+        message: "Arrest Max Rober requires C2, which was removed. Restore C2 or remove it from Requires.",
         entryId: "c2",
         arcIndex: null,
       },
@@ -147,7 +147,7 @@ describe("reaching a Clue by Location", () => {
   it("fails on a required Clue at a rejected Location", () => {
     const { gaps } = checkSolvability(withStatus(world(), "docks", "rejected"))
     expect(gaps.map((g) => [g.code, g.entryId, g.message])).toEqual([
-      ["unreachable_clue", "c1", "C1 sits at St Katharine Docks, which is rejected."],
+      ["unreachable_clue", "c1", "C1 sits at St Katharine Docks, which was removed."],
     ])
   })
 
@@ -186,7 +186,7 @@ describe("reaching a Clue through the people who know it", () => {
   it("fails when the only person who reveals it is rejected", () => {
     const { gaps } = checkSolvability(withStatus(world(), "nell", "rejected"))
     expect(gaps.map((g) => [g.code, g.entryId, g.message])).toEqual([
-      ["unreachable_clue", "c2", "C2 is revealed only by Nell Garvey, who is rejected."],
+      ["unreachable_clue", "c2", "C2 is revealed only by Nell Garvey, who was removed."],
     ])
   })
 
@@ -263,7 +263,7 @@ describe("Clues needed (requires_count, spec §6)", () => {
       {
         code: "missing_clue",
         message:
-          "Arrest Max Rober requires C2, which is rejected. Restore C2 or remove it from Requires. Arrest Max Rober needs 2 of its 3 Clues, and only 1 is usable.",
+          "Arrest Max Rober requires C2, which was removed. Restore C2 or remove it from Requires. Arrest Max Rober needs 2 of its 3 Clues, and only 1 is usable.",
         entryId: "c2",
         arcIndex: null,
       },
