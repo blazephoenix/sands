@@ -239,6 +239,11 @@ export function entryContentOf(entry: Entry): EntryContent {
   } as EntryContent
 }
 
+/** Characters and NPCs are the kinds that keep Hidden fields in their data. */
+export function hasHiddenFields(entry: Entry): entry is EntryOfKind<"character" | "npc"> {
+  return entry.kind === "character" || entry.kind === "npc"
+}
+
 /** Formats a custom Brief field as a key fact string. */
 export function formatKeyFact(label: string, text: string) {
   const cleanLabel = label.trim()
