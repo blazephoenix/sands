@@ -11,7 +11,7 @@
  * Ticket 02 adds its fixture data (and create / save operations) here.
  */
 import { documentToBrief } from "@/brief/from-document"
-import { headingBlock, paragraphBlock, sequentialIds, typedBlock } from "@/brief/to-document"
+import { briefSection, headingBlock, paragraphBlock, sequentialIds } from "@/brief/to-document"
 import type { SessionSummary } from "@/domain/api"
 import type { Brief } from "@/domain/brief"
 import type { Entry } from "@/domain/entry"
@@ -32,8 +32,8 @@ export function londonBriefDocument(prefix: string): SandsBlock[] {
   const ids = sequentialIds(`${prefix}-b`)
   const id = (name: string) => `${prefix}-${name}`
   return [
-    typedBlock("setting", { place: "London", period: "Autumn 1888" }, { ids, blockId: id("setting") }),
-    typedBlock(
+    ...briefSection("setting", { place: "London", period: "Autumn 1888" }, { ids, blockId: id("setting") }),
+    ...briefSection(
       "character",
       {
         name: "Jacob Flannery",
@@ -46,7 +46,7 @@ export function londonBriefDocument(prefix: string): SandsBlock[] {
       },
       { ids, blockId: id("jacob"), isPlayer: true }
     ),
-    typedBlock(
+    ...briefSection(
       "character",
       {
         name: "Geoffrey James",
@@ -58,7 +58,7 @@ export function londonBriefDocument(prefix: string): SandsBlock[] {
       },
       { ids, blockId: id("geoffrey") }
     ),
-    typedBlock(
+    ...briefSection(
       "character",
       {
         name: "Amanda Hopkins",
@@ -70,7 +70,7 @@ export function londonBriefDocument(prefix: string): SandsBlock[] {
       },
       { ids, blockId: id("amanda") }
     ),
-    typedBlock(
+    ...briefSection(
       "character",
       {
         name: "Thomas Whitlock",
@@ -81,7 +81,7 @@ export function londonBriefDocument(prefix: string): SandsBlock[] {
       },
       { ids, blockId: id("whitlock") }
     ),
-    typedBlock(
+    ...briefSection(
       "character",
       {
         name: "Edmund Carrow",
@@ -92,7 +92,7 @@ export function londonBriefDocument(prefix: string): SandsBlock[] {
       },
       { ids, blockId: id("carrow") }
     ),
-    typedBlock(
+    ...briefSection(
       "character",
       {
         name: "Silas Pembury",
@@ -103,7 +103,7 @@ export function londonBriefDocument(prefix: string): SandsBlock[] {
       },
       { ids, blockId: id("pembury") }
     ),
-    typedBlock(
+    ...briefSection(
       "character",
       {
         name: "Max Rober",
@@ -121,8 +121,8 @@ export function londonBriefDocument(prefix: string): SandsBlock[] {
         keyFacts: [{ label: "Motive", text: "Revenge against his father, a merchant.", hidden: true }],
       }
     ),
-    typedBlock("location", { name: "Scotland Yard", description: "Great Scotland Yard, Whitehall. Gaslit corridors, damp coats, a captain who wants results." }, { ids, blockId: id("yard") }),
-    typedBlock(
+    ...briefSection("location", { name: "Scotland Yard", description: "Great Scotland Yard, Whitehall. Gaslit corridors, damp coats, a captain who wants results." }, { ids, blockId: id("yard") }),
+    ...briefSection(
       "arc",
       {
         name: "Introduction",
@@ -131,14 +131,14 @@ export function londonBriefDocument(prefix: string): SandsBlock[] {
       },
       { ids, blockId: id("arc-1") }
     ),
-    typedBlock(
+    ...briefSection(
       "arc",
       { name: "Midpoint", description: "The investigation begins. The Player discovers evidence and backstories." },
       { ids, blockId: id("arc-2") }
     ),
-    typedBlock("arc", { name: "End", description: "The killer is caught." }, { ids, blockId: id("arc-3") }),
-    typedBlock("ending", { condition: "The killer is caught and arrested." }, { ids, blockId: id("ending") }),
-    typedBlock(
+    ...briefSection("arc", { name: "End", description: "The killer is caught." }, { ids, blockId: id("arc-3") }),
+    ...briefSection("ending", { condition: "The killer is caught and arrested." }, { ids, blockId: id("ending") }),
+    ...briefSection(
       "voice",
       {
         guidelines: "Close third person on Jacob. Short sentences. Fog, not gore: the killings are never shown on the page.",
@@ -163,13 +163,13 @@ export function londonBrief(prefix: string): { briefDoc: SandsBlock[]; brief: Br
 function draftBriefDocument(): SandsBlock[] {
   const ids = sequentialIds("fog-b")
   return [
-    typedBlock("setting", { place: "London", period: "Winter 1888" }, { ids, blockId: "fog-setting" }),
-    typedBlock(
+    ...briefSection("setting", { place: "London", period: "Winter 1888" }, { ids, blockId: "fog-setting" }),
+    ...briefSection(
       "character",
       { name: "Jacob Flannery", role: "Detective", personality: "Weary and sharp-eyed." },
       { ids, blockId: "fog-jacob", isPlayer: true }
     ),
-    typedBlock("character", { role: "The killer" }, { ids, blockId: "fog-unnamed" }),
+    ...briefSection("character", { role: "The killer" }, { ids, blockId: "fog-unnamed" }),
     paragraphBlock(ids(), ""),
   ]
 }

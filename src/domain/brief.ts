@@ -2,8 +2,9 @@
  * The Brief: the Author's locked description of a story (CONTEXT.md, spec §7.1).
  *
  * A Brief is produced by converting the Brief editor's BlockNote document
- * (`src/brief/from-document.ts`). Every item keeps the id of the typed block it
- * came from, so a validation issue can point the editor at the right block.
+ * (`src/brief/from-document.ts`): section headings followed by `Label: value`
+ * paragraphs. Every item keeps the id of the section heading it came from, so
+ * a validation issue can point the editor at the right block.
  *
  * Two shapes:
  * - `BriefDraft`: whatever the document holds, possibly invalid (several
@@ -25,11 +26,11 @@ export const keyFactSchema = z.object({
 export type KeyFact = z.infer<typeof keyFactSchema>
 
 const briefItemBase = {
-  /** Id of the typed block in the Brief document. */
+  /** Id of the section heading block in the Brief document. */
   blockId: z.string().min(1),
   /** Author-labelled custom fields, in document order. */
   keyFacts: z.array(keyFactSchema),
-  /** Keys of the typed fields the Author marked Hidden (custom fields carry their own flag). */
+  /** Keys of the typed fields the Author marked Hidden, including `name` (custom fields carry their own flag). */
   hiddenFields: z.array(z.string()),
 }
 
@@ -126,16 +127,17 @@ export const briefIssueCodeSchema = z.enum([
   "no_arc",
   "no_ending",
   "several_endings",
-  "field_outside_block",
 ])
 export type BriefIssueCode = z.infer<typeof briefIssueCodeSchema>
 
 /**
  * One validation problem, precise enough for the editor to highlight it.
- * `blockId` is the typed block (or stray field block) at fault; it is null only
- * for document-level problems with no block to point at (no Arc, no Ending,
- * no Character at all). `field` is the typed field key, or null when the whole
- * block is at fault. `fieldBlockId` is the field block to focus, when there is one.
+ * `blockId` is the section heading at fault; it is null only for
+ * document-level problems with no block to point at (no Arc, no Ending, no
+ * Character at all). `field` is the typed field key (`name` for the heading's
+ * name, `isPlayer` for the Player character mark), or null when the whole
+ * section is at fault. `fieldBlockId` is the block to focus: the field's
+ * `Label: value` paragraph, or the heading itself for its name.
  */
 export const briefIssueSchema = z.object({
   code: briefIssueCodeSchema,
@@ -147,6 +149,22 @@ export const briefIssueSchema = z.object({
 export type BriefIssue = z.infer<typeof briefIssueSchema>
 
 type IssueParams = Omit<BriefIssue, "message">
+
+/**
+ * Something the Author probably wants to fix but that does not block setup: a
+ * label that looks like a typo for a known one, or a section without a name.
+ */
+export const briefWarningSchema = z.object({
+  code: z.enum(["probable_typo", "unnamed_section"]),
+  message: z.string(),
+  /** The block to highlight: the field paragraph, or the heading. */
+  blockId: z.string(),
+  /** For a probable typo: the label as typed. */
+  field: z.string().nullable(),
+  /** For a probable typo: the known label it resembles. */
+  suggestion: z.string().nullable(),
+})
+export type BriefWarning = z.infer<typeof briefWarningSchema>
 
 /**
  * The §7.1 rules as a zod refinement: exactly one player Character, at least
@@ -193,7 +211,7 @@ export const briefRulesSchema = briefDraftSchema.superRefine((draft, ctx) => {
         code: "character_unnamed",
         blockId: character.blockId,
         field: "name",
-        fieldBlockId: null,
+        fieldBlockId: character.blockId,
       })
     }
   }

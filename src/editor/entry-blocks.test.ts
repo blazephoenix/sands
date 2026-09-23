@@ -3,9 +3,10 @@ import { beforeAll, describe, expect, it } from "vitest"
 import { ENTRY_KINDS, entryContentOf, type Entry } from "@/domain/entry"
 import { londonEntries } from "@/fixtures/entries"
 
-import { blockToEntry, documentToEntries, entriesToDocument, entryToBlock, newEntryBlock, parseKeyFact } from "./entry-blocks"
+import { documentToEntries, entriesToDocument, entryToBlocks, newEntrySection, parseKeyFact } from "./entry-blocks"
+import { fieldParagraph } from "./field-line"
 import { normaliseDocument } from "./headless"
-import type { EntryBlock } from "./schema-config"
+import type { SandsBlock, SandsInline } from "./schema-config"
 
 let entries: Entry[]
 let byId: Map<string, Entry>
@@ -16,15 +17,31 @@ beforeAll(() => {
 })
 
 const kindOf = (id: string) => byId.get(id)?.kind
+const nameOf = (id: string) => byId.get(id)?.name
 
-describe("Entries <-> Entry blocks", () => {
+function readBack(blocks: SandsBlock[]) {
+  return documentToEntries(normaliseDocument(blocks), { kindOf })
+}
+
+function mention(entryId: string): SandsInline {
+  return { type: "entryMention", props: { entryId, label: nameOf(entryId) ?? entryId }, content: undefined }
+}
+
+/** Replaces the value of one field line in an Entry's blocks. */
+function withField(blocks: SandsBlock[], label: string, value: string | SandsInline[]): SandsBlock[] {
+  return blocks.map((block) => {
+    const first = Array.isArray(block.content) ? (block.content[0] as { text?: string } | undefined) : undefined
+    return first?.text === `${label}:` ? fieldParagraph(block.id, label, value) : block
+  })
+}
+
+describe("Entries <-> Entry sections", () => {
   it("covers all nine kinds in the fixture Codex", () => {
     expect(new Set(entries.map((e) => e.kind))).toEqual(new Set(ENTRY_KINDS))
   })
 
   it("round-trips every Entry's content through BlockNote's schema", () => {
-    const document = normaliseDocument(entriesToDocument(entries))
-    const conversions = documentToEntries(document, { kindOf })
+    const conversions = readBack(entriesToDocument(entries))
     expect(conversions).toHaveLength(entries.length)
     for (const conversion of conversions) {
       const original = byId.get(conversion.entryId)!
@@ -39,56 +56,88 @@ describe("Entries <-> Entry blocks", () => {
     }
   })
 
-  it("groups Entries under World and Story logic with a heading per kind", () => {
-    const document = entriesToDocument(entries)
-    const headings = document.filter((b) => b.type === "entryGroup").map((b) => b.props as { group: string; kind: string })
-    expect(headings[0]).toEqual({ group: "world", kind: "" })
-    expect(headings.find((h) => h.group === "story_logic" && h.kind === "")).toBeTruthy()
-    expect(headings.filter((h) => h.kind !== "").map((h) => h.kind)).toEqual([...ENTRY_KINDS])
+  it("writes kind data as Label: value lines", () => {
+    const clue = entries.find((e) => e.kind === "clue" && e.data.redHerring)!
+    const lines = entryToBlocks(clue, { nameOf })
+      .slice(1)
+      .map((block) => (block.content as SandsInline[]).map((node) => (node.type === "text" ? node.text : `@${node.type === "entryMention" ? node.props.label : ""}`)).join(""))
+    expect(lines).toContain("Red herring: yes")
+    expect(lines).toContain("Points to Hidden truth: no")
+    expect(lines).toContain("Found at: @Whitechapel High Street")
   })
 
-  it("keeps Hidden fields and custom fields of Characters", () => {
+  it("puts World Entries under a World divider and Story logic Entries under their own", () => {
+    const document = entriesToDocument(entries)
+    const dividers = document.filter((b) => b.type === "entryGroup").map((b) => (b.props as { group: string }).group)
+    expect(dividers).toEqual(["world", "story_logic"])
+    expect(document[0].type).toBe("entryGroup")
+  })
+
+  it("keeps Hidden and custom fields of Characters", () => {
     const max = entries.find((e) => e.name === "Max Rober")!
-    const [block] = normaliseDocument([entryToBlock(max)]) as EntryBlock[]
-    const conversion = blockToEntry(block)
+    const [conversion] = readBack(entryToBlocks(max))
     expect(conversion.content).toEqual(entryContentOf(max))
-    expect(block.children.filter((c) => c.type === "field" && c.props.hidden).map((c) => (c.props as { key: string; label: string }).label)).toEqual([
-      "Backstory",
-      "Motive",
+  })
+
+  it("reports bad values against the paragraph that holds them", () => {
+    const clue = entries.find((e) => e.kind === "clue")!
+    const blocks = withField(entryToBlocks(clue, { nameOf }), "Red herring", "maybe")
+    const [conversion] = readBack(blocks)
+    expect(conversion.content).toBeNull()
+    expect(conversion.issues).toEqual([
+      expect.objectContaining({ field: "redHerring", fieldBlockId: `${clue.id}:redHerring`, message: "Red herring takes yes or no." }),
     ])
   })
 
-  it("reports a single-reference field holding two Entries, and a missing required reference", () => {
+  it("reports a single reference holding two Entries, and a missing required reference", () => {
     const knowledge = entries.find((e) => e.kind === "knowledge")!
-    const block = entryToBlock(knowledge, { nameOf: (id) => byId.get(id)?.name })
-    const holder = block.children.find((c) => c.type === "field" && c.props.key === "characterId")!
-    holder.content = [
-      { type: "entryMention", props: { entryId: "t-nell", label: "Nell" }, content: undefined },
-      { type: "entryMention", props: { entryId: "t-pryce", label: "Pryce" }, content: undefined },
-    ]
-    const tooMany = blockToEntry(normaliseDocument([block])[0] as EntryBlock, { kindOf })
-    expect(tooMany.content).toBeNull()
-    expect(tooMany.issues).toEqual([expect.objectContaining({ field: "characterId", fieldBlockId: holder.id })])
+    const two = withField(entryToBlocks(knowledge, { nameOf }), "Character", [mention("t-nell"), { type: "text", text: ", ", styles: {} }, mention("t-pryce")])
+    expect(readBack(two)[0].issues).toEqual([expect.objectContaining({ field: "characterId", message: "Character takes one Entry. Remove the others." })])
 
-    holder.content = []
-    const missing = blockToEntry(normaliseDocument([block])[0] as EntryBlock, { kindOf })
-    expect(missing.issues[0].message).toMatch(/needs an Entry/)
+    const none = withField(entryToBlocks(knowledge, { nameOf }), "Character", "")
+    expect(readBack(none)[0].issues[0].message).toMatch(/needs an Entry/)
   })
 
-  it("reports a reference to the wrong kind of Entry", () => {
+  it("reports a reference to the wrong kind of Entry, and text where a mention belongs", () => {
     const clue = entries.find((e) => e.kind === "clue" && e.data.locationId)!
-    const block = entryToBlock(clue)
-    const at = block.children.find((c) => c.type === "field" && c.props.key === "locationId")!
-    at.content = [{ type: "entryMention", props: { entryId: "t-nell", label: "Nell" }, content: undefined }]
-    const conversion = blockToEntry(normaliseDocument([block])[0] as EntryBlock, { kindOf })
-    expect(conversion.issues[0]).toMatchObject({ field: "locationId", message: expect.stringMatching(/location/) })
+    const wrongKind = withField(entryToBlocks(clue, { nameOf }), "Found at", [mention("t-nell")])
+    expect(readBack(wrongKind)[0].issues[0]).toMatchObject({ field: "locationId", message: expect.stringMatching(/location/) })
+
+    const typed = withField(entryToBlocks(clue, { nameOf }), "Found at", "the docks")
+    expect(readBack(typed)[0].issues[0].message).toMatch(/@ mentions only/)
   })
 
-  it("makes a new, unstored Author Entry for each kind", () => {
+  it("parses numbers, Bands, Arcs and 'all'", () => {
+    const action = entries.find((e) => e.kind === "decisive_action")!
+    let blocks = withField(entryToBlocks(action, { nameOf }), "Clues needed", "all")
+    blocks = withField(blocks, "On success", "Continue")
+    const [conversion] = readBack(blocks)
+    expect(conversion.content?.data).toMatchObject({ requiresCount: null, onSuccess: "none" })
+
+    const exit = entries.find((e) => e.kind === "exit_condition")!
+    const [arc] = readBack(withField(entryToBlocks(exit, { nameOf }), "Arc", "0"))
+    expect(arc.issues[0].message).toMatch(/Arc number from 1/)
+  })
+
+  it("warns about a probable label typo and keeps the line as a key fact", () => {
+    const nell = entries.find((e) => e.name === "Nell Garvey")!
+    const blocks = [...entryToBlocks(nell), fieldParagraph("typo", "Backstroy", "Grew up in Bethnal Green.")]
+    const [conversion] = readBack(blocks)
+    expect(conversion.warnings).toEqual([expect.objectContaining({ fieldBlockId: "typo", suggestion: "Backstory" })])
+    expect(conversion.content?.keyFacts).toContain("Backstroy: Grew up in Bethnal Green.")
+  })
+
+  it("lists every block that belongs to an Entry", () => {
+    const faction = entries.find((e) => e.kind === "faction")!
+    const [conversion] = readBack(entryToBlocks(faction))
+    expect(conversion.blockIds).toEqual([faction.id, `${faction.id}:description`])
+  })
+
+  it("makes a new, unstored Author Entry section for each kind", () => {
     for (const kind of ENTRY_KINDS) {
-      const block = newEntryBlock(kind)
-      expect(block.props).toMatchObject({ entryId: "", source: "author", status: "accepted" })
-      expect(blockToEntry(normaliseDocument([block])[0] as EntryBlock).kind).toBe(kind)
+      const [heading] = newEntrySection(kind)
+      expect(heading.props).toMatchObject({ entryId: "", source: "author", status: "accepted" })
+      expect(readBack(newEntrySection(kind))[0].kind).toBe(kind)
     }
   })
 

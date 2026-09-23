@@ -1,15 +1,17 @@
 /**
- * Brief editor document -> Brief (spec §7.1). Pure.
+ * Brief editor document -> Brief (spec §7.1, editor-design.md). Pure.
  *
- * - Typed blocks (setting, character, arc, ending, location, voice) become Brief
- *   items. Their child `field` blocks fill typed properties; custom fields
- *   become `keyFacts`; Hidden fields are listed in `hiddenFields` (typed) or
- *   flagged on the key fact (custom).
+ * - A section heading (setting, character, ...) starts a Brief item. Named
+ *   kinds take their name from the heading's text.
+ * - The `Label: value` paragraphs after it are its fields. Labels match
+ *   case-insensitively; unknown labels are custom fields and become key facts;
+ *   a near miss of a known label is reported as a probable typo.
+ * - A value carrying the Hidden style makes the field Hidden.
+ * - Anything else is free prose: it ends the section and is grouped under the
+ *   nearest preceding standard heading.
  * - Arcs keep document order.
- * - Paragraphs, lists and quotes outside typed blocks are free prose, grouped
- *   under the nearest preceding heading.
- * - The draft is validated against the §7.1 rules with zod; every issue carries
- *   the block id and field so the editor can highlight it.
+ * - The draft is validated against the §7.1 rules with zod; every issue
+ *   carries the block id and field.
  */
 import {
   validateBriefDraft,
@@ -23,71 +25,82 @@ import {
   type BriefSetting,
   type BriefValidation,
   type BriefVoice,
+  type BriefWarning,
   type KeyFact,
 } from "@/domain/brief"
-import {
-  BRIEF_BLOCKS,
-  CUSTOM_FIELD_KEY,
-  isBriefBlockType,
-  type BriefBlockType,
-} from "@/brief/fields"
+import { BRIEF_BLOCKS, isBriefBlockType, type BriefBlockType } from "@/brief/fields"
+import { hasHiddenStyle, matchLabel, walkSections, type WalkedField } from "@/editor/field-line"
 import { inlineToText, normaliseFieldText, splitList } from "@/editor/inline-text"
-import type { FieldBlock, SandsBlock } from "@/editor/schema-config"
+import type { BriefSectionBlock, SandsBlock, SandsInline } from "@/editor/schema-config"
 
 export type BriefConversion = {
   /** Everything the document holds, valid or not. */
   draft: BriefDraft
   /** The §7.1 verdict: the validated Brief, or every issue. */
   validation: BriefValidation
-  /** Issues from the §7.1 rules plus structural ones (a field outside any typed block). */
+  /** The §7.1 issues (same as `validation.issues`). */
   issues: BriefIssue[]
-  /** `typed block id -> field key -> field block id`, for focusing a field. */
+  /** Non-blocking: probable label typos, unnamed sections. */
+  warnings: BriefWarning[]
+  /** `heading block id -> field key -> field paragraph id` (the heading itself for `name`). */
   fieldBlockIds: Record<string, Record<string, string>>
 }
 
-type ReadFields = {
+type ReadSection = {
   values: Record<string, string>
   keyFacts: KeyFact[]
   hiddenFields: string[]
   fieldBlockIds: Record<string, string>
-  /** Non-field children, which count as free prose. */
-  strays: SandsBlock[]
 }
 
-/** Reads a typed block's child field blocks. */
-export function readFields(block: SandsBlock): ReadFields {
-  const out: ReadFields = { values: {}, keyFacts: [], hiddenFields: [], fieldBlockIds: {}, strays: [] }
-  for (const child of block.children) {
-    if (child.type !== "field") {
-      out.strays.push(child)
+function isBriefHeading(block: SandsBlock): block is BriefSectionBlock {
+  return isBriefBlockType(block.type)
+}
+
+/** Reads one section's fields against its kind's known labels. */
+function readSection(heading: BriefSectionBlock, fields: WalkedField[], warnings: BriefWarning[]): ReadSection {
+  const type = heading.type as BriefBlockType
+  const spec = BRIEF_BLOCKS[type]
+  const out: ReadSection = { values: {}, keyFacts: [], hiddenFields: [], fieldBlockIds: {} }
+
+  if (spec.named) {
+    const content = (heading.content ?? []) as SandsInline[]
+    out.values.name = inlineToText(content).trim()
+    out.fieldBlockIds.name = heading.id
+    if (hasHiddenStyle(content)) out.hiddenFields.push("name")
+    if (!out.values.name && type !== "character") {
+      warnings.push({
+        code: "unnamed_section",
+        message: `This ${spec.title} has no name. Type one on the heading line.`,
+        blockId: heading.id,
+        field: null,
+        suggestion: null,
+      })
+    }
+  }
+
+  for (const { block, line } of fields) {
+    const match = matchLabel(line.label, spec.fields)
+    if (match.kind === "known") {
+      const { key } = match.spec
+      const separator = match.spec.list === "comma" ? ", " : "\n"
+      out.values[key] = out.values[key] && line.text ? `${out.values[key]}${separator}${line.text}` : out.values[key] || line.text
+      out.fieldBlockIds[key] ??= block.id
+      if (line.hidden && !out.hiddenFields.includes(key)) out.hiddenFields.push(key)
       continue
     }
-    const text = fieldText(child)
-    const { key, label, hidden } = child.props
-    if (key === CUSTOM_FIELD_KEY) {
-      if (label.trim() === "" && text === "") continue
-      out.keyFacts.push({ label: label.trim(), text, hidden })
-      continue
+    if (match.kind === "typo") {
+      warnings.push({
+        code: "probable_typo",
+        message: `"${line.label}" looks like a typo for "${match.suggestion.label}". As written it is a custom field.`,
+        blockId: block.id,
+        field: line.label,
+        suggestion: match.suggestion.label,
+      })
     }
-    // Two blocks with one key (a paste, a drag) join rather than overwrite.
-    out.values[key] = out.values[key] ? `${out.values[key]}\n${text}` : text
-    out.fieldBlockIds[key] ??= child.id
-    if (hidden && !out.hiddenFields.includes(key)) out.hiddenFields.push(key)
+    if (line.text) out.keyFacts.push({ label: line.label, text: line.text, hidden: line.hidden })
   }
   return out
-}
-
-/** A field's text: its own content, then any blocks nested under it, one paragraph each. */
-export function fieldText(field: FieldBlock | SandsBlock): string {
-  const own = field.type === "field" ? inlineToText(field.content) : ""
-  const nested = field.children.map((child) => blockText(child)).filter(Boolean)
-  return normaliseFieldText([own, ...nested].join("\n"))
-}
-
-function blockText(block: SandsBlock): string {
-  const own = Array.isArray(block.content) ? inlineToText(block.content as never) : ""
-  const nested = block.children.map((child) => blockText(child)).filter(Boolean)
-  return [own, ...nested].filter(Boolean).join("\n")
 }
 
 function list(values: Record<string, string>, type: BriefBlockType, key: string): string[] {
@@ -95,46 +108,43 @@ function list(values: Record<string, string>, type: BriefBlockType, key: string)
   return splitList(values[key] ?? "", spec?.list ?? "lines")
 }
 
+function proseText(block: SandsBlock, depth: number): string {
+  const text = Array.isArray(block.content) ? inlineToText(block.content as SandsInline[]).trim() : ""
+  if (!text) return ""
+  const marker =
+    block.type === "bulletListItem" ? "- " : block.type === "numberedListItem" ? "1. " : block.type === "quote" ? "> " : ""
+  return `${"  ".repeat(depth)}${marker}${normaliseFieldText(text)}`
+}
+
 export function documentToBrief(document: readonly SandsBlock[]): BriefConversion {
-  const draft: BriefDraft = {
-    settings: [],
-    characters: [],
-    arcs: [],
-    endings: [],
-    locations: [],
-    voices: [],
-    prose: [],
-  }
+  const draft: BriefDraft = { settings: [], characters: [], arcs: [], endings: [], locations: [], voices: [], prose: [] }
   const fieldBlockIds: Record<string, Record<string, string>> = {}
-  const structural: BriefIssue[] = []
+  const warnings: BriefWarning[] = []
 
   let section: BriefProseSection = { heading: null, headingBlockId: null, paragraphs: [] }
-  const flushSection = () => {
+  const flush = () => {
     if (section.paragraphs.length > 0 || section.heading) draft.prose.push(section)
   }
 
-  const addProse = (block: SandsBlock, depth: number) => {
-    const text = Array.isArray(block.content) ? inlineToText(block.content as never).trim() : ""
-    if (text) {
-      const indent = "  ".repeat(depth)
-      const marker =
-        block.type === "bulletListItem"
-          ? "- "
-          : block.type === "numberedListItem"
-            ? "1. "
-            : block.type === "quote"
-              ? "> "
-              : ""
-      section.paragraphs.push(`${indent}${marker}${text}`)
+  for (const item of walkSections(document, isBriefHeading)) {
+    if (item.type === "prose") {
+      const { block, depth } = item
+      if (block.type === "heading") {
+        flush()
+        section = { heading: inlineToText(block.content as SandsInline[]).trim(), headingBlockId: block.id, paragraphs: [] }
+        continue
+      }
+      const text = proseText(block, depth)
+      if (text) section.paragraphs.push(text)
+      continue
     }
-    for (const child of block.children) visit(child, depth + 1)
-  }
 
-  const addTyped = (block: SandsBlock, type: BriefBlockType) => {
-    const fields = readFields(block)
-    fieldBlockIds[block.id] = fields.fieldBlockIds
-    const base = { blockId: block.id, keyFacts: fields.keyFacts, hiddenFields: fields.hiddenFields }
-    const v = (key: string) => fields.values[key] ?? ""
+    const { heading, fields } = item
+    const type = heading.type as BriefBlockType
+    const read = readSection(heading, fields, warnings)
+    fieldBlockIds[heading.id] = read.fieldBlockIds
+    const base = { blockId: heading.id, keyFacts: read.keyFacts, hiddenFields: read.hiddenFields }
+    const v = (key: string) => read.values[key] ?? ""
 
     switch (type) {
       case "setting":
@@ -148,8 +158,8 @@ export function documentToBrief(document: readonly SandsBlock[]): BriefConversio
           age: v("age"),
           personality: v("personality"),
           backstory: v("backstory"),
-          aliases: list(fields.values, "character", "aliases"),
-          isPlayer: block.type === "character" && block.props.isPlayer,
+          aliases: list(read.values, "character", "aliases"),
+          isPlayer: heading.type === "character" && heading.props.isPlayer,
         } satisfies BriefCharacter)
         break
       case "arc":
@@ -157,7 +167,7 @@ export function documentToBrief(document: readonly SandsBlock[]): BriefConversio
           ...base,
           name: v("name"),
           description: v("description"),
-          exitConditions: list(fields.values, "arc", "exitConditions"),
+          exitConditions: list(read.values, "arc", "exitConditions"),
         } satisfies BriefArc)
         break
       case "ending":
@@ -167,67 +177,12 @@ export function documentToBrief(document: readonly SandsBlock[]): BriefConversio
         draft.locations.push({ ...base, name: v("name"), description: v("description") } satisfies BriefLocation)
         break
       case "voice":
-        draft.voices.push({
-          ...base,
-          guidelines: v("guidelines"),
-          samplePassages: v("samplePassages"),
-        } satisfies BriefVoice)
+        draft.voices.push({ ...base, guidelines: v("guidelines"), samplePassages: v("samplePassages") } satisfies BriefVoice)
         break
     }
-    for (const stray of fields.strays) visit(stray, 0)
   }
-
-  function visit(block: SandsBlock, depth: number) {
-    if (isBriefBlockType(block.type)) {
-      addTyped(block, block.type)
-      return
-    }
-    switch (block.type) {
-      case "heading":
-        flushSection()
-        section = {
-          heading: inlineToText(block.content).trim(),
-          headingBlockId: block.id,
-          paragraphs: [],
-        }
-        for (const child of block.children) visit(child, depth + 1)
-        return
-      case "paragraph":
-      case "bulletListItem":
-      case "numberedListItem":
-      case "quote":
-        addProse(block, depth)
-        return
-      case "field": {
-        structural.push({
-          code: "field_outside_block",
-          message: `The field "${block.props.label || block.props.key}" sits outside any typed block. Move it back into one, or delete it.`,
-          blockId: block.id,
-          field: block.props.key,
-          fieldBlockId: block.id,
-        })
-        return
-      }
-      default:
-        // Entry blocks and group headings belong to the Entry surface; a Brief ignores them.
-        return
-    }
-  }
-
-  for (const block of document) visit(block, 0)
-  flushSection()
+  flush()
 
   const validation = validateBriefDraft(draft, fieldBlockIds)
-  const issues = [...structural, ...validation.issues]
-  return {
-    draft,
-    validation:
-      structural.length > 0 && validation.success
-        ? { success: false, brief: null, issues }
-        : validation.success
-          ? validation
-          : { success: false, brief: null, issues },
-    issues,
-    fieldBlockIds,
-  }
+  return { draft, validation, issues: validation.issues, warnings, fieldBlockIds }
 }

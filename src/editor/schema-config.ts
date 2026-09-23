@@ -1,16 +1,18 @@
 /**
- * The shared editor's block and inline-content configs (type, props, content),
- * without rendering. Pure: safe to import on the server, in route handlers and
- * in tests. The React specs in `./blocks/` render these configs, and the
- * conversions in `src/brief/` and `./entry-blocks.ts` read documents typed by
- * them.
+ * The shared editor's block, inline-content and style configs (type, props,
+ * content), without rendering. Pure: safe to import on the server, in route
+ * handlers and in tests. The React specs in `./blocks/` render these configs;
+ * the conversions in `src/brief/` and `./entry-blocks.ts` read documents typed
+ * by them.
  *
- * One schema serves the three surfaces (ADR-0008):
- * - Brief: typed blocks (setting, character, arc, ending, location, voice) with
- *   child `field` blocks, plus free prose (paragraph, heading, lists, quote).
- * - Entry: one block per Entry kind (`locationEntry`, ...) with child `field`
- *   blocks, grouped under non-editable `entryGroup` headings.
- * - Entry mention: the `entryMention` inline content.
+ * One schema, one plain-document design (editor-design.md, spec §7.1-7.2):
+ * - Section headings are the only custom blocks: six Brief kinds and nine
+ *   Entry kinds. They have no children. Named kinds hold the name as their
+ *   inline content.
+ * - Fields are ordinary paragraphs after a heading that read `Label: value`.
+ * - Hidden is a text style.
+ * - Entry mentions are inline content; World / Story logic dividers are a
+ *   non-editable block.
  */
 import type {
   BlockConfig,
@@ -18,6 +20,7 @@ import type {
   CustomInlineContentConfig,
   PartialBlockNoDefaults,
   PropSchema,
+  StyleConfig,
   _DefaultStyleSchema,
 } from "@blocknote/core"
 import type { defaultBlockSpecs } from "@blocknote/core"
@@ -31,43 +34,24 @@ function blockConfig<const T extends string, const P extends PropSchema, const C
   return config
 }
 
-// Field: one labelled, multi-paragraph value inside a typed block or an Entry block.
-
-export const fieldConfig = blockConfig({
-  type: "field",
-  propSchema: {
-    /** Typed field key (e.g. "personality"), or "custom" for an Author-labelled field. */
-    key: { default: "custom" },
-    /** The label shown; editable for custom fields. */
-    label: { default: "" },
-    /** Hidden: the Writer never states it; the Player must earn it. */
-    hidden: { default: false },
-  },
-  content: "inline",
-})
-
-// Brief surface: typed blocks. Their fields are child `field` blocks.
+// Brief section headings. Named kinds (BRIEF_BLOCKS[type].named) hold the name as inline content.
 
 export const briefBlockConfigs = {
   setting: blockConfig({ type: "setting", propSchema: {}, content: "none" }),
-  character: blockConfig({
-    type: "character",
-    propSchema: { isPlayer: { default: false } },
-    content: "none",
-  }),
-  arc: blockConfig({ type: "arc", propSchema: {}, content: "none" }),
+  character: blockConfig({ type: "character", propSchema: { isPlayer: { default: false } }, content: "inline" }),
+  arc: blockConfig({ type: "arc", propSchema: {}, content: "inline" }),
   ending: blockConfig({ type: "ending", propSchema: {}, content: "none" }),
-  location: blockConfig({ type: "location", propSchema: {}, content: "none" }),
+  location: blockConfig({ type: "location", propSchema: {}, content: "inline" }),
   voice: blockConfig({ type: "voice", propSchema: {}, content: "none" }),
 } satisfies Record<BriefBlockType, BlockConfig>
 
-// Entry surface: one block per Entry kind.
+// Entry section headings: one per Entry kind; the name is the inline content.
 
 const SOURCES = ["author", "setup", "play"] as const
 const STATUSES = ["locked", "proposed", "accepted", "edited", "rejected"] as const
 
-/** Props every Entry block carries. Scalar kind data is added per kind. */
-const entryBaseProps = {
+/** Props every Entry heading carries. Kind data lives in its `Label: value` fields. */
+const entryProps = {
   /** The Entry id; empty for an Entry the Author just added and the server has not stored. */
   entryId: { default: "" },
   source: { default: "author", values: SOURCES },
@@ -91,61 +75,26 @@ export const ENTRY_BLOCK_TYPE = {
 } as const satisfies Record<EntryKind, string>
 export type EntryBlockType = (typeof ENTRY_BLOCK_TYPE)[EntryKind]
 
+function entryBlockConfig<const T extends EntryBlockType>(type: T) {
+  return blockConfig({ type, propSchema: entryProps, content: "inline" })
+}
+
 export const entryBlockConfigs = {
-  locationEntry: blockConfig({
-    type: "locationEntry",
-    propSchema: { ...entryBaseProps, isStart: { default: false } },
-    content: "none",
-  }),
-  characterEntry: blockConfig({
-    type: "characterEntry",
-    propSchema: { ...entryBaseProps, isPlayer: { default: false } },
-    content: "none",
-  }),
-  npcEntry: blockConfig({ type: "npcEntry", propSchema: { ...entryBaseProps }, content: "none" }),
-  factionEntry: blockConfig({ type: "factionEntry", propSchema: { ...entryBaseProps }, content: "none" }),
-  clueEntry: blockConfig({
-    type: "clueEntry",
-    propSchema: {
-      ...entryBaseProps,
-      pointsToHidden: { default: false },
-      redHerring: { default: false },
-    },
-    content: "none",
-  }),
-  objectEntry: blockConfig({ type: "objectEntry", propSchema: { ...entryBaseProps }, content: "none" }),
-  exitConditionEntry: blockConfig({
-    type: "exitConditionEntry",
-    propSchema: { ...entryBaseProps, arcIndex: { default: 0 } },
-    content: "none",
-  }),
-  knowledgeEntry: blockConfig({
-    type: "knowledgeEntry",
-    propSchema: { ...entryBaseProps, minBand: { default: "normal", values: ["low", "normal", "high"] as const } },
-    content: "none",
-  }),
-  decisiveActionEntry: blockConfig({
-    type: "decisiveActionEntry",
-    propSchema: {
-      ...entryBaseProps,
-      onSuccess: { default: "win", values: ["win", "none"] as const },
-      /** 0 means every required Clue is needed. */
-      requiresCount: { default: 0 },
-      wrongTargetPenalty: { default: 15 },
-      prematurePenalty: { default: 20 },
-    },
-    content: "none",
-  }),
+  locationEntry: entryBlockConfig("locationEntry"),
+  characterEntry: entryBlockConfig("characterEntry"),
+  npcEntry: entryBlockConfig("npcEntry"),
+  factionEntry: entryBlockConfig("factionEntry"),
+  clueEntry: entryBlockConfig("clueEntry"),
+  objectEntry: entryBlockConfig("objectEntry"),
+  exitConditionEntry: entryBlockConfig("exitConditionEntry"),
+  knowledgeEntry: entryBlockConfig("knowledgeEntry"),
+  decisiveActionEntry: entryBlockConfig("decisiveActionEntry"),
 } satisfies Record<EntryBlockType, BlockConfig>
 
-/** A non-editable heading that groups Entry blocks: "World" or "Story logic", optionally per kind. */
+/** A non-editable divider: "World" or "Story logic". */
 export const entryGroupConfig = blockConfig({
   type: "entryGroup",
-  propSchema: {
-    group: { default: "world", values: ["world", "story_logic"] as const },
-    /** Empty for the group heading itself; an Entry kind for a per-kind subheading. */
-    kind: { default: "" },
-  },
+  propSchema: { group: { default: "world", values: ["world", "story_logic"] as const } },
   content: "none",
 })
 
@@ -159,6 +108,9 @@ export const entryMentionConfig = {
   content: "none",
 } as const satisfies CustomInlineContentConfig
 
+/** Hidden: the Writer never states it; the Player must earn it through play. */
+export const hiddenStyleConfig = { type: "hidden", propSchema: "boolean" } as const satisfies StyleConfig
+
 export const ENTRY_KIND_OF_BLOCK: Record<EntryBlockType, EntryKind> = Object.fromEntries(
   ENTRY_KINDS.map((kind) => [ENTRY_BLOCK_TYPE[kind], kind])
 ) as Record<EntryBlockType, EntryKind>
@@ -167,7 +119,12 @@ export function isEntryBlockType(type: string): type is EntryBlockType {
   return type in ENTRY_KIND_OF_BLOCK
 }
 
-/** The free-prose blocks the Brief keeps from BlockNote's defaults. */
+/** Any section heading: a Brief kind or an Entry kind. */
+export function isSectionHeadingType(type: string) {
+  return type in briefBlockConfigs || isEntryBlockType(type)
+}
+
+/** The free-prose blocks kept from BlockNote's defaults. */
 export const PROSE_BLOCK_TYPES = [
   "paragraph",
   "heading",
@@ -180,10 +137,7 @@ export type ProseBlockType = (typeof PROSE_BLOCK_TYPES)[number]
 type DefaultSpecs = typeof defaultBlockSpecs
 
 export type SandsBlockSchema = { [K in ProseBlockType]: DefaultSpecs[K]["config"] } & typeof briefBlockConfigs &
-  typeof entryBlockConfigs & {
-    field: typeof fieldConfig
-    entryGroup: typeof entryGroupConfig
-  }
+  typeof entryBlockConfigs & { entryGroup: typeof entryGroupConfig }
 
 export type SandsInlineContentSchema = {
   text: "text"
@@ -191,7 +145,7 @@ export type SandsInlineContentSchema = {
   entryMention: typeof entryMentionConfig
 }
 
-export type SandsStyleSchema = _DefaultStyleSchema
+export type SandsStyleSchema = _DefaultStyleSchema & { hidden: typeof hiddenStyleConfig }
 
 /** A block of the shared editor's document, as `editor.document` returns it. */
 export type SandsBlock = BlockNoDefaults<SandsBlockSchema, SandsInlineContentSchema, SandsStyleSchema>
@@ -200,7 +154,7 @@ export type SandsPartialBlock = PartialBlockNoDefaults<SandsBlockSchema, SandsIn
 /** A whole document. Stored as the World's `briefDoc`. */
 export type SandsDocument = SandsBlock[]
 
-export type FieldBlock = Extract<SandsBlock, { type: "field" }>
+export type ParagraphBlock = Extract<SandsBlock, { type: "paragraph" }>
 export type EntryBlock = Extract<SandsBlock, { type: EntryBlockType }>
-export type BriefTypedBlock = Extract<SandsBlock, { type: BriefBlockType }>
-export type SandsInline = Exclude<FieldBlock["content"], undefined>[number]
+export type BriefSectionBlock = Extract<SandsBlock, { type: BriefBlockType }>
+export type SandsInline = Exclude<ParagraphBlock["content"], undefined>[number]

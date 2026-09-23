@@ -11,6 +11,7 @@ import {
   BlockNoteSchema,
   createBlockSpec,
   createInlineContentSpec,
+  createStyleSpec,
   defaultBlockSpecs,
   defaultInlineContentSpecs,
   defaultStyleSpecs,
@@ -21,7 +22,7 @@ import {
   entryBlockConfigs,
   entryGroupConfig,
   entryMentionConfig,
-  fieldConfig,
+  hiddenStyleConfig,
   type SandsBlock,
   type SandsPartialBlock,
 } from "./schema-config"
@@ -42,7 +43,6 @@ export function createHeadlessSchema() {
       bulletListItem: defaultBlockSpecs.bulletListItem,
       numberedListItem: defaultBlockSpecs.numberedListItem,
       quote: defaultBlockSpecs.quote,
-      field: spec(fieldConfig),
       entryGroup: spec(entryGroupConfig),
       ...Object.fromEntries(
         Object.entries({ ...briefBlockConfigs, ...entryBlockConfigs }).map(([type, config]) => [type, spec(config)])
@@ -52,7 +52,10 @@ export function createHeadlessSchema() {
       ...defaultInlineContentSpecs,
       entryMention: createInlineContentSpec(entryMentionConfig, { render: noRender }),
     },
-    styleSpecs: defaultStyleSpecs,
+    styleSpecs: {
+      ...defaultStyleSpecs,
+      hidden: createStyleSpec(hiddenStyleConfig, { render: () => ({ dom: {} as HTMLElement }) }),
+    },
   })
 }
 

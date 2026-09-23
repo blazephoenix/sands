@@ -1,14 +1,17 @@
 /**
- * Brief -> Brief editor document. Pure.
+ * Brief -> Brief editor document (editor-design.md). Pure.
  *
  * Used for the new-Brief template (spec §7.1), for fixtures, and for the
- * round-trip test. Typed blocks come out in a fixed order (Settings,
- * Characters, Locations, Arcs, Ending, Voices, then prose sections), so a
- * document -> Brief -> document round trip preserves content, not layout.
+ * round-trip test. Sections come out in a fixed order (Settings, Characters,
+ * Locations, Arcs, Ending, Voices, then prose), each heading followed by every
+ * known `Label:` line (empty ones included, so the Author sees what goes where)
+ * and then its custom fields. A document -> Brief -> document round trip
+ * preserves content, not layout.
  */
 import type { Brief, BriefDraft, KeyFact } from "@/domain/brief"
-import { BRIEF_BLOCKS, CUSTOM_FIELD_KEY, type BriefBlockType } from "@/brief/fields"
-import type { FieldBlock, SandsBlock } from "@/editor/schema-config"
+import { BRIEF_BLOCKS, type BriefBlockType } from "@/brief/fields"
+import { fieldParagraph } from "@/editor/field-line"
+import type { SandsBlock } from "@/editor/schema-config"
 
 export type IdFactory = () => string
 
@@ -22,115 +25,99 @@ export function sequentialIds(prefix: string): IdFactory {
 
 const proseProps = { backgroundColor: "default", textColor: "default", textAlignment: "left" } as const
 
-function text(value: string) {
-  return value ? [{ type: "text" as const, text: value, styles: {} }] : []
+function text(value: string, styles: Record<string, boolean> = {}) {
+  return value ? [{ type: "text" as const, text: value, styles }] : []
 }
 
-export function fieldBlock(
-  id: string,
-  key: string,
-  label: string,
-  value: string,
-  hidden = false
-): FieldBlock {
-  return { id, type: "field", props: { key, label, hidden }, content: text(value), children: [] }
-}
-
-/** Field values by key; anything that is not a string or string list is ignored. */
-type TypedValues = Record<string, unknown>
-
-/** A typed block with every catalog field (empty or filled), then its custom fields. */
-export function typedBlock(
+/** A section heading block. Named kinds take `name`; `hiddenName` gives it the Hidden style. */
+export function sectionHeading(
   type: BriefBlockType,
-  values: TypedValues,
+  id: string,
+  options: { name?: string; isPlayer?: boolean; hiddenName?: boolean } = {}
+): SandsBlock {
+  const spec = BRIEF_BLOCKS[type]
+  const content = spec.named ? text(options.name ?? "", options.hiddenName ? { hidden: true } : {}) : undefined
+  const props = type === "character" ? { isPlayer: options.isPlayer ?? false } : {}
+  return { id, type, props, content, children: [] } as SandsBlock
+}
+
+type SectionValues = Record<string, unknown>
+
+/**
+ * A whole section: its heading, one `Label:` line per known field (list fields
+ * with `lines` get one line per item), then its custom fields.
+ */
+export function briefSection(
+  type: BriefBlockType,
+  values: SectionValues,
   options: {
     ids: IdFactory
     blockId?: string
+    isPlayer?: boolean
     hiddenFields?: string[]
     keyFacts?: KeyFact[]
-    isPlayer?: boolean
   }
-): SandsBlock {
+): SandsBlock[] {
   const spec = BRIEF_BLOCKS[type]
-  const children: FieldBlock[] = spec.fields.map((field) => {
+  const hidden = new Set(options.hiddenFields ?? [])
+  const styles = (key: string): Record<string, boolean> => (hidden.has(key) ? { hidden: true } : {})
+  const blocks: SandsBlock[] = [
+    sectionHeading(type, options.blockId ?? options.ids(), {
+      name: typeof values.name === "string" ? values.name : "",
+      isPlayer: options.isPlayer,
+      hiddenName: hidden.has("name"),
+    }),
+  ]
+  for (const field of spec.fields) {
     const raw = values[field.key]
-    const value = Array.isArray(raw)
-      ? raw.filter((item): item is string => typeof item === "string").join(field.list === "comma" ? ", " : "\n")
-      : typeof raw === "string"
-        ? raw
-        : ""
-    return fieldBlock(
-      options.ids(),
-      field.key,
-      field.label,
-      value,
-      options.hiddenFields?.includes(field.key) ?? false
-    )
-  })
+    const items = Array.isArray(raw) ? raw.filter((item): item is string => typeof item === "string") : null
+    if (items && field.list === "lines") {
+      for (const item of items.length > 0 ? items : [""]) {
+        blocks.push(fieldParagraph(options.ids(), field.label, item, styles(field.key)))
+      }
+      continue
+    }
+    const value = items ? items.join(", ") : typeof raw === "string" ? raw : ""
+    blocks.push(fieldParagraph(options.ids(), field.label, value, styles(field.key)))
+  }
   for (const fact of options.keyFacts ?? []) {
-    children.push(fieldBlock(options.ids(), CUSTOM_FIELD_KEY, fact.label, fact.text, fact.hidden))
+    blocks.push(fieldParagraph(options.ids(), fact.label, fact.text, fact.hidden ? { hidden: true } : {}))
   }
-  const id = options.blockId ?? options.ids()
-  if (type === "character") {
-    return { id, type, props: { isPlayer: options.isPlayer ?? false }, content: undefined, children }
-  }
-  return { id, type, props: {}, content: undefined, children } as SandsBlock
+  return blocks
 }
 
 export function headingBlock(id: string, value: string, level: 1 | 2 | 3 = 2): SandsBlock {
-  return {
-    id,
-    type: "heading",
-    props: { ...proseProps, level, isToggleable: false },
-    content: text(value),
-    children: [],
-  }
+  return { id, type: "heading", props: { ...proseProps, level, isToggleable: false }, content: text(value), children: [] }
 }
 
 export function paragraphBlock(id: string, value: string): SandsBlock {
   return { id, type: "paragraph", props: { ...proseProps }, content: text(value), children: [] }
 }
 
-export function briefToDocument(
-  brief: Brief | BriefDraft,
-  options: { ids?: IdFactory; keepBlockIds?: boolean } = {}
-): SandsBlock[] {
+export function briefToDocument(brief: Brief | BriefDraft, options: { ids?: IdFactory; keepBlockIds?: boolean } = {}): SandsBlock[] {
   const ids = options.ids ?? randomId
   const keep = options.keepBlockIds ?? true
-  const blockId = (item: { blockId: string }) => (keep ? item.blockId : undefined)
   const endings = "ending" in brief ? [brief.ending] : brief.endings
   const doc: SandsBlock[] = []
-
-  for (const s of brief.settings) {
-    doc.push(typedBlock("setting", s, { ids, blockId: blockId(s), hiddenFields: s.hiddenFields, keyFacts: s.keyFacts }))
-  }
-  for (const c of brief.characters) {
+  const add = (type: BriefBlockType, item: { blockId: string; hiddenFields: string[]; keyFacts: KeyFact[] } & SectionValues, isPlayer?: boolean) =>
     doc.push(
-      typedBlock("character", c, {
+      ...briefSection(type, item, {
         ids,
-        blockId: blockId(c),
-        hiddenFields: c.hiddenFields,
-        keyFacts: c.keyFacts,
-        isPlayer: c.isPlayer,
+        blockId: keep ? item.blockId : undefined,
+        hiddenFields: item.hiddenFields,
+        keyFacts: item.keyFacts,
+        isPlayer,
       })
     )
-  }
-  for (const l of brief.locations) {
-    doc.push(typedBlock("location", l, { ids, blockId: blockId(l), hiddenFields: l.hiddenFields, keyFacts: l.keyFacts }))
-  }
-  for (const a of brief.arcs) {
-    doc.push(typedBlock("arc", a, { ids, blockId: blockId(a), hiddenFields: a.hiddenFields, keyFacts: a.keyFacts }))
-  }
-  for (const e of endings) {
-    doc.push(typedBlock("ending", e, { ids, blockId: blockId(e), hiddenFields: e.hiddenFields, keyFacts: e.keyFacts }))
-  }
-  for (const v of brief.voices) {
-    doc.push(typedBlock("voice", v, { ids, blockId: blockId(v), hiddenFields: v.hiddenFields, keyFacts: v.keyFacts }))
-  }
+
+  for (const item of brief.settings) add("setting", item)
+  for (const item of brief.characters) add("character", item, item.isPlayer)
+  for (const item of brief.locations) add("location", item)
+  for (const item of brief.arcs) add("arc", item)
+  for (const item of endings) add("ending", item)
+  for (const item of brief.voices) add("voice", item)
   for (const section of brief.prose) {
-    if (section.heading !== null) {
-      doc.push(headingBlock((keep && section.headingBlockId) || ids(), section.heading))
-    }
+    if (section.heading !== null) doc.push(headingBlock((keep && section.headingBlockId) || ids(), section.heading))
     for (const paragraph of section.paragraphs) doc.push(paragraphBlock(ids(), paragraph))
   }
   return doc
@@ -138,16 +125,16 @@ export function briefToDocument(
 
 /**
  * The new-Brief template (spec §7.1): one Setting, one player Character, three
- * Arcs and one Ending, all empty so each field shows its placeholder.
+ * Arcs and one Ending, every `Label:` line empty so each shows its hint.
  */
 export function newBriefTemplate(ids: IdFactory = randomId): SandsBlock[] {
   return [
-    typedBlock("setting", {}, { ids }),
-    typedBlock("character", {}, { ids, isPlayer: true }),
-    typedBlock("arc", {}, { ids }),
-    typedBlock("arc", {}, { ids }),
-    typedBlock("arc", {}, { ids }),
-    typedBlock("ending", {}, { ids }),
+    ...briefSection("setting", {}, { ids }),
+    ...briefSection("character", {}, { ids, isPlayer: true }),
+    ...briefSection("arc", {}, { ids }),
+    ...briefSection("arc", {}, { ids }),
+    ...briefSection("arc", {}, { ids }),
+    ...briefSection("ending", {}, { ids }),
     paragraphBlock(ids(), ""),
   ]
 }
