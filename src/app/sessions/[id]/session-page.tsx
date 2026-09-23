@@ -7,7 +7,7 @@
  */
 import * as React from "react"
 import Link from "next/link"
-import { BookOpenIcon, SearchXIcon, TriangleAlertIcon } from "lucide-react"
+import { BookOpenIcon, FlaskConicalIcon, SearchXIcon, TriangleAlertIcon } from "lucide-react"
 
 import { ShellActions, ShellBreadcrumbs, worldCrumbs } from "@/components/app-shell"
 import { ShortcutKeys } from "@/components/shortcut-keys"
@@ -15,7 +15,9 @@ import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { GetSessionResponse } from "@/domain/session-view"
 import { useSingleKeyShortcut } from "@/lib/keyboard"
@@ -23,7 +25,9 @@ import { cn } from "@/lib/utils"
 
 import { CodexPane, unseenPlayEntries } from "./codex-pane"
 import { EndingScreen } from "./ending"
+import { HarnessPane } from "./harness-pane"
 import { Composer, PROSE, StoryEmpty, StorySkeleton, TurnSection, scrollToElement } from "./story"
+import { useTestMode } from "./test-mode"
 import { useSession } from "./use-session"
 
 const SUGGESTIONS = ["I read the case file at Captain James's desk.", "I ask Amanda what the victims had in common."]
@@ -90,9 +94,17 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
   const ended = data.session.ending !== "none"
   const turns = ended ? data.turns.slice(0, -1) : data.turns
 
-  const [sheet, setSheet] = React.useState<"codex" | "harness" | null>(null)
+  const [testMode, setTestMode] = useTestMode()
+  const [requestedSheet, setSheet] = React.useState<"codex" | "harness" | null>(null)
+  // Test mode off hides the harness pane completely.
+  const sheet = requestedSheet === "harness" && !testMode ? null : requestedSheet
+  // Keep the closing sheet's content while it animates out.
+  const [lastSheet, setLastSheet] = React.useState(sheet)
+  if (sheet !== null && sheet !== lastSheet) setLastSheet(sheet)
+  const content = sheet ?? lastSheet
   const toggleSheet = (which: "codex" | "harness") => setSheet((open) => (open === which ? null : which))
   useSingleKeyShortcut("c", () => toggleSheet("codex"))
+  useSingleKeyShortcut("t", () => toggleSheet("harness"), { enabled: testMode })
   const newEntries = unseenPlayEntries(data.entries).length
 
   // On load: the latest Turn in view, the cursor in the input.
@@ -165,6 +177,40 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
             <ShortcutKeys shortcut="c" />
           </TooltipContent>
         </Tooltip>
+        {testMode ? (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant={sheet === "harness" ? "secondary" : "ghost"}
+                  size="sm"
+                  aria-expanded={sheet === "harness"}
+                  onClick={() => toggleSheet("harness")}
+                />
+              }
+            >
+              <FlaskConicalIcon data-icon="inline-start" />
+              Harness
+            </TooltipTrigger>
+            <TooltipContent>
+              {sheet === "harness" ? "Close the harness pane" : "Open the harness pane"}
+              <ShortcutKeys shortcut="t" />
+            </TooltipContent>
+          </Tooltip>
+        ) : null}
+        <Field orientation="horizontal" className="w-auto">
+          <Switch
+            id="session-test-mode"
+            checked={testMode}
+            onCheckedChange={(on) => {
+              setTestMode(on)
+              if (!on && sheet === "harness") setSheet(null)
+            }}
+          />
+          <FieldLabel htmlFor="session-test-mode" className="font-normal whitespace-nowrap">
+            Test mode
+          </FieldLabel>
+        </Field>
       </ShellActions>
       <h1 className="sr-only">
         {data.world.name}, Session {data.sessionNumber}
@@ -224,13 +270,23 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
 
       <Sheet open={sheet !== null} onOpenChange={(open) => (open ? undefined : setSheet(null))}>
         <SheetContent side="right" finalFocus={ended ? true : inputRef} className="w-full gap-0 data-[side=right]:sm:max-w-2xl">
-          {sheet === "codex" ? (
+          {content === "codex" ? (
             <>
               <SheetHeader>
                 <SheetTitle>Codex</SheetTitle>
                 <SheetDescription>This Session&apos;s Entries. Edits and status changes apply from the next Turn.</SheetDescription>
               </SheetHeader>
               <CodexPane data={data} update={update} localEntries={localEntries} />
+            </>
+          ) : content === "harness" ? (
+            <>
+              <SheetHeader>
+                <SheetTitle>Harness</SheetTitle>
+                <SheetDescription>What the harness did in each finished Turn, newest first.</SheetDescription>
+              </SheetHeader>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <HarnessPane data={data} />
+              </div>
             </>
           ) : null}
         </SheetContent>
