@@ -8,9 +8,13 @@
  * Author Entries (from the Brief) are `locked` in both. Session copies and
  * play Entries are built in `sessions.ts`.
  *
- * Ticket 03 adds its fixture data here.
+ * Every change to a World template Entry re-runs the solvability check
+ * (spec §7.2, §8 step 4) and stores the result on the World, so
+ * `GET /api/worlds/[id]` returns it and Start follows it.
  */
 import type { CreateEntryRequest, PatchEntryRequest, PatchEntryResponse } from "@/domain/api"
+import type { SolvabilityResult } from "@/domain/world"
+import { checkSolvability } from "@/setup/solvability"
 import {
   entryContentSchema,
   entrySchema,
@@ -24,7 +28,7 @@ import {
 
 import { getStore, newId, nowIso, StoreError } from "./store"
 import { fixtureTime, WORLD_IDS } from "./ids"
-import { getWorld } from "./worlds"
+import { getWorld, listWorldEntries, saveWorld } from "./worlds"
 
 type Variant = "review" | "ready"
 
@@ -428,11 +432,28 @@ export function saveEntry(entry: Entry): Entry {
 }
 
 /**
+ * Re-runs the solvability check over a World's template Entries and stores
+ * the result on the World. Only a World past setup has a result to keep: a
+ * World in draft has no Entries yet, and while setup runs (drafting) setup
+ * owns the check. For those, the stored result comes back unchanged.
+ */
+export function recheckSolvability(worldId: string): SolvabilityResult | null {
+  const world = getWorld(worldId)
+  if (!world.brief || (world.setupStatus !== "review" && world.setupStatus !== "ready")) return world.solvability
+  const checkedAt = nowIso()
+  const solvability: SolvabilityResult = { ...checkSolvability({ arcs: world.brief.arcs, entries: listWorldEntries(world.id) }), checkedAt }
+  saveWorld({ ...world, solvability, updatedAt: checkedAt })
+  return solvability
+}
+
+/**
  * Accept, reject, restore, edit or mark-seen one Entry (World template or
  * Session copy). Locked Entries come from the Brief and cannot change.
  *
- * `solvability` in the result is the World's stored result for template
- * Entries and null for Session copies. Ticket 03 makes it a fresh check.
+ * `solvability` in the result: for a World template Entry, the World's result
+ * re-checked after this change and stored (mark-seen changes nothing the check
+ * reads, so it returns the stored result); for a Session copy, null, since
+ * Session edits take effect from the next Turn.
  */
 export function patchEntry(id: string, request: PatchEntryRequest): PatchEntryResponse {
   const entry = getEntry(id)
@@ -463,10 +484,12 @@ export function patchEntry(id: string, request: PatchEntryRequest): PatchEntryRe
       break
   }
   const saved = saveEntry(next)
-  return { entry: saved, solvability: saved.sessionId === null ? getWorld(saved.worldId).solvability : null }
+  if (saved.sessionId !== null) return { entry: saved, solvability: null }
+  const solvability = request.action === "mark-seen" ? getWorld(saved.worldId).solvability : recheckSolvability(saved.worldId)
+  return { entry: saved, solvability }
 }
 
-/** Stores an Entry the Author added in the Entry editor. */
+/** Stores an Entry the Author added in the Entry editor; a World Entry re-checks solvability, as `patchEntry` does. */
 export function createEntry(request: CreateEntryRequest): PatchEntryResponse {
   const world = getWorld(request.worldId)
   if (request.sessionId !== null) {
@@ -491,5 +514,5 @@ export function createEntry(request: CreateEntryRequest): PatchEntryResponse {
     createdAt: now,
     updatedAt: now,
   } as Entry)
-  return { entry: saved, solvability: saved.sessionId === null ? world.solvability : null }
+  return { entry: saved, solvability: saved.sessionId === null ? recheckSolvability(world.id) : null }
 }
