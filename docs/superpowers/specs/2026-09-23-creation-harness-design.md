@@ -42,7 +42,7 @@ The MVP passes if a viewer can see:
 | **World** | A brief plus its setup output (the template entries). |
 | **Session** | One playthrough of a world. Starts with its own copy of the world's entries. |
 | **Turn** | One player input and everything the harness does in response. |
-| **Entry** | One codex item. Kinds are grouped into **World** (location, character, npc, faction, clue, object) and **Plan** (exit_condition, knowledge, decisive_action). |
+| **Entry** | One codex item. Kinds are grouped into **World** (location, character, npc, faction, clue, object) and **Story logic** (exit_condition, knowledge, decisive_action). World entries are things in the story; story-logic entries are conditions code enforces. Group is independent of source: both groups hold author (`locked`) and AI (`proposed`) entries. |
 | **Clue** | A discoverable fact, placed at a location or held by a character. May point to the hidden truth. May be a labeled red herring. |
 | **Knowledge** | One fact one character knows, with the lowest reputation band at which they reveal it. |
 | **Decisive action** | A story-ending or story-critical move declared as data, e.g. "arrest Max Rober; requires clues C1, C3, C5; wrong target costs 15 reputation." |
@@ -222,7 +222,7 @@ The same BlockNote schema, with one typed block per entry kind (location, charac
 - **References** use a custom inline mention (`@Whitechapel`, `@C1`). The mention menu lists only existing, non-rejected entries, so the author cannot point at something that does not exist.
 - **Editing** a block sets status `edited`, then re-runs solvability (setup review) or takes effect from the next turn (play).
 - **Locked** entries render read-only.
-- Blocks are grouped under **World** and **Plan** headings; the slash menu is limited to entry kinds (no free prose) on these surfaces.
+- Blocks are grouped under **World** and **Story logic** headings; the slash menu is limited to entry kinds (no free prose) on these surfaces.
 
 ### 7.3 Licensing
 
@@ -239,12 +239,12 @@ A BlockNote custom block has flat typed props plus one content area; a Character
 1. **Parse.** Convert and validate the brief. Create `locked` entries with source `author`: characters, any locations, any exit conditions. Arcs and the ending stay in `brief_json`.
 2. **Draft** (Drafter, structured output, two sequential calls):
    1. **World call:** 3–4 real, period-accurate locations with descriptions and connections (if the brief has none), supporting NPCs, exit conditions for arcs that lack them. The start location is the brief's location if given, else the first drafted location.
-   2. **Plan call** (sees call 1's output): clues (location or holder, what each reveals, `points_to_hidden`, `red_herring`), knowledge entries, decisive actions derived from the ending.
+   2. **Story logic call** (sees call 1's output): clues (location or holder, what each reveals, `points_to_hidden`, `red_herring`), knowledge entries, decisive actions derived from the ending.
    The Drafter refers to things by name; code resolves names to ids. An unresolved name is a validation error.
 3. **Validate.**
    - **Solvability (code, pure):** for every decisive action, each required clue exists, is not a red herring, and is reachable: either at a location connected to the start location, or held by a character with a knowledge entry revealing it at `normal` band or lower. Every arc has at least one exit condition.
    - **Jev:** one call with two `noul` questions per drafted entry — "does this contradict the brief?" and, for locations, "does this fit the setting and period?" Failures set `jev_flags`; nothing is deleted.
-   - **On solvability failure:** re-run the plan call with the failure list as feedback, at most 2 times. If it still fails, show the author the exact gaps (e.g. "C4 sits at an unreachable location").
+   - **On solvability failure:** re-run the story logic call with the failure list as feedback, at most 2 times. If it still fails, show the author the exact gaps (e.g. "C4 sits at an unreachable location").
 4. **Review.** Author accepts, edits or rejects entries in the entry editor (§7.2). Solvability re-runs after every change. **Start** is enabled while solvability passes. Entries may remain `proposed`; proposed entries are canon (`requirements.md` §5). Historical accuracy of real places is the author's call; Jev is not relied on for factual history.
 
 Expected setup time: 30–60 seconds, once per world.
@@ -353,7 +353,7 @@ Each rule has a feedback template. A failure becomes one line to the writer, e.g
 ## 11. UI
 
 - **`/worlds/[id]/brief`:** BlockNote brief editor; **Run setup** button with progress.
-- **`/worlds/[id]/setup`:** entry editor grouped into **World** (locations, characters, NPCs, factions, clues, objects) and **Plan** (exit conditions, knowledge, decisive actions); per-block accept / edit / reject; Jev flags; solvability banner listing any gaps; **Start**.
+- **`/worlds/[id]/setup`:** entry editor grouped into **World** (locations, characters, NPCs, factions, clues, objects) and **Story logic** (exit conditions, knowledge, decisive actions); per-block accept / edit / reject; Jev flags; solvability banner listing any gaps; **Start**.
 - **`/sessions/[id]`:**
   - **Story pane** (center): passages with a client-side animated reveal; free-text input; ending screen.
   - **Codex pane** (right drawer): the same entry editor, grouped by kind, tagged by source and status, editable during play. Edits apply from the next turn.
