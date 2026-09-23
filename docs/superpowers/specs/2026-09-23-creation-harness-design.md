@@ -1,0 +1,402 @@
+# Creation Harness — Design
+
+**Date:** 2026-09-23
+**Due:** Friday 2026-09-25
+**Source requirements:** `requirements.md`
+**Status:** Design approved in brainstorming; awaiting spec review
+
+---
+
+## 1. Purpose
+
+Test one thesis: **can an AI be creative when working within human-authored constraints?**
+
+An author writes a brief. The AI expands it, writes the story, and invents what the author left open. Code enforces the brief's rules. Jev judges every passage. The author can see and edit every AI invention.
+
+This is a **writing harness**, not a mystery engine. The code knows generic story mechanics; the specific story (a murder case, a romance, anything) lives in the brief's data. For Friday, exactly one brief is played: the 1888 London case from `requirements.md` §2.
+
+The MVP passes if a viewer can see:
+
+1. **The brief holds.** Characters stay in character, arcs happen in order, the hidden truth stays hidden until earned, and the story ends in a way the author allows.
+2. **The story is alive.** Different sessions of the same world produce different routes, prose and invented characters.
+3. **The author stays in charge.** AI inventions are visible and editable, and later passages follow the edits.
+
+---
+
+## 2. Core principles
+
+1. **Jev recognizes, code decides.** Jev turns prose and free text into facts (intent, classification, "was this clue revealed?", "was this rule violated?"). Plain code applies rules to those facts (arrest succeeds or fails, reputation changes, arc advances, ending reached). No model ever writes state.
+2. **Nothing unapproved reaches the player.** A passage appears in the story pane only after Jev passes it.
+3. **Everything that decides an outcome is a pure function.** The resolver, solvability check, directive builder and ending check take data in and return data out, with no I/O. Randomness uses a seeded generator so replays reproduce outcomes.
+4. **Only authored places exist.** Places come from the brief or from setup (reviewed by the author). During play, the AI may invent **characters only**.
+5. **Each model sits behind an interface** so it can be swapped.
+
+---
+
+## 3. Glossary
+
+| Term | Meaning |
+|---|---|
+| **Brief** | The author's locked input: setting, characters, arcs, ending, optional locations, optional voice, optional custom sections and fields. |
+| **Hidden field** | A brief field the author marks as secret (e.g. the killer's identity and motive). Together, the hidden fields are the **hidden truth**. |
+| **World** | A brief plus its setup output (the template entries). |
+| **Session** | One playthrough of a world. Starts with its own copy of the world's entries. |
+| **Turn** | One player input and everything the harness does in response. |
+| **Entry** | One codex item. Kinds are grouped into **World** (location, character, npc, faction, clue, object) and **Plan** (exit_condition, knowledge, decisive_action). |
+| **Clue** | A discoverable fact, placed at a location or held by a character. May point to the hidden truth. May be a labeled red herring. |
+| **Knowledge** | One fact one character knows, with the lowest reputation band at which they reveal it. |
+| **Decisive action** | A story-ending or story-critical move declared as data, e.g. "arrest Max Rober; requires clues C1, C3, C5; wrong target costs 15 reputation." |
+| **Directive** | Code-built instructions to the writer for this turn. |
+| **Drafter** | The small OpenAI model (setup drafting, entity extraction). |
+| **Writer** | Grok (passage writing). |
+| **Judge** | Jev (all judgment). |
+
+---
+
+## 4. Scope and cut order
+
+Friday acceptance criteria are those in `requirements.md` §13 (15 criteria).
+
+**Build order, which is also the reverse cut order** (last item is cut first if time runs short):
+
+1. Jev smoke test (day 1, first thing — see §9.5)
+2. Brief editor (Tiptap) and brief conversion
+3. Setup: draft, validate, solvability
+4. Setup review (Tiptap cards)
+5. Turn loop with Jev
+6. Harness pane (test mode)
+7. Codex pane editing during play
+8. Replay runner and adversarial scripts
+9. Pacing check
+10. Baseline mode and compare view
+
+Accepted consequence: the Tiptap editor consumes about one of the two days, so **baseline and compare (criterion 14) are expected to be cut for Friday**, and pacing (criterion 11) is at risk.
+
+Non-goals (from `requirements.md` §14, plus decisions made here): voice input, saves beyond the session table, accounts, multiple concurrent worlds as a feature, importing briefs from fiction, visual polish beyond legibility, automated creativity scoring, AI-invented places or objects, rolling story summaries (see §12), event-sourced state.
+
+---
+
+## 5. Architecture
+
+**Stack:** Next.js (App Router), shadcn/ui, Tiptap, SQLite via Drizzle + better-sqlite3, Vercel AI SDK (Grok via the xAI provider, OpenAI via the OpenAI provider), TypeSafe SDK `@typesafe-ai/sdk` for Jev (falling back to `fetch` if the SDK cannot target the endpoint we are given). **No server actions:** client components call route handlers.
+
+### 5.1 Modules (`src/`)
+
+| Module | Responsibility | I/O |
+|---|---|---|
+| `brief/` | Brief schema (zod); Tiptap JSON → brief conversion; brief → YAML rendering for prompts | None |
+| `models/` | `Writer`, `Drafter`, `Judge` interfaces; real implementations; fakes for tests | Model APIs |
+| `codex/` | Entry create/edit/reject; session copy; codex slice selection per turn | DB |
+| `setup/` | Draft calls, Jev validation, solvability check (pure) | Models, DB |
+| `engine/` | Turn loop orchestration; pure core: `resolve`, `direct`, `checkEndings`; `config.ts` | Via injected interfaces only |
+| `rules/` | Rule catalog: each rule builds its Jev questions, holds thresholds and a feedback template | None |
+| `db/` | Drizzle schema, client, migrations | DB |
+| `editor/` | Shared Tiptap nodes (section, card, field, mention) used by brief, setup review and codex pane | Browser |
+
+### 5.2 Routes
+
+| Route | Purpose |
+|---|---|
+| `POST /api/worlds` | Create a world from a brief (Tiptap JSON) |
+| `PUT /api/worlds/[id]/brief` | Save brief edits |
+| `POST /api/worlds/[id]/setup` | Run setup (draft → validate → solvability); returns progress events as NDJSON, then the result |
+| `GET /api/worlds/[id]` | World, brief, entries, solvability result |
+| `PATCH /api/entries/[id]` | Accept, edit or reject an entry (world template or session copy) |
+| `POST /api/sessions` | Start a session from a world |
+| `POST /api/sessions/[id]/turn` | Play one turn; returns progress events as NDJSON, then the approved passage and turn summary |
+| `GET /api/sessions/[id]` | Story, current state, entries, harness log |
+
+The turn route does not stream passage text; the passage is final before it is sent. The client performs the animated reveal (animation design is later work).
+
+---
+
+## 6. Data model
+
+Four tables.
+
+### `worlds`
+
+| Column | Notes |
+|---|---|
+| `id` | |
+| `name` | |
+| `brief_doc` | Tiptap JSON, so the editor reopens exactly as left |
+| `brief_json` | Validated brief; locked |
+| `setup_status` | `draft` / `drafting` / `review` / `ready` |
+| `solvability_json` | Latest solvability result |
+| `created_at`, `updated_at` | |
+
+### `entries`
+
+| Column | Notes |
+|---|---|
+| `id` | |
+| `world_id` | |
+| `session_id` | Null = world template entry; set = session copy |
+| `template_id` | For session copies: the world entry it was copied from (null for play inventions) |
+| `kind` | `location`, `character`, `npc`, `faction`, `clue`, `object`, `exit_condition`, `knowledge`, `decisive_action` |
+| `name` | For clues, a short handle (C1, C2, …) plus title |
+| `description` | |
+| `key_facts` | JSON array of strings (custom brief fields on an item land here) |
+| `data_json` | Kind-specific fields (below) |
+| `source` | `author`, `setup`, `play` |
+| `source_turn` | Turn index when `source = play` |
+| `status` | `locked`, `proposed`, `accepted`, `edited`, `rejected` |
+| `jev_flags` | JSON: setup validation results (contradiction / period fit) |
+| `created_at`, `updated_at` | |
+
+Kind-specific `data_json`:
+
+- **location:** `connections` (entry ids), `is_start` (bool)
+- **character / npc:** `role`, `age`, `personality`, `backstory`, `is_player`, `hidden_fields` (names of fields that are secret), `aliases`
+- **clue:** `location_id` (nullable), `known_by` (character ids), `reveals` (text), `points_to_hidden` (bool), `red_herring` (bool)
+- **exit_condition:** `arc_index`, `condition` (text, checkable)
+- **knowledge:** `character_id`, `fact`, `min_band` (`low` / `normal` / `high`), `clue_id` (nullable)
+- **decisive_action:** `verb` (e.g. "arrest"), `correct_target_id`, `requires` (clue ids) or `requires_count` (n of listed clues), `on_success` (`win` to end the session, or `none` to continue play), `wrong_target_penalty`, `premature_penalty`
+
+**Session copy:** starting a session copies every non-rejected template entry into rows with `session_id` set. Mid-game edits touch only that session. Two sessions of one world start identical, which the variation claim needs. (Alternative for later: store only per-session overrides and merge on read. Not chosen: every read becomes a merge, and later template edits would leak into running sessions.)
+
+### `sessions`
+
+| Column | Notes |
+|---|---|
+| `id` | |
+| `world_id` | |
+| `mode` | `harness` / `baseline` |
+| `seed` | For the seeded random generator |
+| `ending` | `none` / `win` / `death` / `removed` |
+| `created_at`, `updated_at` | |
+
+### `turns`
+
+| Column | Notes |
+|---|---|
+| `id` | |
+| `session_id` | |
+| `idx` | 0-based, monotonic per session |
+| `player_input` | |
+| `passage` | The shipped passage |
+| `flagged` | True if shipped after 3 failed rounds |
+| `log_json` | Intent, classification, outcome, directive, every draft with rule results, discovery answers, background results, timings, Jev model version |
+| `state_json` | Full player state after this turn |
+| `background_status` | `pending` / `done` / `failed` |
+| `created_at` | |
+
+A turn row is written only when a passage ships. Background results are merged into `log_json` and the latest `state_json` when they finish.
+
+### Player state (`state_json`)
+
+```
+location_id, arc_index, clues_found[], knowledge_revealed{character_id: knowledge_id[]},
+reputation, off_script_count, warnings_given[], pacing_nudge (bool + reason), ending
+```
+
+---
+
+## 7. The brief and editors
+
+### 7.1 Brief editor (Tiptap)
+
+- **Document shape:** section nodes → card nodes → field nodes. A field node has `label`, content, and a `hidden` attribute.
+- **Predefined template:** Setting (place, period); Characters (repeatable card: name, role, age, personality, backstory, player-character flag); Arcs (repeatable card: name, description, optional exit conditions); Ending; Locations (optional, repeatable); Voice (optional: guidelines, sample passages).
+- **Custom fields:** "+ Add field" on any card adds a field with an author-typed label. Custom fields become the item's `key_facts`. "+ Add section" adds a top-level custom section, which becomes locked brief text.
+- **Custom content is prompt-only.** It reaches the writer and the judge; code cannot act on it. Only predefined fields drive mechanics.
+- **Hidden toggle** on every field marks it secret.
+- **Conversion:** a function walks the Tiptap JSON and builds the brief object, validated with zod. Validation errors carry the node position so the editor highlights the field.
+- **Storage:** Tiptap JSON and validated brief JSON. YAML is rendered from the brief JSON for prompts and export; hidden fields are rendered with a `SECRET — never state or imply` marker in the writer's prompt.
+
+### 7.2 Shared card editor
+
+The same Tiptap card/field nodes render entries on the setup review page and in the in-play codex pane:
+
+- Card header: kind, source, status, Jev flags, **Accept** and **Reject** buttons.
+- References use Tiptap Mention nodes (`@Whitechapel`, `@C1`). A mention can only point at an existing, non-rejected entry.
+- Editing a card sets status `edited` and re-runs solvability (setup review) or takes effect from the next turn (play).
+- Locked entries render read-only.
+
+---
+
+## 8. Setup phase
+
+1. **Parse.** Convert and validate the brief. Create `locked` entries with source `author`: characters, any locations, any exit conditions. Arcs and the ending stay in `brief_json`.
+2. **Draft** (Drafter, structured output, two sequential calls):
+   1. **World call:** 3–4 real, period-accurate locations with descriptions and connections (if the brief has none), supporting NPCs, exit conditions for arcs that lack them. The start location is the brief's location if given, else the first drafted location.
+   2. **Plan call** (sees call 1's output): clues (location or holder, what each reveals, `points_to_hidden`, `red_herring`), knowledge entries, decisive actions derived from the ending.
+   The Drafter refers to things by name; code resolves names to ids. An unresolved name is a validation error.
+3. **Validate.**
+   - **Solvability (code, pure):** for every decisive action, each required clue exists, is not a red herring, and is reachable: either at a location connected to the start location, or held by a character with a knowledge entry revealing it at `normal` band or lower. Every arc has at least one exit condition.
+   - **Jev:** one call with two `noul` questions per drafted entry — "does this contradict the brief?" and, for locations, "does this fit the setting and period?" Failures set `jev_flags`; nothing is deleted.
+   - **On solvability failure:** re-run the plan call with the failure list as feedback, at most 2 times. If it still fails, show the author the exact gaps (e.g. "C4 sits at an unreachable location").
+4. **Review.** Author accepts, edits or rejects entries on the card editor. Solvability re-runs after every change. **Start** is enabled while solvability passes. Entries may remain `proposed`; proposed entries are canon (`requirements.md` §5). Historical accuracy of real places is the author's call; Jev is not relied on for factual history.
+
+Expected setup time: 30–60 seconds, once per world.
+
+---
+
+## 9. Turn loop
+
+Target: **3–5 seconds** from submit to passage on a turn that needs no retry. All timings in this spec are estimates to be confirmed by measurement on day 1.
+
+### 9.1 Critical path (before the passage appears)
+
+1. **Wait** for the previous turn's background work if it is still running.
+2. **Jev call 1 — read the input.** One request, three `choice` questions:
+   - **Intent:** `move`, `examine`, `question`, one option per declared decisive-action verb (e.g. `arrest`, `accuse`), `other`.
+   - **Target:** every non-rejected session entry that can be targeted (locations, characters, NPCs, objects), plus `none` and `not_in_codex`.
+   - **Classification:** `on_script`, `tangential`, `off_script`, `reckless`. Confidence below the floor (0.6) is treated as `tangential`.
+3. **Resolve (code, pure).** Input: state, intent, target, classification, session entries, seeded RNG, config. Output: outcome plus state changes. Endings are decided here, so the passage written next is the ending scene.
+   - **move:** allowed only to a non-rejected location entry; `not_in_codex` or a non-location target is refused inside the story.
+   - **question:** the target may reveal only knowledge entries with `min_band` at or below the current band that are not yet revealed ("allowed reveals").
+   - **examine:** clues at the current location that are not yet found become "discoverable."
+   - **decisive action:** correct target and requirements met → success (may trigger `win`); correct target, requirements unmet → fail, `premature_penalty` (default −20); wrong target → fail, `wrong_target_penalty` (default −15).
+   - **off_script:** −10 reputation, +1 off-script count. Warnings at counts 2 and 3 are added to the directive so the captain (or the brief's equivalent authority) warns the player in the story.
+   - **reckless:** seeded death roll with the current arc's odds. Lethal → `death`.
+   - **on_script / tangential:** no penalty.
+   - **removed:** reputation ≤ 0 or off-script count ≥ 4 after this turn's changes → `removed`.
+4. **Direct (code, pure).** Build the directive: current arc and its unmet exit conditions, allowed reveals, discoverable clues, reputation band plus behavior guidance for that band, warnings to deliver, pacing nudge if set, the outcome to narrate, and the ending if one was decided.
+5. **Write (Grok, two drafts in parallel).** Input: brief YAML (hidden fields marked), codex slice (§9.3), voice guidance, last 4 passages, player input, directive. Target length about 150 words. Use a fast non-reasoning Grok model (exact model chosen by the day-1 latency test; configurable via env).
+6. **Jev call 2 — judge both drafts in one request.** All rule questions (§10) for each draft, plus one discovery `noul` per allowed reveal and per discoverable clue ("did this draft reveal it?"), plus the unplanned-clue check (§10).
+   - If one or both drafts pass, ship the passing draft with the lower highest-violation score.
+   - If both fail, build feedback from the failed rules and write two new drafts. Maximum 3 rounds. After round 3, ship the draft with the lowest highest-violation score and set `flagged`.
+   - Discovery answers for the shipped draft update `clues_found` and `knowledge_revealed`. A found clue that a decisive action requires gives +5 reputation (recovery).
+7. **Commit and return.** Write the turn row with state and log; return the passage.
+
+### 9.2 Background (after the passage appears)
+
+8. **Extraction (Drafter):** named characters in the passage that are not in the codex become `npc` entries with `status = proposed`, `source = play`, `source_turn = idx`.
+9. **Arc check (Jev):** one `noul` per unmet exit condition of the current arc, using recent passages and state. When all are met, code advances `arc_index`.
+10. **Pacing check (Jev):** "Over the last 3 turns, has the player made progress toward the current arc's exit conditions?" If not, set `pacing_nudge`; the next directive tells the writer to surface an opportunity (a messenger, a lead, a witness). The nudge never advances an arc. Experimental.
+
+Results are written into the turn's `log_json` and `state_json`; `background_status` becomes `done` or `failed`.
+
+### 9.3 Codex slice
+
+Sent to the writer and the judge each turn:
+
+- Current location entry and its connected locations
+- Player character
+- Characters and NPCs named or aliased in the player input, the last passage, or the directive's target
+- Allowed reveals and discoverable clues
+- Current arc and later arcs (names and descriptions)
+- For the judge only: the hidden truth, names of rejected entries
+
+Rejected entries are never included for the writer. If an earlier passage mentioned one, the writer simply does not continue it.
+
+### 9.4 Size over time
+
+The judge state stays roughly constant (about 5k–10k tokens) across the session: past passages are not sent to Jev, the codex slice is filtered to the scene, and growing lists are capped by the plan's size. The writer's prompt is capped by the 4-passage window (about 6k–12k tokens). Trade-off: events older than 4 passages are remembered only through state and codex (see §12).
+
+### 9.5 Jev smoke test (day 1, first task)
+
+Before building the turn loop, write about 10 short passages set in the 1888 world, each deliberately violating one rule (plus a few clean ones), and run them through the rule questions. Record which violations Jev catches and at what probability. This is a smoke test for "does the rule work at all," not calibration; thresholds are tuned in playtesting. Measure Grok and Drafter latency in the same session.
+
+---
+
+## 10. Judge rules (Jev)
+
+### 10.1 Conventions (from the Jev docs)
+
+- Every rule question is a `noul` phrased as **"does the draft violate X?"**, with `criteria: {true, false}` spelling out what yes and no mean.
+- Each rule has two cutoffs: **fail** at p ≥ 0.5, **flagged** when 0.35 ≤ p < 0.65 (uncertain either way). Per-rule overrides in `engine/config.ts`.
+- Every `choice` includes an escape option (`other`, `none`, `not_in_codex`).
+- Questions reference parts of the state by path, e.g. `` `drafts[0]` ``, `` `current_arc.exit_conditions` ``.
+- Pin the model version (`jev-1.13.0`) and log the version Jev reports on every call.
+- A noul and a choice version of the same question are not comparable, and complementary nouls do not sum to 1; do not mix them.
+
+### 10.2 Judge state
+
+`drafts[]`, `player_input`, `outcome`, `current_arc` (with exit conditions), `later_arcs`, `setting`, `voice`, `codex` (slice), `rejected_names`, `allowed_reveals`, `knowledge_revealed`, `clues_found`, `reputation_band` (with behavior guidance), `hidden_truth`, `ending` (on ending turns).
+
+### 10.3 Rules (asked once per draft)
+
+| Rule | Question(s) |
+|---|---|
+| Character drift | Per character named in the draft (by name or alias match in code): "Does anything {name} says or does contradict their personality or backstory?" |
+| Arc | "Does the draft depict events from `later_arcs`, or contradict `current_arc`?" |
+| Location | "Is the draft set somewhere other than the current location, or does it contradict that location's entry?" and "Does the draft introduce a named place a character could travel to that is not in `codex`?" (Detail inside a location, such as a back office, is description and allowed.) |
+| Knowledge | "Does a character reveal information that is not in `allowed_reveals` or `knowledge_revealed`?" and "Does the narration reveal or imply `hidden_truth` beyond what `clues_found` supports?" |
+| Unplanned clue | "Does the draft present evidence implicating the hidden character that is not one of the discoverable or found clues?" (Replaces the blocking part of `requirements.md` §8 step 8.) |
+| Outcome | "Does the draft contradict `outcome`?" |
+| Agency | "Does the player character say or do more than `player_input`?" |
+| Period | "Does the draft contain anachronisms for `setting`?" |
+| Codex | "Does the draft contradict an accepted or edited entry in `codex`?" and "Does the draft mention anything in `rejected_names`?" |
+| Reputation | "Does NPC behavior toward the player contradict `reputation_band`?" |
+| Voice | Only if the brief has voice guidance: "Does the draft depart from `voice`?" |
+| Ending | Only on ending turns: "Does the draft narrate an ending other than `ending`?" |
+
+Action classification and pacing are covered in §9.1 step 2 and §9.2 step 10.
+
+### 10.4 Retry feedback
+
+Each rule has a feedback template. A failure becomes one line to the writer, e.g.: *"Agency (0.82): the draft has Jacob speak beyond the player's input. Rewrite without adding his words or actions."*
+
+---
+
+## 11. UI
+
+- **`/worlds/[id]/brief`:** Tiptap brief editor; **Run setup** button with progress.
+- **`/worlds/[id]/setup`:** card editor grouped into **World** (locations, characters, NPCs, factions, clues, objects) and **Plan** (exit conditions, knowledge, decisive actions); per-card accept / edit / reject; Jev flags; solvability banner listing any gaps; **Start**.
+- **`/sessions/[id]`:**
+  - **Story pane** (center): passages with a client-side animated reveal; free-text input; ending screen.
+  - **Codex pane** (right drawer): the same card editor, grouped by kind, tagged by source and status, editable during play. Edits apply from the next turn.
+  - **Harness pane**, shown only when **test mode** is on (header switch, remembered in `localStorage`): per finished turn — intent, classification with confidence, resolved outcome, each draft with rule results and probabilities (rejected drafts struck through), flagged answers, discovery results, background results; current arc and exit conditions; clues found; knowledge revealed; reputation value and band; off-script count against threshold; pacing nudges.
+  - Raw detail (prompts, full Jev payloads, timings) goes to the server console.
+- **Compare view** (last in build order, expected cut): two sessions of the same replay script side by side, harness vs baseline.
+
+---
+
+## 12. Replay, baseline and memory
+
+- **Replay scripts:** YAML files in `replays/` — one per adversarial criterion, plus an off-script run, a reckless run, and a winning run. `npm run replay <script> [--mode harness|baseline] [--seed n]` drives the engine directly (no browser) and writes a normal session, viewable in the UI with test mode on.
+- **Baseline mode:** a session whose turns send the brief YAML as the system prompt to Grok with recent passages and the player input; no setup expansion, resolver, Jev, codex or code-managed state.
+- **Story-so-far summary:** not built. If playtesting shows the 4-passage window loses important events, add a background-maintained list of 5–10 key events sent to the writer.
+
+---
+
+## 13. Error handling
+
+- A turn's state is saved only when a passage ships.
+- A Grok or Jev failure on the critical path retries once, then the turn fails with a visible error and no state change. **A passage Jev did not judge is never shipped.**
+- A background failure is recorded in the turn's log (`background_status = failed`); play continues. Arc and pacing checks run again on the next turn.
+- Setup failures leave the world in `draft` with the error shown; the author can retry.
+
+---
+
+## 14. Testing
+
+- **Unit (Vitest), with fake models:** resolver (every intent × classification branch, penalties, endings, seeded death roll), solvability check, directive builder, ending check, codex slice selection, Tiptap JSON → brief conversion and validation.
+- **Jev smoke test:** §9.5, day 1.
+- **Acceptance:** replay scripts against real APIs, one per criterion in `requirements.md` §13, checked by reading the session's harness log.
+
+---
+
+## 15. Configuration defaults (`engine/config.ts`)
+
+| Setting | Default |
+|---|---|
+| Starting reputation | 60 (range 0–100) |
+| Bands | high ≥ 70, normal 30–69, low < 30 |
+| Off-script penalty | −10 |
+| Wrong-target penalty | −15 (overridable per decisive action) |
+| Premature decisive action | −20 (overridable per decisive action) |
+| Recovery | +5 for finding a clue a decisive action requires |
+| Off-script threshold | 4 (warnings at 2 and 3) |
+| Death odds per arc | 20%, 35%, 50% (last value used for later arcs) |
+| Pacing window | 3 turns |
+| Writer's recent passages | 4 |
+| Drafts per round / max rounds | 2 / 3 |
+| Jev noul fail / flagged band | p ≥ 0.5 / 0.35–0.65 |
+| Jev choice confidence floor | 0.6 |
+| Passage length target | ~150 words |
+
+Environment: `XAI_API_KEY`, `WRITER_MODEL`, `OPENAI_API_KEY`, `DRAFTER_MODEL`, `JEV_API_KEY`, `JEV_BASE_URL` (endpoint provided by the user at repo setup), `JEV_MODEL` (default `jev-1.13.0`), `DB_URL`.
+
+---
+
+## 16. Risks
+
+1. **Jev on long prose is unproven.** Its published examples are short, dense inputs. Mitigation: day-1 smoke test; rephrase or split rules that fail; tune thresholds in playtesting.
+2. **Schedule.** Tiptap for three surfaces consumes about a day of two. Mitigation: agreed cut order (§4).
+3. **Latency estimates are unmeasured.** Mitigation: day-1 measurement; passage length and model choice are config.
+4. **Two drafts double Grok cost per turn.** Accepted for the latency gain.
+5. **Short memory.** Events older than 4 passages survive only through state and codex (§12).
