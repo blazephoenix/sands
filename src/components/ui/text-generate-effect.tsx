@@ -5,7 +5,12 @@
 // reveal can be completed early, it reports completion, and it honours
 // prefers-reduced-motion.
 import { useEffect, useMemo } from "react"
-import { motion, stagger as staggerBy, useAnimate, useReducedMotion } from "motion/react"
+import {
+  motion,
+  stagger as staggerBy,
+  useAnimate,
+  useReducedMotion,
+} from "motion/react"
 
 export const TextGenerateEffect = ({
   words,
@@ -52,7 +57,11 @@ export const TextGenerateEffect = ({
   return (
     <span ref={scope} className={className}>
       {wordsArray.map((word, idx) => (
-        <motion.span key={word + idx} className="opacity-0" style={{ filter: filter ? "blur(10px)" : "none" }}>
+        <motion.span
+          key={word + idx}
+          className="opacity-0"
+          style={{ filter: filter ? "blur(10px)" : "none" }}
+        >
           {word}{" "}
         </motion.span>
       ))}

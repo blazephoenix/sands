@@ -35,16 +35,28 @@ type Slots = {
 
 const ShellSlotsContext = React.createContext<Slots | null>(null)
 
-export function ShellSlotsProvider({ children }: { children: React.ReactNode }) {
+export function ShellSlotsProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const [breadcrumbs, setBreadcrumbs] = React.useState<HTMLElement | null>(null)
   const [actions, setActions] = React.useState<HTMLElement | null>(null)
-  const value = React.useMemo(() => ({ breadcrumbs, actions, setBreadcrumbs, setActions }), [breadcrumbs, actions])
-  return <ShellSlotsContext.Provider value={value}>{children}</ShellSlotsContext.Provider>
+  const value = React.useMemo(
+    () => ({ breadcrumbs, actions, setBreadcrumbs, setActions }),
+    [breadcrumbs, actions]
+  )
+  return (
+    <ShellSlotsContext.Provider value={value}>
+      {children}
+    </ShellSlotsContext.Provider>
+  )
 }
 
 export function useShellSlots() {
   const slots = React.useContext(ShellSlotsContext)
-  if (!slots) throw new Error("Shell slots are only available inside the app shell.")
+  if (!slots)
+    throw new Error("Shell slots are only available inside the app shell.")
   return slots
 }
 
@@ -73,9 +85,14 @@ export function ShellBreadcrumbs({ items }: { items: Crumb[] }) {
             <React.Fragment key={`${item.label}-${index}`}>
               <BreadcrumbItem className="min-w-0">
                 {last || !item.href ? (
-                  <BreadcrumbPage className="truncate">{item.label}</BreadcrumbPage>
+                  <BreadcrumbPage className="truncate">
+                    {item.label}
+                  </BreadcrumbPage>
                 ) : (
-                  <BreadcrumbLink className="truncate" render={<Link href={item.href} />}>
+                  <BreadcrumbLink
+                    className="truncate"
+                    render={<Link href={item.href} />}
+                  >
                     {item.label}
                   </BreadcrumbLink>
                 )}
@@ -95,7 +112,13 @@ export function ShellBreadcrumbs({ items }: { items: Crumb[] }) {
  * World opens (`worldHref`: the World page once it is ready), then the page.
  * A Session page reads World › Session N. Keeps the page's `?scenario=`.
  */
-export function worldCrumbs(world: { id: string; name: string; setupStatus: SetupStatus }, page: "Brief" | "Setup" | { session: string }): Crumb[] {
-  const worldCrumb: Crumb = { label: world.name || "Untitled World", href: withScenario(worldHref(world)) }
+export function worldCrumbs(
+  world: { id: string; name: string; setupStatus: SetupStatus },
+  page: "Brief" | "Setup" | { session: string }
+): Crumb[] {
+  const worldCrumb: Crumb = {
+    label: world.name || "Untitled World",
+    href: withScenario(worldHref(world)),
+  }
   return [worldCrumb, { label: typeof page === "string" ? page : page.session }]
 }

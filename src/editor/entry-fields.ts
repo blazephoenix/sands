@@ -14,7 +14,8 @@
  */
 import type { EntryKind } from "@/domain/entry"
 
-export type EntryFieldType = "text" | "list" | "ref" | "refs" | "boolean" | "number" | "enum" | "arc"
+export type EntryFieldType =
+  "text" | "list" | "ref" | "refs" | "boolean" | "number" | "enum" | "arc"
 
 export type EntryFieldSpec = {
   /** The Entry property it fills: `description`, or a key of the kind's `data`. */
@@ -31,47 +32,137 @@ export type EntryFieldSpec = {
   placeholder: string
 }
 
-const description = (placeholder: string): EntryFieldSpec => ({ key: "description", label: "Description", type: "text", placeholder })
+const description = (placeholder: string): EntryFieldSpec => ({
+  key: "description",
+  label: "Description",
+  type: "text",
+  placeholder,
+})
 
 const person: EntryFieldSpec[] = [
-  { key: "role", label: "Role", type: "text", placeholder: "Witness, flower seller" },
+  {
+    key: "role",
+    label: "Role",
+    type: "text",
+    placeholder: "Witness, flower seller",
+  },
   { key: "age", label: "Age", type: "text", placeholder: "24" },
-  { key: "personality", label: "Personality", type: "text", placeholder: "Quick to laugh, slow to trust the police." },
-  { key: "backstory", label: "Backstory", type: "text", placeholder: "Sells violets outside Spitalfields Market." },
-  { key: "aliases", label: "Aliases", aliases: ["Alias"], type: "list", placeholder: "Nell" },
+  {
+    key: "personality",
+    label: "Personality",
+    type: "text",
+    placeholder: "Quick to laugh, slow to trust the police.",
+  },
+  {
+    key: "backstory",
+    label: "Backstory",
+    type: "text",
+    placeholder: "Sells violets outside Spitalfields Market.",
+  },
+  {
+    key: "aliases",
+    label: "Aliases",
+    aliases: ["Alias"],
+    type: "list",
+    placeholder: "Nell",
+  },
 ]
 
 export const ENTRY_FIELDS: Record<EntryKind, EntryFieldSpec[]> = {
   location: [
     description("Gaslit corridors and damp coats."),
-    { key: "connections", label: "Connections", aliases: ["Connection", "Connects to"], type: "refs", kinds: ["location"], placeholder: "@ a Location" },
-    { key: "isStart", label: "Start location", aliases: ["Start"], type: "boolean", placeholder: "yes or no" },
+    {
+      key: "connections",
+      label: "Connections",
+      aliases: ["Connection", "Connects to"],
+      type: "refs",
+      kinds: ["location"],
+      placeholder: "@ a Location",
+    },
+    {
+      key: "isStart",
+      label: "Start location",
+      aliases: ["Start"],
+      type: "boolean",
+      placeholder: "yes or no",
+    },
   ],
   character: [
     description("Who they are in a sentence."),
     ...person,
-    { key: "isPlayer", label: "Player character", type: "boolean", placeholder: "yes or no" },
+    {
+      key: "isPlayer",
+      label: "Player character",
+      type: "boolean",
+      placeholder: "yes or no",
+    },
   ],
   npc: [description("Who they are in a sentence."), ...person],
   faction: [description("Who belongs and what they want.")],
   clue: [
     description("What the Player finds."),
-    { key: "locationId", label: "Found at", type: "ref", kinds: ["location"], placeholder: "@ a Location, or leave empty" },
-    { key: "knownBy", label: "Known by", type: "refs", kinds: ["character", "npc"], placeholder: "@ a Character or NPC" },
-    { key: "reveals", label: "Reveals", type: "text", placeholder: "What finding it tells the Player." },
-    { key: "pointsToHidden", label: "Points to Hidden truth", aliases: ["Points to hidden"], type: "boolean", placeholder: "yes or no" },
-    { key: "redHerring", label: "Red herring", type: "boolean", placeholder: "yes or no" },
+    {
+      key: "locationId",
+      label: "Found at",
+      type: "ref",
+      kinds: ["location"],
+      placeholder: "@ a Location, or leave empty",
+    },
+    {
+      key: "knownBy",
+      label: "Known by",
+      type: "refs",
+      kinds: ["character", "npc"],
+      placeholder: "@ a Character or NPC",
+    },
+    {
+      key: "reveals",
+      label: "Reveals",
+      type: "text",
+      placeholder: "What finding it tells the Player.",
+    },
+    {
+      key: "pointsToHidden",
+      label: "Points to Hidden truth",
+      aliases: ["Points to hidden"],
+      type: "boolean",
+      placeholder: "yes or no",
+    },
+    {
+      key: "redHerring",
+      label: "Red herring",
+      type: "boolean",
+      placeholder: "yes or no",
+    },
   ],
   object: [description("What it is and where it sits.")],
   exit_condition: [
     description("Why this condition matters."),
     { key: "arcIndex", label: "Arc", type: "arc", placeholder: "1" },
-    { key: "condition", label: "Condition", type: "text", placeholder: "The Player has learned the victims' shared trade." },
+    {
+      key: "condition",
+      label: "Condition",
+      type: "text",
+      placeholder: "The Player has learned the victims' shared trade.",
+    },
   ],
   knowledge: [
     description("Context for this fact."),
-    { key: "characterId", label: "Character", aliases: ["Known by"], type: "ref", kinds: ["character", "npc"], required: true, placeholder: "@ a Character or NPC" },
-    { key: "fact", label: "Fact", type: "text", placeholder: "What they know." },
+    {
+      key: "characterId",
+      label: "Character",
+      aliases: ["Known by"],
+      type: "ref",
+      kinds: ["character", "npc"],
+      required: true,
+      placeholder: "@ a Character or NPC",
+    },
+    {
+      key: "fact",
+      label: "Fact",
+      type: "text",
+      placeholder: "What they know.",
+    },
     {
       key: "minBand",
       label: "Min band",
@@ -80,21 +171,69 @@ export const ENTRY_FIELDS: Record<EntryKind, EntryFieldSpec[]> = {
       values: { low: "low", normal: "normal", high: "high" },
       placeholder: "low, normal or high",
     },
-    { key: "clueId", label: "Clue", aliases: ["Reveals clue"], type: "ref", kinds: ["clue"], placeholder: "@ a Clue, or leave empty" },
+    {
+      key: "clueId",
+      label: "Clue",
+      aliases: ["Reveals clue"],
+      type: "ref",
+      kinds: ["clue"],
+      placeholder: "@ a Clue, or leave empty",
+    },
   ],
   decisive_action: [
     description("What success and a wrong target mean."),
     { key: "verb", label: "Verb", type: "text", placeholder: "arrest" },
-    { key: "correctTargetId", label: "Target", aliases: ["Correct target"], type: "ref", kinds: ["character", "npc"], required: true, placeholder: "@ the right Character or NPC" },
-    { key: "requires", label: "Requires", aliases: ["Requires clues"], type: "refs", kinds: ["clue"], placeholder: "@C1, @C3" },
-    { key: "requiresCount", label: "Clues needed", aliases: ["Requires count"], type: "number", placeholder: "all, or a number" },
-    { key: "onSuccess", label: "On success", type: "enum", values: { win: "win", continue: "none", none: "none" }, placeholder: "win or continue" },
-    { key: "wrongTargetPenalty", label: "Wrong target penalty", type: "number", placeholder: "15" },
-    { key: "prematurePenalty", label: "Premature penalty", aliases: ["Too early penalty"], type: "number", placeholder: "20" },
+    {
+      key: "correctTargetId",
+      label: "Target",
+      aliases: ["Correct target"],
+      type: "ref",
+      kinds: ["character", "npc"],
+      required: true,
+      placeholder: "@ the right Character or NPC",
+    },
+    {
+      key: "requires",
+      label: "Requires",
+      aliases: ["Requires clues"],
+      type: "refs",
+      kinds: ["clue"],
+      placeholder: "@C1, @C3",
+    },
+    {
+      key: "requiresCount",
+      label: "Clues needed",
+      aliases: ["Requires count"],
+      type: "number",
+      placeholder: "all, or a number",
+    },
+    {
+      key: "onSuccess",
+      label: "On success",
+      type: "enum",
+      values: { win: "win", continue: "none", none: "none" },
+      placeholder: "win or continue",
+    },
+    {
+      key: "wrongTargetPenalty",
+      label: "Wrong target penalty",
+      type: "number",
+      placeholder: "15",
+    },
+    {
+      key: "prematurePenalty",
+      label: "Premature penalty",
+      aliases: ["Too early penalty"],
+      type: "number",
+      placeholder: "20",
+    },
   ],
 }
 
-export function entryFieldSpecFor(kind: EntryKind, key: string): EntryFieldSpec | undefined {
+export function entryFieldSpecFor(
+  kind: EntryKind,
+  key: string
+): EntryFieldSpec | undefined {
   return ENTRY_FIELDS[kind].find((field) => field.key === key)
 }
 
@@ -112,8 +251,10 @@ export const ENTRY_KIND_DESCRIPTIONS: Record<EntryKind, string> = {
   clue: "A discoverable fact, at a Location or held by someone.",
   object: "A thing in the story that matters.",
   exit_condition: "A checkable statement that moves the story to the next Arc.",
-  knowledge: "One fact one character knows, and the lowest Band they reveal it at.",
-  decisive_action: "A story-critical action, its target and the Clues it requires.",
+  knowledge:
+    "One fact one character knows, and the lowest Band they reveal it at.",
+  decisive_action:
+    "A story-critical action, its target and the Clues it requires.",
 }
 
 /** Placeholder for an Entry heading's empty name. */

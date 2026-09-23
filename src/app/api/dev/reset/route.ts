@@ -8,7 +8,12 @@ import { scenariosEnabled } from "@/fixtures/scenarios"
 import { apiError } from "@/server/http"
 
 export async function POST() {
-  if (!scenariosEnabled()) return apiError(404, "not_found", "Not available in production.")
+  if (!scenariosEnabled())
+    return apiError(404, "not_found", "Not available in production.")
   const store = resetStore()
-  return Response.json({ worlds: store.worlds.size, entries: store.entries.size, sessions: store.sessions.size })
+  return Response.json({
+    worlds: store.worlds.size,
+    entries: store.entries.size,
+    sessions: store.sessions.size,
+  })
 }

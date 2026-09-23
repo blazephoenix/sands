@@ -68,11 +68,30 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
     named: true,
     namePlaceholder: "Character name",
     fields: [
-      { key: "role", label: "Role", placeholder: "Detective, called over from New York" },
+      {
+        key: "role",
+        label: "Role",
+        placeholder: "Detective, called over from New York",
+      },
       { key: "age", label: "Age", placeholder: "38" },
-      { key: "personality", label: "Personality", placeholder: "Weary and sharp-eyed. Drinks more than he admits." },
-      { key: "backstory", label: "Backstory", placeholder: "Sent for after three merchants were killed in as many weeks." },
-      { key: "aliases", label: "Aliases", aliases: ["Alias"], list: "comma", placeholder: "The American, Flannery" },
+      {
+        key: "personality",
+        label: "Personality",
+        placeholder: "Weary and sharp-eyed. Drinks more than he admits.",
+      },
+      {
+        key: "backstory",
+        label: "Backstory",
+        placeholder:
+          "Sent for after three merchants were killed in as many weeks.",
+      },
+      {
+        key: "aliases",
+        label: "Aliases",
+        aliases: ["Alias"],
+        list: "comma",
+        placeholder: "The American, Flannery",
+      },
     ],
   },
   arc: {
@@ -86,14 +105,16 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
       {
         key: "description",
         label: "Description",
-        placeholder: "Jacob lands in London, meets the police and learns the state of the case.",
+        placeholder:
+          "Jacob lands in London, meets the police and learns the state of the case.",
       },
       {
         key: "exitConditions",
         label: "Exit condition",
         aliases: ["Exit conditions"],
         list: "lines",
-        placeholder: "Jacob has read the case file and met Captain James. (Optional; one per line.)",
+        placeholder:
+          "Jacob has read the case file and met Captain James. (Optional; one per line.)",
       },
     ],
   },
@@ -104,7 +125,14 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
     aliases: ["ending", "win", "goal", "end"],
     named: false,
     namePlaceholder: "",
-    fields: [{ key: "condition", label: "Condition", aliases: ["Win condition"], placeholder: "The killer is caught." }],
+    fields: [
+      {
+        key: "condition",
+        label: "Condition",
+        aliases: ["Win condition"],
+        placeholder: "The killer is caught.",
+      },
+    ],
   },
   location: {
     type: "location",
@@ -114,18 +142,30 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
     named: true,
     namePlaceholder: "Location name",
     fields: [
-      { key: "description", label: "Description", placeholder: "Gaslit corridors, damp coats, a captain who wants results by Friday." },
+      {
+        key: "description",
+        label: "Description",
+        placeholder:
+          "Gaslit corridors, damp coats, a captain who wants results by Friday.",
+      },
     ],
   },
   voice: {
     type: "voice",
     title: "Voice",
-    description: "How the prose should sound, as guidelines or sample passages. Optional.",
+    description:
+      "How the prose should sound, as guidelines or sample passages. Optional.",
     aliases: ["voice", "tone", "style", "prose"],
     named: false,
     namePlaceholder: "",
     fields: [
-      { key: "guidelines", label: "Guidelines", aliases: ["Guideline"], placeholder: "Close third person on Jacob. Short sentences. Fog, not gore." },
+      {
+        key: "guidelines",
+        label: "Guidelines",
+        aliases: ["Guideline"],
+        placeholder:
+          "Close third person on Jacob. Short sentences. Fog, not gore.",
+      },
       {
         key: "samplePassages",
         label: "Sample passage",
@@ -136,7 +176,10 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
   },
 }
 
-export function fieldSpecFor(blockType: string, key: string): FieldSpec | undefined {
+export function fieldSpecFor(
+  blockType: string,
+  key: string
+): FieldSpec | undefined {
   if (!isBriefBlockType(blockType)) return undefined
   return BRIEF_BLOCKS[blockType].fields.find((field) => field.key === key)
 }

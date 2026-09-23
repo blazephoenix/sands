@@ -25,7 +25,11 @@ export const RESERVED_SHORTCUT_KEYS = ["d"] as const
  * Calls `handler` when `key` is pressed without modifiers, outside any typing
  * target, unless another handler already prevented the event.
  */
-export function useSingleKeyShortcut(key: string, handler: (event: KeyboardEvent) => void, options: { enabled?: boolean } = {}) {
+export function useSingleKeyShortcut(
+  key: string,
+  handler: (event: KeyboardEvent) => void,
+  options: { enabled?: boolean } = {}
+) {
   const enabled = options.enabled ?? true
   const handlerRef = React.useRef(handler)
   React.useEffect(() => {

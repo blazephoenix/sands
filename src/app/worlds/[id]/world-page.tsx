@@ -16,13 +16,33 @@ import { PlayIcon, SearchXIcon, TriangleAlertIcon } from "lucide-react"
 
 import { ShellActions, ShellBreadcrumbs } from "@/components/app-shell"
 import { ShortcutKeys } from "@/components/shortcut-keys"
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { sessionHref, withScenario, worldHref } from "@/components/worlds/world-links"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
+  sessionHref,
+  withScenario,
+  worldHref,
+} from "@/components/worlds/world-links"
 import type { GetWorldResponse } from "@/domain/api"
 import { api, ApiError, isAbortError } from "@/lib/api-client"
 import { useSingleKeyShortcut } from "@/lib/keyboard"
@@ -31,10 +51,15 @@ import { WorldSessions, WorldSessionsSkeleton } from "./world-sessions"
 
 const NEW_SESSION_SHORTCUT = "n"
 
-type Load = { state: "loading" } | { state: "error"; error: ApiError } | { state: "ready"; data: GetWorldResponse }
+type Load =
+  | { state: "loading" }
+  | { state: "error"; error: ApiError }
+  | { state: "ready"; data: GetWorldResponse }
 
 function asApiError(error: unknown, fallback: string) {
-  return error instanceof ApiError ? error : new ApiError(0, "internal", fallback)
+  return error instanceof ApiError
+    ? error
+    : new ApiError(0, "internal", fallback)
 }
 
 export function WorldPage({ worldId }: { worldId: string }) {
@@ -49,14 +74,20 @@ export function WorldPage({ worldId }: { worldId: string }) {
       .then((data) => setLoad({ state: "ready", data }))
       .catch((error: unknown) => {
         if (isAbortError(error)) return
-        setLoad({ state: "error", error: asApiError(error, "The World did not load. Try again.") })
+        setLoad({
+          state: "error",
+          error: asApiError(error, "The World did not load. Try again."),
+        })
       })
     return () => controller.abort()
   }, [worldId, attempt])
 
   // A World that isn't playable yet opens where the Author left off.
   const world = load.state === "ready" ? load.data.world : null
-  const elsewhere = world && world.setupStatus !== "ready" ? withScenario(worldHref(world)) : null
+  const elsewhere =
+    world && world.setupStatus !== "ready"
+      ? withScenario(worldHref(world))
+      : null
   React.useEffect(() => {
     if (elsewhere) router.replace(elsewhere)
   }, [elsewhere, router])
@@ -67,18 +98,27 @@ export function WorldPage({ worldId }: { worldId: string }) {
   }
 
   if (load.state === "loading" || elsewhere) return <WorldPageSkeleton />
-  if (load.state === "error") return <LoadError error={load.error} onRetry={retry} />
+  if (load.state === "error")
+    return <LoadError error={load.error} onRetry={retry} />
   return <PlayableWorld data={load.data} />
 }
 
 function PageFrame({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10">{children}</div>
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10">
+      {children}
+    </div>
+  )
 }
 
 function WorldPageSkeleton() {
   return (
     <PageFrame>
-      <div className="flex flex-col gap-2" aria-busy="true" aria-label="Loading the World">
+      <div
+        className="flex flex-col gap-2"
+        aria-busy="true"
+        aria-label="Loading the World"
+      >
         <Skeleton className="h-8 w-72" />
         <Skeleton className="h-5 w-full max-w-md" />
       </div>
@@ -87,7 +127,13 @@ function WorldPageSkeleton() {
   )
 }
 
-function LoadError({ error, onRetry }: { error: ApiError; onRetry: () => void }) {
+function LoadError({
+  error,
+  onRetry,
+}: {
+  error: ApiError
+  onRetry: () => void
+}) {
   if (error.status === 404) {
     return (
       <PageFrame>
@@ -100,7 +146,10 @@ function LoadError({ error, onRetry }: { error: ApiError; onRetry: () => void })
             <EmptyDescription>{error.message}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            <Button nativeButton={false} render={<Link href={withScenario("/")} />}>
+            <Button
+              nativeButton={false}
+              render={<Link href={withScenario("/")} />}
+            >
               Go to your Worlds
             </Button>
           </EmptyContent>
@@ -161,7 +210,15 @@ function PlayableWorld({ data }: { data: GetWorldResponse }) {
       <ShellBreadcrumbs items={[{ label: name }]} />
       <ShellActions>
         <Tooltip>
-          <TooltipTrigger render={<Button onClick={() => void startSession()} disabled={starting} aria-keyshortcuts={NEW_SESSION_SHORTCUT} />}>
+          <TooltipTrigger
+            render={
+              <Button
+                onClick={() => void startSession()}
+                disabled={starting}
+                aria-keyshortcuts={NEW_SESSION_SHORTCUT}
+              />
+            }
+          >
             {busyIcon}
             {starting ? "Starting…" : "New Session"}
           </TooltipTrigger>
@@ -173,9 +230,12 @@ function PlayableWorld({ data }: { data: GetWorldResponse }) {
       </ShellActions>
 
       <div className="flex flex-col gap-2">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">{name}</h1>
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+          {name}
+        </h1>
         <p className="max-w-prose leading-relaxed text-muted-foreground">
-          Every Session opens with its own first scene and plays its own copy of this World&apos;s Entries.
+          Every Session opens with its own first scene and plays its own copy of
+          this World&apos;s Entries.
         </p>
       </div>
 
@@ -185,7 +245,12 @@ function PlayableWorld({ data }: { data: GetWorldResponse }) {
           <AlertTitle>The Session did not start</AlertTitle>
           <AlertDescription>{startError.message}</AlertDescription>
           <AlertAction>
-            <Button variant="outline" size="sm" onClick={() => void startSession()} disabled={starting}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void startSession()}
+              disabled={starting}
+            >
               Retry
             </Button>
           </AlertAction>
@@ -199,7 +264,10 @@ function PlayableWorld({ data }: { data: GetWorldResponse }) {
               <PlayIcon />
             </EmptyMedia>
             <EmptyTitle>No Sessions yet</EmptyTitle>
-            <EmptyDescription>Each Session is one playthrough of this World, from its Opening to its Ending.</EmptyDescription>
+            <EmptyDescription>
+              Each Session is one playthrough of this World, from its Opening to
+              its Ending.
+            </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Button onClick={() => void startSession()} disabled={starting}>
@@ -209,8 +277,14 @@ function PlayableWorld({ data }: { data: GetWorldResponse }) {
           </EmptyContent>
         </Empty>
       ) : (
-        <section aria-labelledby="world-sessions-title" className="flex flex-col gap-3">
-          <h2 id="world-sessions-title" className="text-sm font-medium text-muted-foreground">
+        <section
+          aria-labelledby="world-sessions-title"
+          className="flex flex-col gap-3"
+        >
+          <h2
+            id="world-sessions-title"
+            className="text-sm font-medium text-muted-foreground"
+          >
             Sessions
           </h2>
           <WorldSessions sessions={sessions} />

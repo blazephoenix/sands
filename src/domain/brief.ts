@@ -234,12 +234,15 @@ export const briefRulesSchema = briefDraftSchema.superRefine((draft, ctx) => {
     })
   } else if (draft.endings.length > 1) {
     for (const extra of draft.endings.slice(1)) {
-      add("A Brief has exactly one Ending. Merge this one into the first or delete it.", {
-        code: "several_endings",
-        blockId: extra.blockId,
-        field: null,
-        fieldBlockId: null,
-      })
+      add(
+        "A Brief has exactly one Ending. Merge this one into the first or delete it.",
+        {
+          code: "several_endings",
+          blockId: extra.blockId,
+          field: null,
+          fieldBlockId: null,
+        }
+      )
     }
   }
 })
@@ -271,7 +274,9 @@ export function validateBriefDraft(
     const params = (issue as { params?: Partial<IssueParams> }).params
     if (!params?.code) {
       // A structural problem, not a §7.1 rule: the draft itself is malformed.
-      throw new Error(`Malformed Brief draft at ${issue.path.join(".")}: ${issue.message}`)
+      throw new Error(
+        `Malformed Brief draft at ${issue.path.join(".")}: ${issue.message}`
+      )
     }
     const blockId = params.blockId ?? null
     const field = params.field ?? null
@@ -289,9 +294,15 @@ export function validateBriefDraft(
 }
 
 /** Every Hidden field of a Brief, taken together (CONTEXT.md: Hidden truth). */
-export function hiddenTruth(brief: Brief | BriefDraft): { blockId: string; field: string; text: string }[] {
+export function hiddenTruth(
+  brief: Brief | BriefDraft
+): { blockId: string; field: string; text: string }[] {
   const out: { blockId: string; field: string; text: string }[] = []
-  const items: (Record<string, unknown> & { blockId: string; hiddenFields: string[]; keyFacts: KeyFact[] })[] = [
+  const items: (Record<string, unknown> & {
+    blockId: string
+    hiddenFields: string[]
+    keyFacts: KeyFact[]
+  })[] = [
     ...brief.settings,
     ...brief.characters,
     ...brief.arcs,
@@ -309,7 +320,8 @@ export function hiddenTruth(brief: Brief | BriefDraft): { blockId: string; field
       })
     }
     for (const fact of item.keyFacts) {
-      if (fact.hidden) out.push({ blockId: item.blockId, field: fact.label, text: fact.text })
+      if (fact.hidden)
+        out.push({ blockId: item.blockId, field: fact.label, text: fact.text })
     }
   }
   return out

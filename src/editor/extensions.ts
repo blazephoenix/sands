@@ -12,29 +12,51 @@
  *   dividers.
  */
 import { createExtension, type ExtensionOptions } from "@blocknote/core"
-import { Plugin, PluginKey, type EditorState, type Transaction } from "@tiptap/pm/state"
+import {
+  Plugin,
+  PluginKey,
+  type EditorState,
+  type Transaction,
+} from "@tiptap/pm/state"
 import { Decoration, DecorationSet } from "@tiptap/pm/view"
 import type { Node as PMNode } from "@tiptap/pm/model"
 
 import { BRIEF_BLOCKS, isBriefBlockType } from "@/brief/fields"
 
-import { ALLOW_LOCKED_META, moveUnit, sectionOf, type SandsEditor } from "./commands"
+import {
+  ALLOW_LOCKED_META,
+  moveUnit,
+  sectionOf,
+  type SandsEditor,
+} from "./commands"
 import type { BlockAnnotation } from "./editor-context"
 import { ENTRY_FIELDS } from "./entry-fields"
 import { matchLabel, splitLabel } from "./field-line"
-import { ENTRY_KIND_OF_BLOCK, isEntryBlockType, isSectionHeadingType } from "./schema-config"
+import {
+  ENTRY_KIND_OF_BLOCK,
+  isEntryBlockType,
+  isSectionHeadingType,
+} from "./schema-config"
 import { EDITOR_SHORTCUTS } from "./shortcuts"
 
-type SpecLike = { key: string; label: string; aliases?: readonly string[]; placeholder: string }
+type SpecLike = {
+  key: string
+  label: string
+  aliases?: readonly string[]
+  placeholder: string
+}
 
 function specsFor(headingType: string): readonly SpecLike[] {
   if (isBriefBlockType(headingType)) return BRIEF_BLOCKS[headingType].fields
-  if (isEntryBlockType(headingType)) return ENTRY_FIELDS[ENTRY_KIND_OF_BLOCK[headingType]]
+  if (isEntryBlockType(headingType))
+    return ENTRY_FIELDS[ENTRY_KIND_OF_BLOCK[headingType]]
   return []
 }
 
 /** `Label: value` read straight from a ProseMirror paragraph. */
-function readPMField(content: PMNode): { label: string; empty: boolean; labelEnd: number } | null {
+function readPMField(
+  content: PMNode
+): { label: string; empty: boolean; labelEnd: number } | null {
   if (content.type.name !== "paragraph") return null
   let leading = ""
   for (let index = 0; index < content.childCount; index++) {
@@ -61,11 +83,29 @@ function readPMField(content: PMNode): { label: string; empty: boolean; labelEnd
 
 function isBlankContainer(container: PMNode) {
   const content = container.firstChild
-  return container.childCount === 1 && !!content && content.isTextblock && content.textContent.trim() === "" && content.childCount === 0
+  return (
+    container.childCount === 1 &&
+    !!content &&
+    content.isTextblock &&
+    content.textContent.trim() === "" &&
+    content.childCount === 0
+  )
 }
 
-type ScannedField = { pos: number; container: PMNode; content: PMNode; label: string; empty: boolean; labelEnd: number }
-type ScannedSection = { pos: number; container: PMNode; heading: PMNode; fields: ScannedField[] }
+type ScannedField = {
+  pos: number
+  container: PMNode
+  content: PMNode
+  label: string
+  empty: boolean
+  labelEnd: number
+}
+type ScannedSection = {
+  pos: number
+  container: PMNode
+  heading: PMNode
+  fields: ScannedField[]
+}
 
 /** Sections in a ProseMirror doc, by the same rules as `walkSections`. */
 function scanSections(doc: PMNode): ScannedSection[] {
@@ -82,7 +122,8 @@ function scanSections(doc: PMNode): ScannedSection[] {
     }
     if (isBlankContainer(node)) return true
     const field = current ? readPMField(content) : null
-    if (current && field) current.fields.push({ pos, container: node, content, ...field })
+    if (current && field)
+      current.fields.push({ pos, container: node, content, ...field })
     else current = null
     return true
   })
@@ -109,7 +150,9 @@ function noteWidget(annotations: BlockAnnotation[]) {
   return () => {
     const span = document.createElement("span")
     span.className = "sands-field-note"
-    span.dataset.severity = annotations.some((a) => a.severity === "error") ? "error" : "warning"
+    span.dataset.severity = annotations.some((a) => a.severity === "error")
+      ? "error"
+      : "warning"
     span.contentEditable = "false"
     span.textContent = annotations.map((a) => a.message).join(" ")
     return span
@@ -127,7 +170,10 @@ function hintWidget(text: string) {
   }
 }
 
-function buildDecorations(state: EditorState, annotations: ReadonlyMap<string, BlockAnnotation[]>) {
+function buildDecorations(
+  state: EditorState,
+  annotations: ReadonlyMap<string, BlockAnnotation[]>
+) {
   const decorations: Decoration[] = []
   for (const section of scanSections(state.doc)) {
     const status = section.heading.attrs.status as string | undefined
@@ -136,20 +182,36 @@ function buildDecorations(state: EditorState, annotations: ReadonlyMap<string, B
       const id = field.container.attrs.id as string
       const notes = annotations.get(id) ?? []
       const attrs: Record<string, string> = { "data-sands-field": "" }
-      if (status && isEntryBlockType(section.heading.type.name)) attrs["data-sands-status"] = status
-      if (notes.length > 0) attrs["data-sands-note"] = notes.some((n) => n.severity === "error") ? "error" : "warning"
-      decorations.push(Decoration.node(field.pos, field.pos + field.container.nodeSize, attrs))
+      if (status && isEntryBlockType(section.heading.type.name))
+        attrs["data-sands-status"] = status
+      if (notes.length > 0)
+        attrs["data-sands-note"] = notes.some((n) => n.severity === "error")
+          ? "error"
+          : "warning"
+      decorations.push(
+        Decoration.node(field.pos, field.pos + field.container.nodeSize, attrs)
+      )
 
       const contentEnd = field.pos + 2 + field.content.content.size
       if (field.empty) {
         const match = matchLabel(field.label, specs)
         if (match.kind === "known" && notes.length === 0) {
-          decorations.push(Decoration.widget(contentEnd, hintWidget(match.spec.placeholder), { side: 1, ignoreSelection: true, key: `hint-${id}` }))
+          decorations.push(
+            Decoration.widget(contentEnd, hintWidget(match.spec.placeholder), {
+              side: 1,
+              ignoreSelection: true,
+              key: `hint-${id}`,
+            })
+          )
         }
       }
       if (notes.length > 0) {
         decorations.push(
-          Decoration.widget(contentEnd, noteWidget(notes), { side: 2, ignoreSelection: true, key: `note-${id}-${notes.map((n) => n.message).join("|")}` })
+          Decoration.widget(contentEnd, noteWidget(notes), {
+            side: 2,
+            ignoreSelection: true,
+            key: `note-${id}-${notes.map((n) => n.message).join("|")}`,
+          })
         )
       }
     }
@@ -157,45 +219,54 @@ function buildDecorations(state: EditorState, annotations: ReadonlyMap<string, B
   return DecorationSet.create(state.doc, decorations)
 }
 
-export const sectionsExtension = createExtension(({ editor: anyEditor, options }: ExtensionOptions<Options>) => {
-  const editor = anyEditor as unknown as SandsEditor
-  return {
-    key: "sandsSections",
-    prosemirrorPlugins: [
-      new Plugin<DecorationSet>({
-        key: sectionsKey,
-        state: {
-          init: (_config, state) => buildDecorations(state, options.annotations()),
-          apply: (tr: Transaction, previous, _old, state) =>
-            tr.docChanged || tr.getMeta(sectionsKey) ? buildDecorations(state, options.annotations()) : previous.map(tr.mapping, tr.doc),
+export const sectionsExtension = createExtension(
+  ({ editor: anyEditor, options }: ExtensionOptions<Options>) => {
+    const editor = anyEditor as unknown as SandsEditor
+    return {
+      key: "sandsSections",
+      prosemirrorPlugins: [
+        new Plugin<DecorationSet>({
+          key: sectionsKey,
+          state: {
+            init: (_config, state) =>
+              buildDecorations(state, options.annotations()),
+            apply: (tr: Transaction, previous, _old, state) =>
+              tr.docChanged || tr.getMeta(sectionsKey)
+                ? buildDecorations(state, options.annotations())
+                : previous.map(tr.mapping, tr.doc),
+          },
+          props: {
+            decorations: (state) => sectionsKey.getState(state),
+          },
+          appendTransaction: (transactions, _old, state) =>
+            boldLabels(transactions, state),
+        }),
+      ],
+      keyboardShortcuts: {
+        [EDITOR_SHORTCUTS.toggleHidden]: () => {
+          if (!editor.isEditable) return true
+          editor.toggleStyles({ hidden: true })
+          return true
         },
-        props: {
-          decorations: (state) => sectionsKey.getState(state),
+        [EDITOR_SHORTCUTS.blockMenu]: () => {
+          options.openBlockMenu()
+          return true
         },
-        appendTransaction: (transactions, _old, state) => boldLabels(transactions, state),
-      }),
-    ],
-    keyboardShortcuts: {
-      [EDITOR_SHORTCUTS.toggleHidden]: () => {
-        if (!editor.isEditable) return true
-        editor.toggleStyles({ hidden: true })
-        return true
+        [EDITOR_SHORTCUTS.moveUp]: () => moveCurrent(editor, -1),
+        [EDITOR_SHORTCUTS.moveDown]: () => moveCurrent(editor, 1),
       },
-      [EDITOR_SHORTCUTS.blockMenu]: () => {
-        options.openBlockMenu()
-        return true
-      },
-      [EDITOR_SHORTCUTS.moveUp]: () => moveCurrent(editor, -1),
-      [EDITOR_SHORTCUTS.moveDown]: () => moveCurrent(editor, 1),
-    },
-  } as const
-})
+    } as const
+  }
+)
 
 /**
  * Keeps every field's `Label:` bold, including labels the Author types by hand,
  * and keeps the cursor's next characters plain when it sits right after one.
  */
-function boldLabels(transactions: readonly Transaction[], state: EditorState): Transaction | null {
+function boldLabels(
+  transactions: readonly Transaction[],
+  state: EditorState
+): Transaction | null {
   if (!transactions.some((tr) => tr.docChanged)) return null
   const bold = state.schema.marks.bold
   if (!bold) return null
@@ -213,7 +284,10 @@ function boldLabels(transactions: readonly Transaction[], state: EditorState): T
       tr ??= state.tr
       tr.addMark(from, to, bold.create())
       const { selection } = state
-      if (selection.empty && selection.from === to) tr.setStoredMarks(selection.$from.marks().filter((mark) => mark.type !== bold))
+      if (selection.empty && selection.from === to)
+        tr.setStoredMarks(
+          selection.$from.marks().filter((mark) => mark.type !== bold)
+        )
     }
   }
   return tr
@@ -247,19 +321,35 @@ export function installLockGuard(editor: SandsEditor) {
         doc.nodesBetween(from, Math.min(to, doc.content.size), (node) => {
           if (blocked) return false
           // A range that only touches a container's edge (inserting next to it) is not visited.
-          if (node.type.name === "blockContainer" && guarded.has(node.attrs.id as string)) blocked = true
+          if (
+            node.type.name === "blockContainer" &&
+            guarded.has(node.attrs.id as string)
+          )
+            blocked = true
           return !blocked
         })
       })
       const json = step.toJSON() as { stepType?: string; pos?: number }
-      if (!blocked && json.stepType === "attr" && typeof json.pos === "number") {
+      if (
+        !blocked &&
+        json.stepType === "attr" &&
+        typeof json.pos === "number"
+      ) {
         const $pos = doc.resolve(json.pos)
         for (let depth = $pos.depth; depth >= 0 && !blocked; depth--) {
           const ancestor = $pos.node(depth)
-          if (ancestor.type.name === "blockContainer" && guarded.has(ancestor.attrs.id as string)) blocked = true
+          if (
+            ancestor.type.name === "blockContainer" &&
+            guarded.has(ancestor.attrs.id as string)
+          )
+            blocked = true
         }
         const node = doc.nodeAt(json.pos)
-        if (node?.type.name === "blockContainer" && guarded.has(node.attrs.id as string)) blocked = true
+        if (
+          node?.type.name === "blockContainer" &&
+          guarded.has(node.attrs.id as string)
+        )
+          blocked = true
       }
     })
     return !blocked
@@ -270,13 +360,21 @@ export function installLockGuard(editor: SandsEditor) {
 export function protectedIds(doc: PMNode): Set<string> {
   const ids = new Set<string>()
   for (const section of scanSections(doc)) {
-    if (section.heading.attrs.status === "locked" && isEntryBlockType(section.heading.type.name)) {
+    if (
+      section.heading.attrs.status === "locked" &&
+      isEntryBlockType(section.heading.type.name)
+    ) {
       ids.add(section.container.attrs.id as string)
-      for (const field of section.fields) ids.add(field.container.attrs.id as string)
+      for (const field of section.fields)
+        ids.add(field.container.attrs.id as string)
     }
   }
   doc.descendants((node) => {
-    if (node.type.name === "blockContainer" && node.firstChild?.type.name === "entryGroup") ids.add(node.attrs.id as string)
+    if (
+      node.type.name === "blockContainer" &&
+      node.firstChild?.type.name === "entryGroup"
+    )
+      ids.add(node.attrs.id as string)
     return true
   })
   return ids

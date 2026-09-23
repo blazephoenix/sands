@@ -38,7 +38,13 @@ const streamError = z.object({
 // Setup (spec §8): parse -> World call -> Story logic call -> validate -> solvability,
 // with up to two Story logic retries when solvability fails.
 
-export const SETUP_STEPS = ["parse", "world_call", "story_logic_call", "validate", "solvability"] as const
+export const SETUP_STEPS = [
+  "parse",
+  "world_call",
+  "story_logic_call",
+  "validate",
+  "solvability",
+] as const
 export const setupStepSchema = z.enum(SETUP_STEPS)
 export type SetupStep = z.infer<typeof setupStepSchema>
 
@@ -85,7 +91,13 @@ export type SetupEvent = z.infer<typeof setupEventSchema>
 
 // Turn (spec §9.1). Only the steps whose result the Player reads block the Passage.
 
-export const TURN_PHASES = ["waiting_background", "reading", "resolving", "writing", "judging"] as const
+export const TURN_PHASES = [
+  "waiting_background",
+  "reading",
+  "resolving",
+  "writing",
+  "judging",
+] as const
 export const turnPhaseSchema = z.enum(TURN_PHASES)
 export type TurnPhase = z.infer<typeof turnPhaseSchema>
 

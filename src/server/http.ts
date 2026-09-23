@@ -19,20 +19,33 @@ export class HttpError extends Error {
 }
 
 export function apiError(status: number, code: string, message: string) {
-  return Response.json({ error: { code, message } } satisfies ApiErrorBody, { status })
+  return Response.json({ error: { code, message } } satisfies ApiErrorBody, {
+    status,
+  })
 }
 
 /** Parses a JSON body with a schema, or throws a 400/422 HttpError that says what is wrong. */
-export async function readJson<S extends z.ZodType>(request: Request, schema: S): Promise<z.infer<S>> {
+export async function readJson<S extends z.ZodType>(
+  request: Request,
+  schema: S
+): Promise<z.infer<S>> {
   let body: unknown
   try {
     body = await request.json()
   } catch {
-    throw new HttpError(400, "invalid_json", "The request body is not valid JSON.")
+    throw new HttpError(
+      400,
+      "invalid_json",
+      "The request body is not valid JSON."
+    )
   }
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
-    throw new HttpError(422, "invalid_request", `The request does not match the contract: ${z.prettifyError(parsed.error)}`)
+    throw new HttpError(
+      422,
+      "invalid_request",
+      `The request does not match the contract: ${z.prettifyError(parsed.error)}`
+    )
   }
   return parsed.data
 }
@@ -44,17 +57,25 @@ const STORE_STATUS: Record<StoreError["code"], number> = {
 }
 
 /** Wraps a handler so HttpError, StoreError and unexpected errors all become JSON error responses. */
-export function handle<Args extends unknown[]>(fn: (...args: Args) => Promise<Response>) {
+export function handle<Args extends unknown[]>(
+  fn: (...args: Args) => Promise<Response>
+) {
   return async (...args: Args): Promise<Response> => {
     try {
       return await fn(...args)
     } catch (error) {
-      if (error instanceof HttpError) return apiError(error.status, error.code, error.message)
-      if (error instanceof StoreError) return apiError(STORE_STATUS[error.code], error.code, error.message)
+      if (error instanceof HttpError)
+        return apiError(error.status, error.code, error.message)
+      if (error instanceof StoreError)
+        return apiError(STORE_STATUS[error.code], error.code, error.message)
       // A broken fixture is a developer error: let Next.js show it in full.
       if (error instanceof FixtureError) throw error
       console.error("[sands] unhandled route error", error)
-      return apiError(500, "internal", "Something went wrong on the server. Try again.")
+      return apiError(
+        500,
+        "internal",
+        "Something went wrong on the server. Try again."
+      )
     }
   }
 }

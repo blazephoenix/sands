@@ -8,18 +8,49 @@
  */
 import * as React from "react"
 import Link from "next/link"
-import { BookOpenIcon, FlaskConicalIcon, SearchXIcon, TriangleAlertIcon } from "lucide-react"
+import {
+  BookOpenIcon,
+  FlaskConicalIcon,
+  SearchXIcon,
+  TriangleAlertIcon,
+} from "lucide-react"
 
-import { ShellActions, ShellBreadcrumbs, worldCrumbs } from "@/components/app-shell"
+import {
+  ShellActions,
+  ShellBreadcrumbs,
+  worldCrumbs,
+} from "@/components/app-shell"
 import { ShortcutKeys } from "@/components/shortcut-keys"
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { Field, FieldLabel } from "@/components/ui/field"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { Switch } from "@/components/ui/switch"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { isOpening, turnLabel } from "@/domain/session"
 import type { GetSessionResponse } from "@/domain/session-view"
 import { useSingleKeyShortcut } from "@/lib/keyboard"
@@ -28,11 +59,22 @@ import { cn } from "@/lib/utils"
 import { CodexPane, unseenPlayEntries } from "./codex-pane"
 import { EndingScreen } from "./ending"
 import { HarnessPane } from "./harness-pane"
-import { Composer, FirstActionHints, OpeningPending, PROSE, StorySkeleton, TurnSection, scrollToElement } from "./story"
+import {
+  Composer,
+  FirstActionHints,
+  OpeningPending,
+  PROSE,
+  StorySkeleton,
+  TurnSection,
+  scrollToElement,
+} from "./story"
 import { useTestMode } from "./test-mode"
 import { useSession } from "./use-session"
 
-const SUGGESTIONS = ["I read the case file at Captain James's desk.", "I ask Amanda what the victims had in common."]
+const SUGGESTIONS = [
+  "I read the case file at Captain James's desk.",
+  "I ask Amanda what the victims had in common.",
+]
 
 export function SessionPage({ sessionId }: { sessionId: string }) {
   const session = useSession(sessionId)
@@ -81,12 +123,34 @@ export function SessionPage({ sessionId }: { sessionId: string }) {
 type SessionState = ReturnType<typeof useSession>
 
 export function playerNameOf(data: GetSessionResponse) {
-  const fromCodex = data.entries.find((entry) => entry.kind === "character" && entry.data.isPlayer)?.name
-  return fromCodex || data.world.brief?.characters.find((character) => character.isPlayer)?.name || "your character"
+  const fromCodex = data.entries.find(
+    (entry) => entry.kind === "character" && entry.data.isPlayer
+  )?.name
+  return (
+    fromCodex ||
+    data.world.brief?.characters.find((character) => character.isPlayer)
+      ?.name ||
+    "your character"
+  )
 }
 
-function SessionView({ data, session }: { data: GetSessionResponse; session: SessionState }) {
-  const { run, playTurn, playOpening, revealing, finishReveal, backgroundPending, update, localEntries } = session
+function SessionView({
+  data,
+  session,
+}: {
+  data: GetSessionResponse
+  session: SessionState
+}) {
+  const {
+    run,
+    playTurn,
+    playOpening,
+    revealing,
+    finishReveal,
+    backgroundPending,
+    update,
+    localEntries,
+  } = session
   const [draft, setDraft] = React.useState("")
   const [announcement, setAnnouncement] = React.useState("")
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
@@ -97,17 +161,22 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
   const turns = ended ? data.turns.slice(0, -1) : data.turns
   const opening = data.turns.find(isOpening) ?? null
   /** The Opening is still being written, or is revealing: the Player acts once it has been read. */
-  const awaitingOpening = !ended && (opening === null || revealing === opening.id)
+  const awaitingOpening =
+    !ended && (opening === null || revealing === opening.id)
 
   const [testMode, setTestMode] = useTestMode()
-  const [requestedSheet, setSheet] = React.useState<"codex" | "harness" | null>(null)
+  const [requestedSheet, setSheet] = React.useState<"codex" | "harness" | null>(
+    null
+  )
   // Test mode off hides the harness pane completely.
-  const sheet = requestedSheet === "harness" && !testMode ? null : requestedSheet
+  const sheet =
+    requestedSheet === "harness" && !testMode ? null : requestedSheet
   // Keep the closing sheet's content while it animates out.
   const [lastSheet, setLastSheet] = React.useState(sheet)
   if (sheet !== null && sheet !== lastSheet) setLastSheet(sheet)
   const content = sheet ?? lastSheet
-  const toggleSheet = (which: "codex" | "harness") => setSheet((open) => (open === which ? null : which))
+  const toggleSheet = (which: "codex" | "harness") =>
+    setSheet((open) => (open === which ? null : which))
   useSingleKeyShortcut("c", () => toggleSheet("codex"))
   useSingleKeyShortcut("t", () => toggleSheet("harness"), { enabled: testMode })
   const newEntries = unseenPlayEntries(data.entries).length
@@ -134,7 +203,10 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
   }, [revealing])
 
   // The Opening arrived: announce it whole (the reveal itself is hidden from screen readers).
-  const liveText = opening && revealing === opening.id ? `${turnLabel(opening)}. ${opening.passage}` : announcement
+  const liveText =
+    opening && revealing === opening.id
+      ? `${turnLabel(opening)}. ${opening.passage}`
+      : announcement
 
   // Once the Opening has been read (revealed, skipped, or loaded from elsewhere), the Player's turn: focus the input.
   const wasAwaitingOpening = React.useRef(awaitingOpening)
@@ -149,7 +221,8 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
 
   // Nothing typed is lost: warn before leaving with an unsent action or a Turn in progress.
   // Not for the Opening: nothing of the Player's is at stake, and a reload simply starts it again.
-  const unsaved = draft.trim() !== "" || (run.status === "running" && run.input !== null)
+  const unsaved =
+    draft.trim() !== "" || (run.status === "running" && run.input !== null)
   React.useEffect(() => {
     if (!unsaved) return
     function onBeforeUnload(event: BeforeUnloadEvent) {
@@ -164,7 +237,10 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
     const turn = await playTurn(input)
     if (turn) {
       setDraft("")
-      const ending = turn.state.ending === "none" ? "" : ` The story has ended: ${turn.state.ending}.`
+      const ending =
+        turn.state.ending === "none"
+          ? ""
+          : ` The story has ended: ${turn.state.ending}.`
       setAnnouncement(`${turnLabel(turn)}. ${turn.passage}${ending}`)
     }
     // The textarea was disabled during the Turn, which drops focus; give it back.
@@ -173,7 +249,11 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
 
   return (
     <div className="flex flex-1 flex-col">
-      <ShellBreadcrumbs items={worldCrumbs(data.world, { session: `Session ${data.sessionNumber}` })} />
+      <ShellBreadcrumbs
+        items={worldCrumbs(data.world, {
+          session: `Session ${data.sessionNumber}`,
+        })}
+      />
       <ShellActions>
         <Tooltip>
           <TooltipTrigger
@@ -182,7 +262,9 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
                 variant={sheet === "codex" ? "secondary" : "ghost"}
                 size="sm"
                 aria-expanded={sheet === "codex"}
-                aria-label={newEntries > 0 ? `Codex, ${newEntries} new` : "Codex"}
+                aria-label={
+                  newEntries > 0 ? `Codex, ${newEntries} new` : "Codex"
+                }
                 onClick={() => toggleSheet("codex")}
               />
             }
@@ -190,7 +272,11 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
             <BookOpenIcon data-icon="inline-start" />
             Codex
             {/* Always rendered, so the header does not shift when a new Entry lands. */}
-            <Badge variant="secondary" className={cn("tabular-nums", newEntries === 0 && "invisible")} aria-hidden>
+            <Badge
+              variant="secondary"
+              className={cn("tabular-nums", newEntries === 0 && "invisible")}
+              aria-hidden
+            >
               {newEntries} new
             </Badge>
           </TooltipTrigger>
@@ -215,7 +301,9 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
               Harness
             </TooltipTrigger>
             <TooltipContent>
-              {sheet === "harness" ? "Close the harness pane" : "Open the harness pane"}
+              {sheet === "harness"
+                ? "Close the harness pane"
+                : "Open the harness pane"}
               <ShortcutKeys shortcut="t" />
             </TooltipContent>
           </Tooltip>
@@ -229,7 +317,10 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
               if (!on && sheet === "harness") setSheet(null)
             }}
           />
-          <FieldLabel htmlFor="session-test-mode" className="font-normal whitespace-nowrap">
+          <FieldLabel
+            htmlFor="session-test-mode"
+            className="font-normal whitespace-nowrap"
+          >
             Test mode
           </FieldLabel>
         </Field>
@@ -241,7 +332,10 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
         {liveText}
       </div>
 
-      <article aria-label="Story" className={cn(PROSE, "flex flex-1 flex-col gap-10 pt-10 pb-8")}>
+      <article
+        aria-label="Story"
+        className={cn(PROSE, "flex flex-1 flex-col gap-10 pt-10 pb-8")}
+      >
         {data.turns.length === 0 ? (
           <OpeningPending run={run} onRetry={() => void playOpening()} />
         ) : (
@@ -258,7 +352,10 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
             />
           ))
         )}
-        {!ended && !awaitingOpening && data.turns.length === 1 && run.status === "idle" ? (
+        {!ended &&
+        !awaitingOpening &&
+        data.turns.length === 1 &&
+        run.status === "idle" ? (
           <FirstActionHints
             playerName={playerName}
             suggestions={SUGGESTIONS}
@@ -294,21 +391,37 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
         />
       )}
 
-      <Sheet open={sheet !== null} onOpenChange={(open) => (open ? undefined : setSheet(null))}>
-        <SheetContent side="right" finalFocus={ended ? true : inputRef} className="w-full gap-0 data-[side=right]:sm:max-w-2xl">
+      <Sheet
+        open={sheet !== null}
+        onOpenChange={(open) => (open ? undefined : setSheet(null))}
+      >
+        <SheetContent
+          side="right"
+          finalFocus={ended ? true : inputRef}
+          className="w-full gap-0 data-[side=right]:sm:max-w-2xl"
+        >
           {content === "codex" ? (
             <>
               <SheetHeader>
                 <SheetTitle>Codex</SheetTitle>
-                <SheetDescription>This Session&apos;s Entries. Edits and status changes apply from the next Turn.</SheetDescription>
+                <SheetDescription>
+                  This Session&apos;s Entries. Edits and status changes apply
+                  from the next Turn.
+                </SheetDescription>
               </SheetHeader>
-              <CodexPane data={data} update={update} localEntries={localEntries} />
+              <CodexPane
+                data={data}
+                update={update}
+                localEntries={localEntries}
+              />
             </>
           ) : content === "harness" ? (
             <>
               <SheetHeader>
                 <SheetTitle>Harness</SheetTitle>
-                <SheetDescription>What the harness did in each finished Turn, newest first.</SheetDescription>
+                <SheetDescription>
+                  What the harness did in each finished Turn, newest first.
+                </SheetDescription>
               </SheetHeader>
               <div className="min-h-0 flex-1 overflow-y-auto">
                 <HarnessPane data={data} />

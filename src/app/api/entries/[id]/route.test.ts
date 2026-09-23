@@ -16,14 +16,21 @@ const params = (id: string) => ({ params: Promise.resolve({ id }) })
 
 async function patch(id: string, body: unknown) {
   const response = await PATCH(
-    new Request(`http://sands.test/api/entries/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),
+    new Request(`http://sands.test/api/entries/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
     params(id)
   )
   return { status: response.status, body: await response.json() }
 }
 
 async function getWorld(id: string) {
-  const response = await GET(new Request(`http://sands.test/api/worlds/${id}`), params(id))
+  const response = await GET(
+    new Request(`http://sands.test/api/worlds/${id}`),
+    params(id)
+  )
   return getWorldResponseSchema.parse(await response.json())
 }
 
@@ -33,16 +40,27 @@ describe("PATCH /api/entries/[id] returns fresh solvability, and GET /api/worlds
     expect(rejected.status).toBe(200)
     const body = patchEntryResponseSchema.parse(rejected.body)
     expect(body.entry.status).toBe("rejected")
-    expect(body.solvability).toMatchObject({ passed: false, gaps: [{ code: "missing_clue", entryId: "wc-c2" }] })
-    expect((await getWorld(WORLD_IDS.review)).world.solvability).toEqual(body.solvability)
+    expect(body.solvability).toMatchObject({
+      passed: false,
+      gaps: [{ code: "missing_clue", entryId: "wc-c2" }],
+    })
+    expect((await getWorld(WORLD_IDS.review)).world.solvability).toEqual(
+      body.solvability
+    )
 
-    const restored = patchEntryResponseSchema.parse((await patch("wc-c2", { action: "restore", status: "proposed" })).body)
+    const restored = patchEntryResponseSchema.parse(
+      (await patch("wc-c2", { action: "restore", status: "proposed" })).body
+    )
     expect(restored.solvability?.passed).toBe(true)
-    expect((await getWorld(WORLD_IDS.review)).world.solvability).toEqual(restored.solvability)
+    expect((await getWorld(WORLD_IDS.review)).world.solvability).toEqual(
+      restored.solvability
+    )
   })
 
   it("answers null solvability for a Session copy, as before", async () => {
-    const { status, body } = await patch(`${SESSION_IDS.midPlay}.mk-c2`, { action: "accept" })
+    const { status, body } = await patch(`${SESSION_IDS.midPlay}.mk-c2`, {
+      action: "accept",
+    })
     expect(status).toBe(200)
     expect(patchEntryResponseSchema.parse(body).solvability).toBeNull()
   })

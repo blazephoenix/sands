@@ -11,7 +11,11 @@ import { CheckIcon, CloudAlertIcon } from "lucide-react"
 import { ShortcutKeys } from "@/components/shortcut-keys"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 import type { SaveStatus } from "./autosave"
@@ -57,11 +61,21 @@ export function SaveIndicator({
       >
         <span
           key={confirmKey}
-          className="inline-flex items-center gap-1 duration-200 animate-in fade-in-0 zoom-in-95 motion-reduce:animate-none"
+          className="inline-flex animate-in items-center gap-1 duration-200 fade-in-0 zoom-in-95 motion-reduce:animate-none"
         >
-          {status.kind === "saving" ? <Spinner data-icon="inline-start" className="motion-reduce:animate-none" aria-hidden /> : null}
-          {status.kind === "saved" ? <CheckIcon data-icon="inline-start" aria-hidden /> : null}
-          {failed ? <CloudAlertIcon data-icon="inline-start" aria-hidden /> : null}
+          {status.kind === "saving" ? (
+            <Spinner
+              data-icon="inline-start"
+              className="motion-reduce:animate-none"
+              aria-hidden
+            />
+          ) : null}
+          {status.kind === "saved" ? (
+            <CheckIcon data-icon="inline-start" aria-hidden />
+          ) : null}
+          {failed ? (
+            <CloudAlertIcon data-icon="inline-start" aria-hidden />
+          ) : null}
           {label}
         </span>
       </TooltipTrigger>

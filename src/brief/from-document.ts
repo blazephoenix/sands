@@ -28,10 +28,27 @@ import {
   type BriefWarning,
   type KeyFact,
 } from "@/domain/brief"
-import { BRIEF_BLOCKS, isBriefBlockType, type BriefBlockType } from "@/brief/fields"
-import { hasHiddenStyle, matchLabel, walkSections, type WalkedField } from "@/editor/field-line"
-import { inlineToText, normaliseFieldText, splitList } from "@/editor/inline-text"
-import type { BriefSectionBlock, SandsBlock, SandsInline } from "@/editor/schema-config"
+import {
+  BRIEF_BLOCKS,
+  isBriefBlockType,
+  type BriefBlockType,
+} from "@/brief/fields"
+import {
+  hasHiddenStyle,
+  matchLabel,
+  walkSections,
+  type WalkedField,
+} from "@/editor/field-line"
+import {
+  inlineToText,
+  normaliseFieldText,
+  splitList,
+} from "@/editor/inline-text"
+import type {
+  BriefSectionBlock,
+  SandsBlock,
+  SandsInline,
+} from "@/editor/schema-config"
 
 export type BriefConversion = {
   /** Everything the document holds, valid or not. */
@@ -58,10 +75,19 @@ function isBriefHeading(block: SandsBlock): block is BriefSectionBlock {
 }
 
 /** Reads one section's fields against its kind's known labels. */
-function readSection(heading: BriefSectionBlock, fields: WalkedField[], warnings: BriefWarning[]): ReadSection {
+function readSection(
+  heading: BriefSectionBlock,
+  fields: WalkedField[],
+  warnings: BriefWarning[]
+): ReadSection {
   const type = heading.type as BriefBlockType
   const spec = BRIEF_BLOCKS[type]
-  const out: ReadSection = { values: {}, keyFacts: [], hiddenFields: [], fieldBlockIds: {} }
+  const out: ReadSection = {
+    values: {},
+    keyFacts: [],
+    hiddenFields: [],
+    fieldBlockIds: {},
+  }
 
   if (spec.named) {
     const content = (heading.content ?? []) as SandsInline[]
@@ -84,9 +110,13 @@ function readSection(heading: BriefSectionBlock, fields: WalkedField[], warnings
     if (match.kind === "known") {
       const { key } = match.spec
       const separator = match.spec.list === "comma" ? ", " : "\n"
-      out.values[key] = out.values[key] && line.text ? `${out.values[key]}${separator}${line.text}` : out.values[key] || line.text
+      out.values[key] =
+        out.values[key] && line.text
+          ? `${out.values[key]}${separator}${line.text}`
+          : out.values[key] || line.text
       out.fieldBlockIds[key] ??= block.id
-      if (line.hidden && !out.hiddenFields.includes(key)) out.hiddenFields.push(key)
+      if (line.hidden && !out.hiddenFields.includes(key))
+        out.hiddenFields.push(key)
       continue
     }
     if (match.kind === "typo") {
@@ -98,32 +128,64 @@ function readSection(heading: BriefSectionBlock, fields: WalkedField[], warnings
         suggestion: match.suggestion.label,
       })
     }
-    if (line.text) out.keyFacts.push({ label: line.label, text: line.text, hidden: line.hidden })
+    if (line.text)
+      out.keyFacts.push({
+        label: line.label,
+        text: line.text,
+        hidden: line.hidden,
+      })
   }
   return out
 }
 
-function list(values: Record<string, string>, type: BriefBlockType, key: string): string[] {
+function list(
+  values: Record<string, string>,
+  type: BriefBlockType,
+  key: string
+): string[] {
   const spec = BRIEF_BLOCKS[type].fields.find((field) => field.key === key)
   return splitList(values[key] ?? "", spec?.list ?? "lines")
 }
 
 function proseText(block: SandsBlock, depth: number): string {
-  const text = Array.isArray(block.content) ? inlineToText(block.content as SandsInline[]).trim() : ""
+  const text = Array.isArray(block.content)
+    ? inlineToText(block.content as SandsInline[]).trim()
+    : ""
   if (!text) return ""
   const marker =
-    block.type === "bulletListItem" ? "- " : block.type === "numberedListItem" ? "1. " : block.type === "quote" ? "> " : ""
+    block.type === "bulletListItem"
+      ? "- "
+      : block.type === "numberedListItem"
+        ? "1. "
+        : block.type === "quote"
+          ? "> "
+          : ""
   return `${"  ".repeat(depth)}${marker}${normaliseFieldText(text)}`
 }
 
-export function documentToBrief(document: readonly SandsBlock[]): BriefConversion {
-  const draft: BriefDraft = { settings: [], characters: [], arcs: [], endings: [], locations: [], voices: [], prose: [] }
+export function documentToBrief(
+  document: readonly SandsBlock[]
+): BriefConversion {
+  const draft: BriefDraft = {
+    settings: [],
+    characters: [],
+    arcs: [],
+    endings: [],
+    locations: [],
+    voices: [],
+    prose: [],
+  }
   const fieldBlockIds: Record<string, Record<string, string>> = {}
   const warnings: BriefWarning[] = []
 
-  let section: BriefProseSection = { heading: null, headingBlockId: null, paragraphs: [] }
+  let section: BriefProseSection = {
+    heading: null,
+    headingBlockId: null,
+    paragraphs: [],
+  }
   const flush = () => {
-    if (section.paragraphs.length > 0 || section.heading) draft.prose.push(section)
+    if (section.paragraphs.length > 0 || section.heading)
+      draft.prose.push(section)
   }
 
   for (const item of walkSections(document, isBriefHeading)) {
@@ -131,7 +193,11 @@ export function documentToBrief(document: readonly SandsBlock[]): BriefConversio
       const { block, depth } = item
       if (block.type === "heading") {
         flush()
-        section = { heading: inlineToText(block.content as SandsInline[]).trim(), headingBlockId: block.id, paragraphs: [] }
+        section = {
+          heading: inlineToText(block.content as SandsInline[]).trim(),
+          headingBlockId: block.id,
+          paragraphs: [],
+        }
         continue
       }
       const text = proseText(block, depth)
@@ -143,12 +209,20 @@ export function documentToBrief(document: readonly SandsBlock[]): BriefConversio
     const type = heading.type as BriefBlockType
     const read = readSection(heading, fields, warnings)
     fieldBlockIds[heading.id] = read.fieldBlockIds
-    const base = { blockId: heading.id, keyFacts: read.keyFacts, hiddenFields: read.hiddenFields }
+    const base = {
+      blockId: heading.id,
+      keyFacts: read.keyFacts,
+      hiddenFields: read.hiddenFields,
+    }
     const v = (key: string) => read.values[key] ?? ""
 
     switch (type) {
       case "setting":
-        draft.settings.push({ ...base, place: v("place"), period: v("period") } satisfies BriefSetting)
+        draft.settings.push({
+          ...base,
+          place: v("place"),
+          period: v("period"),
+        } satisfies BriefSetting)
         break
       case "character":
         draft.characters.push({
@@ -171,18 +245,35 @@ export function documentToBrief(document: readonly SandsBlock[]): BriefConversio
         } satisfies BriefArc)
         break
       case "ending":
-        draft.endings.push({ ...base, condition: v("condition") } satisfies BriefEnding)
+        draft.endings.push({
+          ...base,
+          condition: v("condition"),
+        } satisfies BriefEnding)
         break
       case "location":
-        draft.locations.push({ ...base, name: v("name"), description: v("description") } satisfies BriefLocation)
+        draft.locations.push({
+          ...base,
+          name: v("name"),
+          description: v("description"),
+        } satisfies BriefLocation)
         break
       case "voice":
-        draft.voices.push({ ...base, guidelines: v("guidelines"), samplePassages: v("samplePassages") } satisfies BriefVoice)
+        draft.voices.push({
+          ...base,
+          guidelines: v("guidelines"),
+          samplePassages: v("samplePassages"),
+        } satisfies BriefVoice)
         break
     }
   }
   flush()
 
   const validation = validateBriefDraft(draft, fieldBlockIds)
-  return { draft, validation, issues: validation.issues, warnings, fieldBlockIds }
+  return {
+    draft,
+    validation,
+    issues: validation.issues,
+    warnings,
+    fieldBlockIds,
+  }
 }

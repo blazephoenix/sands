@@ -15,5 +15,7 @@ export const PUT = handle(async (request: Request, { params }: Context) => {
   if (blocked) return blocked
   const { id } = await params
   const body = await readJson(request, saveBriefRequestSchema)
-  return Response.json({ world: saveBrief(id, body) } satisfies SaveBriefResponse)
+  return Response.json({
+    world: saveBrief(id, body),
+  } satisfies SaveBriefResponse)
 })

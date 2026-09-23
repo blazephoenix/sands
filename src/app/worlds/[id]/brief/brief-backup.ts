@@ -21,7 +21,12 @@ export function readBriefBackup(worldId: string): BriefBackup | null {
     const raw = window.localStorage.getItem(key(worldId))
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<BriefBackup>
-    if (typeof parsed.name !== "string" || !Array.isArray(parsed.briefDoc) || typeof parsed.at !== "number") return null
+    if (
+      typeof parsed.name !== "string" ||
+      !Array.isArray(parsed.briefDoc) ||
+      typeof parsed.at !== "number"
+    )
+      return null
     return parsed as BriefBackup
   } catch {
     return null

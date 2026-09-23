@@ -29,7 +29,10 @@ const KEY_LABELS: Record<string, string> = {
 }
 
 /** Splits a ProseMirror key name into display keys, e.g. "Mod-Shift-h" -> ["Ctrl", "Shift", "H"]. */
-export function shortcutKeys(shortcut: string, mac = isMacPlatform()): string[] {
+export function shortcutKeys(
+  shortcut: string,
+  mac = isMacPlatform()
+): string[] {
   return shortcut.split("-").map((part) => {
     if (part === "Mod") return mac ? "⌘" : "Ctrl"
     if (part === "Shift") return mac ? "⇧" : "Shift"

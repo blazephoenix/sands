@@ -21,8 +21,12 @@ export function copyEntriesForSession(
   sessionId: string,
   options: SessionCopyOptions
 ): Entry[] {
-  const templates = worldEntries.filter((entry) => entry.sessionId === null && isLiveEntry(entry))
-  const idMap = new Map(templates.map((entry) => [entry.id, options.newId(entry)]))
+  const templates = worldEntries.filter(
+    (entry) => entry.sessionId === null && isLiveEntry(entry)
+  )
+  const idMap = new Map(
+    templates.map((entry) => [entry.id, options.newId(entry)])
+  )
   const remap = (id: string) => idMap.get(id) ?? id
   const remapNullable = (id: string | null) => (id === null ? null : remap(id))
 
@@ -40,7 +44,14 @@ export function copyEntriesForSession(
     }
     switch (template.kind) {
       case "location":
-        return { ...base, kind: "location", data: { ...template.data, connections: template.data.connections.map(remap) } }
+        return {
+          ...base,
+          kind: "location",
+          data: {
+            ...template.data,
+            connections: template.data.connections.map(remap),
+          },
+        }
       case "clue":
         return {
           ...base,
@@ -76,7 +87,11 @@ export function copyEntriesForSession(
         return {
           ...base,
           kind: template.kind,
-          data: { ...template.data, hiddenFields: [...template.data.hiddenFields], aliases: [...template.data.aliases] },
+          data: {
+            ...template.data,
+            hiddenFields: [...template.data.hiddenFields],
+            aliases: [...template.data.aliases],
+          },
         } as Entry
       default:
         return { ...base, data: { ...template.data } } as Entry

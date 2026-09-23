@@ -10,9 +10,19 @@
 import * as React from "react"
 import { ArrowUpIcon, RotateCcwIcon, TriangleAlertIcon } from "lucide-react"
 
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupTextarea,
+} from "@/components/ui/input-group"
 import { Kbd } from "@/components/ui/kbd"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
@@ -28,12 +38,21 @@ import type { TurnRun } from "./use-session"
 export const PROSE = "mx-auto w-full max-w-[65ch] px-4"
 
 function prefersReducedMotion() {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  )
 }
 
 /** Scrolls an element into view. Block body: Chrome returns a Promise from scrollIntoView, and React throws on an effect's return value. */
-export function scrollToElement(element: Element | null, block: ScrollLogicalPosition = "start") {
-  element?.scrollIntoView({ block, behavior: prefersReducedMotion() ? "auto" : "smooth" })
+export function scrollToElement(
+  element: Element | null,
+  block: ScrollLogicalPosition = "start"
+) {
+  element?.scrollIntoView({
+    block,
+    behavior: prefersReducedMotion() ? "auto" : "smooth",
+  })
 }
 
 // Passage reveal
@@ -49,7 +68,10 @@ function PassageReveal({ text, onDone }: { text: string; onDone: () => void }) {
   React.useEffect(() => {
     if (instant) return
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" || (event.key === " " && !isTypingTarget(event.target))) {
+      if (
+        event.key === "Escape" ||
+        (event.key === " " && !isTypingTarget(event.target))
+      ) {
         if (event.key === " ") event.preventDefault()
         setInstant(true)
       }
@@ -59,8 +81,18 @@ function PassageReveal({ text, onDone }: { text: string; onDone: () => void }) {
   }, [instant])
 
   return (
-    <span aria-hidden onClick={() => setInstant(true)} className={cn(!instant && "cursor-pointer")}>
-      <TextGenerateEffect words={text} stagger={0.04} duration={0.5} instant={instant} onComplete={onDone} />
+    <span
+      aria-hidden
+      onClick={() => setInstant(true)}
+      className={cn(!instant && "cursor-pointer")}
+    >
+      <TextGenerateEffect
+        words={text}
+        stagger={0.04}
+        duration={0.5}
+        instant={instant}
+        onComplete={onDone}
+      />
     </span>
   )
 }
@@ -79,7 +111,11 @@ export function TurnSection({
   ref?: React.Ref<HTMLElement>
 }) {
   return (
-    <section ref={ref} aria-label={turnLabel(turn)} className="flex scroll-mt-24 flex-col gap-3">
+    <section
+      ref={ref}
+      aria-label={turnLabel(turn)}
+      className="flex scroll-mt-24 flex-col gap-3"
+    >
       {/* The Opening has no Player input, so no input line above it. */}
       {turn.playerInput === null ? null : (
         <p className="text-sm text-muted-foreground">
@@ -108,13 +144,21 @@ export function TurnSection({
  * height roughly matches a Passage, so the Opening does not shift the page
  * when it arrives. On failure: the cause and Retry; the Session has no Turns.
  */
-export function OpeningPending({ run, onRetry }: { run: TurnRun; onRetry: () => void }) {
+export function OpeningPending({
+  run,
+  onRetry,
+}: {
+  run: TurnRun
+  onRetry: () => void
+}) {
   if (run.status === "failed") {
     return (
       <Alert variant="destructive">
         <TriangleAlertIcon />
         <AlertTitle>The Opening did not finish</AlertTitle>
-        <AlertDescription>{run.message} The Session has no Turns yet, so nothing was lost.</AlertDescription>
+        <AlertDescription>
+          {run.message} The Session has no Turns yet, so nothing was lost.
+        </AlertDescription>
         <AlertAction>
           <Button variant="outline" size="sm" onClick={onRetry} autoFocus>
             <RotateCcwIcon data-icon="inline-start" />
@@ -125,9 +169,19 @@ export function OpeningPending({ run, onRetry }: { run: TurnRun; onRetry: () => 
     )
   }
   return (
-    <section aria-label="Opening" aria-busy="true" className="flex min-h-80 flex-col gap-3">
-      <p className="text-sm text-muted-foreground">The story begins once the Judge has passed its first scene.</p>
-      <p role="status" aria-live="polite" className="flex items-center gap-2 text-lg leading-8 text-muted-foreground">
+    <section
+      aria-label="Opening"
+      aria-busy="true"
+      className="flex min-h-80 flex-col gap-3"
+    >
+      <p className="text-sm text-muted-foreground">
+        The story begins once the Judge has passed its first scene.
+      </p>
+      <p
+        role="status"
+        aria-live="polite"
+        className="flex items-center gap-2 text-lg leading-8 text-muted-foreground"
+      >
         <Spinner aria-hidden />
         {progressLabel(run) ?? OPENING_FIRST_LABEL}
       </p>
@@ -136,13 +190,28 @@ export function OpeningPending({ run, onRetry }: { run: TurnRun; onRetry: () => 
 }
 
 /** After the Opening, until the Player first acts: a few ways in, for a Player who is not sure where to start. */
-export function FirstActionHints({ playerName, suggestions, onSuggest }: { playerName: string; suggestions: string[]; onSuggest: (text: string) => void }) {
+export function FirstActionHints({
+  playerName,
+  suggestions,
+  onSuggest,
+}: {
+  playerName: string
+  suggestions: string[]
+  onSuggest: (text: string) => void
+}) {
   return (
     <div className="flex animate-in flex-col gap-2 duration-300 fade-in-0 motion-reduce:animate-none">
-      <p className="text-sm text-muted-foreground">Type what {playerName} does, or begin with one of these.</p>
+      <p className="text-sm text-muted-foreground">
+        Type what {playerName} does, or begin with one of these.
+      </p>
       <div className="flex flex-wrap gap-2">
         {suggestions.map((suggestion) => (
-          <Button key={suggestion} variant="outline" size="sm" onClick={() => onSuggest(suggestion)}>
+          <Button
+            key={suggestion}
+            variant="outline"
+            size="sm"
+            onClick={() => onSuggest(suggestion)}
+          >
             {suggestion}
           </Button>
         ))}
@@ -153,7 +222,11 @@ export function FirstActionHints({ playerName, suggestions, onSuggest }: { playe
 
 export function StorySkeleton() {
   return (
-    <div className={cn(PROSE, "flex flex-col gap-10 py-10")} aria-busy="true" aria-label="Loading the Session">
+    <div
+      className={cn(PROSE, "flex flex-col gap-10 py-10")}
+      aria-busy="true"
+      aria-label="Loading the Session"
+    >
       {[0, 1, 2].map((index) => (
         <div key={index} className="flex flex-col gap-3">
           <Skeleton className="h-4 w-56" />
@@ -173,7 +246,8 @@ const PHASE_LABELS: Record<TurnPhase, (round: number | null) => string> = {
   reading: () => "Reading your action…",
   resolving: () => "Resolving…",
   writing: (round) => `Writing, Round ${round ?? 1}…`,
-  judging: (round) => (round && round > 1 ? `Judging, Round ${round}…` : "Judging…"),
+  judging: (round) =>
+    round && round > 1 ? `Judging, Round ${round}…` : "Judging…",
 }
 
 const OPENING_FIRST_LABEL = "Setting the scene…"
@@ -182,7 +256,8 @@ export function progressLabel(run: TurnRun) {
   if (run.status !== "running") return null
   if (run.input === null) {
     // The Opening: no input to read, no Outcome to resolve. Its first writing is setting the scene.
-    if (!run.phase || (run.phase === "writing" && (run.round ?? 1) === 1)) return OPENING_FIRST_LABEL
+    if (!run.phase || (run.phase === "writing" && (run.round ?? 1) === 1))
+      return OPENING_FIRST_LABEL
     return PHASE_LABELS[run.phase](run.round)
   }
   return run.phase ? PHASE_LABELS[run.phase](run.round) : "Sending your action…"
@@ -250,7 +325,11 @@ export function Composer({
             <AlertTitle>The Turn did not finish</AlertTitle>
             <AlertDescription>{run.message}</AlertDescription>
             <AlertAction>
-              <Button variant="outline" size="sm" onClick={() => onSubmit(run.input ?? "")}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onSubmit(run.input ?? "")}
+              >
                 <RotateCcwIcon data-icon="inline-start" />
                 Retry
               </Button>
@@ -274,7 +353,11 @@ export function Composer({
               className="max-h-48 min-h-16 text-base"
               onChange={(event) => onValueChange(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                if (
+                  event.key === "Enter" &&
+                  !event.shiftKey &&
+                  !event.nativeEvent.isComposing
+                ) {
                   event.preventDefault()
                   submit()
                 }
@@ -288,14 +371,28 @@ export function Composer({
                 <span aria-hidden>+</span>
                 <Kbd>Enter</Kbd> new line
               </span>
-              <InputGroupButton type="submit" variant="default" size="sm" disabled={busy || !value.trim()} aria-label="Act">
-                {busy && !awaitingOpening ? <Spinner data-icon="inline-start" /> : <ArrowUpIcon data-icon="inline-start" />}
+              <InputGroupButton
+                type="submit"
+                variant="default"
+                size="sm"
+                disabled={busy || !value.trim()}
+                aria-label="Act"
+              >
+                {busy && !awaitingOpening ? (
+                  <Spinner data-icon="inline-start" />
+                ) : (
+                  <ArrowUpIcon data-icon="inline-start" />
+                )}
                 Act
               </InputGroupButton>
             </InputGroupAddon>
           </InputGroup>
         </form>
-        <p role="status" aria-live="polite" className="flex h-5 items-center gap-2 text-sm text-muted-foreground">
+        <p
+          role="status"
+          aria-live="polite"
+          className="flex h-5 items-center gap-2 text-sm text-muted-foreground"
+        >
           {status}
         </p>
       </div>

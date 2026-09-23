@@ -5,7 +5,11 @@
  * `background-pending` scenario keeps it running.
  */
 import type { GetSessionResponse } from "@/domain/session-view"
-import { getSession, getSessionView, settleBackground } from "@/fixtures/sessions"
+import {
+  getSession,
+  getSessionView,
+  settleBackground,
+} from "@/fixtures/sessions"
 import { handle } from "@/server/http"
 import { hasScenario, scenarioGate } from "@/server/scenarios"
 
@@ -17,5 +21,7 @@ export const GET = handle(async (request: Request, { params }: Context) => {
   const { id } = await params
   getSession(id) // 404 before anything else
   if (!hasScenario(request, "background-pending")) settleBackground(id)
-  return Response.json(getSessionView(id) satisfies GetSessionResponse, { headers: { "cache-control": "no-store" } })
+  return Response.json(getSessionView(id) satisfies GetSessionResponse, {
+    headers: { "cache-control": "no-store" },
+  })
 })

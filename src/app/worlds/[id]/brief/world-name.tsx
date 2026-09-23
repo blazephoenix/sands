@@ -12,7 +12,11 @@ import { ShortcutKeys } from "@/components/shortcut-keys"
 import { Button } from "@/components/ui/button"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export const RENAME_SHORTCUT = "F2"
 
@@ -23,7 +27,12 @@ export type WorldNameProps = {
   onEditingChange: (editing: boolean) => void
 }
 
-export function WorldName({ name, onRename, editing, onEditingChange }: WorldNameProps) {
+export function WorldName({
+  name,
+  onRename,
+  editing,
+  onEditingChange,
+}: WorldNameProps) {
   const buttonRef = React.useRef<HTMLButtonElement>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const wasEditing = React.useRef(false)

@@ -28,7 +28,11 @@ import {
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import type { BriefBlockType } from "@/brief/fields"
 import {
   ENTRY_KIND_LABELS,
@@ -70,19 +74,36 @@ export function EntryKindBadge({ kind }: { kind: EntryKind }) {
 }
 
 export function sourceLabel(source: EntrySource, sourceTurn: number | null) {
-  if (source === "play") return sourceTurn === null ? "Play" : `Play, Turn ${sourceTurn + 1}`
+  if (source === "play")
+    return sourceTurn === null ? "Play" : `Play, Turn ${sourceTurn + 1}`
   return source === "author" ? "Author" : "Setup"
 }
 
-export function EntrySourceBadge({ source, sourceTurn }: { source: EntrySource; sourceTurn: number | null }) {
+export function EntrySourceBadge({
+  source,
+  sourceTurn,
+}: {
+  source: EntrySource
+  sourceTurn: number | null
+}) {
   return (
-    <Badge variant="outline" aria-label={`Source: ${sourceLabel(source, sourceTurn)}`}>
+    <Badge
+      variant="outline"
+      aria-label={`Source: ${sourceLabel(source, sourceTurn)}`}
+    >
       {sourceLabel(source, sourceTurn)}
     </Badge>
   )
 }
 
-const STATUS: Record<EntryStatus, { label: string; icon: LucideIcon | null; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+const STATUS: Record<
+  EntryStatus,
+  {
+    label: string
+    icon: LucideIcon | null
+    variant: "default" | "secondary" | "outline" | "destructive"
+  }
+> = {
   locked: { label: "Locked", icon: LockIcon, variant: "outline" },
   proposed: { label: "Proposed", icon: null, variant: "secondary" },
   // UI wording (the Author's choice): Approved and Removed; the data keeps `accepted` / `rejected`.
@@ -130,11 +151,17 @@ export function JevFlagBadge({ flags }: { flags: readonly JevFlag[] }) {
       </TooltipTrigger>
       <TooltipContent className="max-w-sm flex-col items-start gap-1">
         {flags.map((flag) => (
-          <span key={`${flag.question}-${flag.prompt}`} className="flex flex-col">
+          <span
+            key={`${flag.question}-${flag.prompt}`}
+            className="flex flex-col"
+          >
             <span className="font-medium">{flag.prompt}</span>
             <span>
-              {flag.question === "period_fit" ? "Fits the period" : "Contradicts the Brief"}: p ={" "}
-              {formatProbability(flag.probability)}, {flag.verdict === "fail" ? "failed" : "uncertain"}
+              {flag.question === "period_fit"
+                ? "Fits the period"
+                : "Contradicts the Brief"}
+              : p = {formatProbability(flag.probability)},{" "}
+              {flag.verdict === "fail" ? "failed" : "uncertain"}
             </span>
           </span>
         ))}

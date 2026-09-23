@@ -32,7 +32,12 @@ export type SessionLoad =
 /** `input` is the Player's action, or null for the Opening. */
 export type TurnRun =
   | { status: "idle" }
-  | { status: "running"; input: string | null; phase: TurnPhase | null; round: number | null }
+  | {
+      status: "running"
+      input: string | null
+      phase: TurnPhase | null
+      round: number | null
+    }
   | { status: "failed"; input: string | null; code: string; message: string }
 
 /** How often to ask whether background work has finished. */
@@ -58,10 +63,20 @@ function wait(ms: number, signal: AbortSignal) {
 }
 
 /** How one Turn request ended. */
-type StreamEnd = { kind: "shipped"; turn: Turn } | { kind: "failed" } | { kind: "aborted" } | { kind: "conflict"; error: ApiError }
+type StreamEnd =
+  | { kind: "shipped"; turn: Turn }
+  | { kind: "failed" }
+  | { kind: "aborted" }
+  | { kind: "conflict"; error: ApiError }
 
 function asApiError(error: unknown) {
-  return error instanceof ApiError ? error : new ApiError(0, "internal", "Something went wrong on this page. Try again.")
+  return error instanceof ApiError
+    ? error
+    : new ApiError(
+        0,
+        "internal",
+        "Something went wrong on this page. Try again."
+      )
 }
 
 export function useSession(sessionId: string) {
@@ -88,7 +103,8 @@ export function useSession(sessionId: string) {
         // A Session never starts blank: loaded with no Turns, its Opening plays by itself.
         // A doubled mount aborts the first load, so only one load gets here; the route's
         // claim and the 409 loop keep a fast reload or a second tab from writing another.
-        if (data.turns.length === 0 && data.session.ending === "none") void startOpening.current()
+        if (data.turns.length === 0 && data.session.ending === "none")
+          void startOpening.current()
       })
       .catch((error: unknown) => {
         if (isAbortError(error)) return
@@ -106,10 +122,17 @@ export function useSession(sessionId: string) {
     setAttempt((n) => n + 1)
   }, [])
 
-  const update = React.useCallback((change: (data: GetSessionResponse) => GetSessionResponse) => {
-    version.current += 1
-    setLoad((current) => (current.status === "ready" ? { status: "ready", data: change(current.data) } : current))
-  }, [])
+  const update = React.useCallback(
+    (change: (data: GetSessionResponse) => GetSessionResponse) => {
+      version.current += 1
+      setLoad((current) =>
+        current.status === "ready"
+          ? { status: "ready", data: change(current.data) }
+          : current
+      )
+    },
+    []
+  )
 
   /** Fetches the Session again without a loading state, keeping local Codex edits. */
   const refresh = React.useCallback(
@@ -119,14 +142,26 @@ export function useSession(sessionId: string) {
       if (version.current !== started) return
       setLoad((current) => {
         if (current.status !== "ready") return { status: "ready", data }
-        const local = new Map(current.data.entries.filter((entry) => localEntries.current.has(entry.id)).map((entry) => [entry.id, entry]))
-        return { status: "ready", data: { ...data, entries: data.entries.map((entry) => local.get(entry.id) ?? entry) } }
+        const local = new Map(
+          current.data.entries
+            .filter((entry) => localEntries.current.has(entry.id))
+            .map((entry) => [entry.id, entry])
+        )
+        return {
+          status: "ready",
+          data: {
+            ...data,
+            entries: data.entries.map((entry) => local.get(entry.id) ?? entry),
+          },
+        }
       })
     },
     [sessionId]
   )
 
-  const backgroundPending = load.status === "ready" && load.data.turns.some((turn) => turn.backgroundStatus === "pending")
+  const backgroundPending =
+    load.status === "ready" &&
+    load.data.turns.some((turn) => turn.backgroundStatus === "pending")
 
   // Poll while background work runs; results land in the harness log and the Codex.
   React.useEffect(() => {
@@ -160,11 +195,25 @@ export function useSession(sessionId: string) {
     async (input: string | null, signal: AbortSignal): Promise<StreamEnd> => {
       setRun({ status: "running", input, phase: null, round: null })
       try {
-        for await (const event of api.streamTurn(sessionId, { input }, { signal })) {
+        for await (const event of api.streamTurn(
+          sessionId,
+          { input },
+          { signal }
+        )) {
           if (event.type === "phase") {
-            setRun({ status: "running", input, phase: event.phase, round: event.round })
+            setRun({
+              status: "running",
+              input,
+              phase: event.phase,
+              round: event.round,
+            })
           } else if (event.type === "error") {
-            setRun({ status: "failed", input, code: event.code, message: event.message })
+            setRun({
+              status: "failed",
+              input,
+              code: event.code,
+              message: event.message,
+            })
             return { kind: "failed" }
           } else {
             const { turn, session, entries } = event
@@ -185,8 +234,14 @@ export function useSession(sessionId: string) {
       } catch (error) {
         if (isAbortError(error)) return { kind: "aborted" }
         const apiError = asApiError(error)
-        if (apiError.status === 409) return { kind: "conflict", error: apiError }
-        setRun({ status: "failed", input, code: apiError.code, message: apiError.message })
+        if (apiError.status === 409)
+          return { kind: "conflict", error: apiError }
+        setRun({
+          status: "failed",
+          input,
+          code: apiError.code,
+          message: apiError.message,
+        })
         return { kind: "failed" }
       }
     },
@@ -207,7 +262,13 @@ export function useSession(sessionId: string) {
     async (input: string): Promise<Turn | null> => {
       const controller = beginRequest()
       const end = await streamTurn(input, controller.signal)
-      if (end.kind === "conflict") setRun({ status: "failed", input, code: end.error.code, message: end.error.message })
+      if (end.kind === "conflict")
+        setRun({
+          status: "failed",
+          input,
+          code: end.error.code,
+          message: end.error.message,
+        })
       return end.kind === "shipped" ? end.turn : null
     },
     [beginRequest, streamTurn]
@@ -246,10 +307,25 @@ export function useSession(sessionId: string) {
 
   const finishReveal = React.useCallback(() => setRevealing(null), [])
 
-  return { load, retryLoad, run, playTurn, playOpening, revealing, finishReveal, backgroundPending, update, refresh, localEntries }
+  return {
+    load,
+    retryLoad,
+    run,
+    playTurn,
+    playOpening,
+    revealing,
+    finishReveal,
+    backgroundPending,
+    update,
+    refresh,
+    localEntries,
+  }
 }
 
-export function mergeEntries(current: readonly Entry[], changed: readonly Entry[]): Entry[] {
+export function mergeEntries(
+  current: readonly Entry[],
+  changed: readonly Entry[]
+): Entry[] {
   if (changed.length === 0) return [...current]
   const byId = new Map(changed.map((entry) => [entry.id, entry]))
   const merged = current.map((entry) => byId.get(entry.id) ?? entry)

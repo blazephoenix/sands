@@ -3,7 +3,13 @@
  * `SetupEvent`s from `POST /api/worlds/[id]/setup` into a stepper state, and
  * words each change for the `aria-live` announcer. Pure.
  */
-import { SETUP_STEP_LABELS, SETUP_STEPS, type SetupEvent, type SetupStep, type StreamErrorCode } from "@/domain/events"
+import {
+  SETUP_STEP_LABELS,
+  SETUP_STEPS,
+  type SetupEvent,
+  type SetupStep,
+  type StreamErrorCode,
+} from "@/domain/events"
 import type { SolvabilityGap } from "@/domain/world"
 
 export type StepStatus = "pending" | "running" | "done" | "failed"
@@ -38,13 +44,22 @@ export type SetupRun = {
 }
 
 function pendingStep(): StepState {
-  return { status: "pending", attempt: 1, maxAttempts: 1, detail: null, startedAt: null, endedAt: null }
+  return {
+    status: "pending",
+    attempt: 1,
+    maxAttempts: 1,
+    detail: null,
+    startedAt: null,
+    endedAt: null,
+  }
 }
 
 export function idleSetupRun(): SetupRun {
   return {
     phase: "idle",
-    steps: Object.fromEntries(SETUP_STEPS.map((step) => [step, pendingStep()])) as Record<SetupStep, StepState>,
+    steps: Object.fromEntries(
+      SETUP_STEPS.map((step) => [step, pendingStep()])
+    ) as Record<SetupStep, StepState>,
     gapsByAttempt: [],
     failure: null,
     lastAt: 0,
@@ -54,13 +69,22 @@ export function idleSetupRun(): SetupRun {
 
 /** A run that has been asked for but has not answered yet. */
 export function startingSetupRun(): SetupRun {
-  return { ...idleSetupRun(), phase: "starting", announcement: "Starting setup." }
+  return {
+    ...idleSetupRun(),
+    phase: "starting",
+    announcement: "Starting setup.",
+  }
 }
 
 /** "Story logic call, attempt 2 of 3 — fixing 2 gaps" */
-export function stepTitle(step: SetupStep, state: Pick<StepState, "attempt" | "maxAttempts">) {
+export function stepTitle(
+  step: SetupStep,
+  state: Pick<StepState, "attempt" | "maxAttempts">
+) {
   const label = SETUP_STEP_LABELS[step]
-  return state.attempt > 1 ? `${label}, attempt ${state.attempt} of ${state.maxAttempts}` : label
+  return state.attempt > 1
+    ? `${label}, attempt ${state.attempt} of ${state.maxAttempts}`
+    : label
 }
 
 export function stepLine(step: SetupStep, state: StepState) {
@@ -88,8 +112,14 @@ export function reduceSetupEvent(run: SetupRun, event: SetupEvent): SetupRun {
       steps[event.step] = next
       // A retry of the Story logic call reopens every step after it.
       if (event.status === "started" && event.attempt > 1) {
-        for (const later of SETUP_STEPS.slice(SETUP_STEPS.indexOf(event.step) + 1)) {
-          steps[later] = { ...pendingStep(), attempt: event.attempt, maxAttempts: event.maxAttempts }
+        for (const later of SETUP_STEPS.slice(
+          SETUP_STEPS.indexOf(event.step) + 1
+        )) {
+          steps[later] = {
+            ...pendingStep(),
+            attempt: event.attempt,
+            maxAttempts: event.maxAttempts,
+          }
         }
       }
       const title = stepTitle(event.step, next)
@@ -105,7 +135,10 @@ export function reduceSetupEvent(run: SetupRun, event: SetupEvent): SetupRun {
       const left = event.attempt < run.steps.solvability.maxAttempts
       return {
         ...run,
-        gapsByAttempt: [...run.gapsByAttempt, { attempt: event.attempt, gaps: event.gaps }],
+        gapsByAttempt: [
+          ...run.gapsByAttempt,
+          { attempt: event.attempt, gaps: event.gaps },
+        ],
         lastAt: event.at,
         announcement: `Solvability found ${plural(event.gaps.length, "gap")}.${left ? " The Story logic call will try again with them as feedback." : ""}`,
       }
@@ -120,7 +153,12 @@ export function reduceSetupEvent(run: SetupRun, event: SetupEvent): SetupRun {
     case "error":
       return failSetupRun(
         { ...run, lastAt: event.at },
-        { code: event.code, message: event.message, step: event.step ?? null, gaps: event.gaps ?? [] }
+        {
+          code: event.code,
+          message: event.message,
+          step: event.step ?? null,
+          gaps: event.gaps ?? [],
+        }
       )
   }
 }
@@ -130,15 +168,24 @@ export function failSetupRun(run: SetupRun, failure: SetupFailure): SetupRun {
   const steps = { ...run.steps }
   // A step still running when the stream broke off did not finish.
   for (const step of SETUP_STEPS) {
-    if (steps[step].status === "running") steps[step] = { ...steps[step], status: "failed", endedAt: run.lastAt }
+    if (steps[step].status === "running")
+      steps[step] = { ...steps[step], status: "failed", endedAt: run.lastAt }
   }
-  return { ...run, phase: "failed", steps, failure, announcement: `Setup failed. ${failure.message}` }
+  return {
+    ...run,
+    phase: "failed",
+    steps,
+    failure,
+    announcement: `Setup failed. ${failure.message}`,
+  }
 }
 
 export function failureTitle(failure: SetupFailure) {
   switch (failure.code) {
     case "drafter_error":
-      return failure.step ? `Setup failed at the ${SETUP_STEP_LABELS[failure.step]}` : "The Drafter failed"
+      return failure.step
+        ? `Setup failed at the ${SETUP_STEP_LABELS[failure.step]}`
+        : "The Drafter failed"
     case "solvability_failed":
       return "The story is not solvable yet"
     case "invalid_brief":

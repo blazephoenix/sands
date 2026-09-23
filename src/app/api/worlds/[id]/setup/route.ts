@@ -9,7 +9,11 @@
  * in `draft` answers 409 before any progress is sent.
  */
 import type { SetupEvent } from "@/domain/events"
-import { assertSetupCanStart, runScriptedSetup, setupTimeScale } from "@/fixtures/setup-script"
+import {
+  assertSetupCanStart,
+  runScriptedSetup,
+  setupTimeScale,
+} from "@/fixtures/setup-script"
 import { getWorld } from "@/fixtures/worlds"
 import { handle } from "@/server/http"
 import { ndjsonResponse } from "@/server/ndjson"

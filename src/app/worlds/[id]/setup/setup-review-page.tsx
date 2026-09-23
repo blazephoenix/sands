@@ -13,30 +13,81 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { CheckCheckIcon, CircleCheckBigIcon, FileTextIcon, PlayIcon, SearchXIcon, TriangleAlertIcon } from "lucide-react"
+import {
+  CheckCheckIcon,
+  CircleCheckBigIcon,
+  FileTextIcon,
+  PlayIcon,
+  SearchXIcon,
+  TriangleAlertIcon,
+} from "lucide-react"
 
-import { ShellActions, ShellBreadcrumbs, worldCrumbs } from "@/components/app-shell"
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  ShellActions,
+  ShellBreadcrumbs,
+  worldCrumbs,
+} from "@/components/app-shell"
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import {
+  Card,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import type { GetWorldResponse } from "@/domain/api"
 import type { World } from "@/domain/world"
 import { api, ApiError, isAbortError } from "@/lib/api-client"
 import { isTypingTarget } from "@/lib/keyboard"
-import { nextUndecided, reviewDecision, reviewProgress, reviewSections, sidebarOrder, whyDrafted } from "@/setup/review"
+import {
+  nextUndecided,
+  reviewDecision,
+  reviewProgress,
+  reviewSections,
+  sidebarOrder,
+  whyDrafted,
+} from "@/setup/review"
 
 import { EntryCard } from "./entry-card"
 import { REVIEW_ROW_ATTR, ReviewSidebar } from "./review-sidebar"
-import { sessionHref, withScenario, worldPageHref } from "@/components/worlds/world-links"
+import {
+  sessionHref,
+  withScenario,
+  worldPageHref,
+} from "@/components/worlds/world-links"
 import { SolvabilityBanner } from "./solvability-banner"
-import { errorMessage, useSetupReview, type ReviewAction } from "./use-setup-review"
+import {
+  errorMessage,
+  useSetupReview,
+  type ReviewAction,
+} from "./use-setup-review"
 
-type Load = { state: "loading" } | { state: "error"; error: ApiError } | { state: "ready"; data: GetWorldResponse }
+type Load =
+  | { state: "loading" }
+  | { state: "error"; error: ApiError }
+  | { state: "ready"; data: GetWorldResponse }
 
 const DRAFTING_POLL_MS = 4000
 
@@ -52,13 +103,24 @@ export function SetupReviewPage({ worldId }: { worldId: string }) {
       .then((data) => setLoad({ state: "ready", data }))
       .catch((error: unknown) => {
         if (isAbortError(error)) return
-        setLoad({ state: "error", error: error instanceof ApiError ? error : new ApiError(0, "internal", "The World did not load. Try again.") })
+        setLoad({
+          state: "error",
+          error:
+            error instanceof ApiError
+              ? error
+              : new ApiError(
+                  0,
+                  "internal",
+                  "The World did not load. Try again."
+                ),
+        })
       })
     return () => controller.abort()
   }, [worldId, attempt])
 
   // A ready World is played, not reviewed: its page lists its Sessions.
-  const ready = load.state === "ready" && load.data.world.setupStatus === "ready"
+  const ready =
+    load.state === "ready" && load.data.world.setupStatus === "ready"
   React.useEffect(() => {
     if (ready) router.replace(withScenario(worldPageHref(worldId)))
   }, [ready, router, worldId])
@@ -69,7 +131,8 @@ export function SetupReviewPage({ worldId }: { worldId: string }) {
   }
 
   if (load.state === "loading" || ready) return <ReviewSkeleton />
-  if (load.state === "error") return <LoadError error={load.error} onRetry={retry} />
+  if (load.state === "error")
+    return <LoadError error={load.error} onRetry={retry} />
 
   const { world } = load.data
   return (
@@ -78,7 +141,10 @@ export function SetupReviewPage({ worldId }: { worldId: string }) {
       {world.setupStatus === "draft" ? (
         <DraftState world={world} />
       ) : world.setupStatus === "drafting" ? (
-        <DraftingState world={world} onDone={(data) => setLoad({ state: "ready", data })} />
+        <DraftingState
+          world={world}
+          onDone={(data) => setLoad({ state: "ready", data })}
+        />
       ) : (
         <ReviewWorkspace key={world.id} initial={load.data} />
       )}
@@ -90,7 +156,11 @@ export function SetupReviewPage({ worldId }: { worldId: string }) {
 
 function ReviewSkeleton() {
   return (
-    <div className="grid flex-1 grid-cols-1 md:grid-cols-[18rem_minmax(0,1fr)]" aria-busy="true" aria-label="Loading the setup review">
+    <div
+      className="grid flex-1 grid-cols-1 md:grid-cols-[18rem_minmax(0,1fr)]"
+      aria-busy="true"
+      aria-label="Loading the setup review"
+    >
       <div className="flex flex-col gap-3 border-b p-5 md:border-r md:border-b-0">
         <Skeleton className="h-3 w-32" />
         <Skeleton className="h-1 w-full" />
@@ -116,7 +186,13 @@ function ReviewSkeleton() {
   )
 }
 
-function LoadError({ error, onRetry }: { error: ApiError; onRetry: () => void }) {
+function LoadError({
+  error,
+  onRetry,
+}: {
+  error: ApiError
+  onRetry: () => void
+}) {
   if (error.status === 404) {
     return (
       <Empty className="py-16">
@@ -128,7 +204,12 @@ function LoadError({ error, onRetry }: { error: ApiError; onRetry: () => void })
           <EmptyDescription>{error.message}</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button nativeButton={false} render={<Link href={withScenario("/")} />}>Go to your Worlds</Button>
+          <Button
+            nativeButton={false}
+            render={<Link href={withScenario("/")} />}
+          >
+            Go to your Worlds
+          </Button>
         </EmptyContent>
       </Empty>
     )
@@ -161,10 +242,17 @@ function DraftState({ world }: { world: World }) {
           <FileTextIcon />
         </EmptyMedia>
         <EmptyTitle>Setup hasn&apos;t run for this World yet</EmptyTitle>
-        <EmptyDescription>Finish the Brief and run setup. What setup drafts from it is reviewed here.</EmptyDescription>
+        <EmptyDescription>
+          Finish the Brief and run setup. What setup drafts from it is reviewed
+          here.
+        </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Button nativeButton={false} render={<Link href={briefHref(world)} />} autoFocus>
+        <Button
+          nativeButton={false}
+          render={<Link href={briefHref(world)} />}
+          autoFocus
+        >
           Back to the Brief
         </Button>
       </EmptyContent>
@@ -173,7 +261,13 @@ function DraftState({ world }: { world: World }) {
 }
 
 /** Setup is running: wait for it, checking the World now and then, and open the review when it's done. */
-function DraftingState({ world, onDone }: { world: World; onDone: (data: GetWorldResponse) => void }) {
+function DraftingState({
+  world,
+  onDone,
+}: {
+  world: World
+  onDone: (data: GetWorldResponse) => void
+}) {
   const onDoneRef = React.useRef(onDone)
   React.useEffect(() => {
     onDoneRef.current = onDone
@@ -204,12 +298,17 @@ function DraftingState({ world, onDone }: { world: World; onDone: (data: GetWorl
         </EmptyMedia>
         <EmptyTitle role="status">Setup is drafting this World</EmptyTitle>
         <EmptyDescription>
-          It drafts Locations, NPCs, Clues and the Story logic from the Brief, then checks them. That takes about a minute; the review opens
-          here when it&apos;s done.
+          It drafts Locations, NPCs, Clues and the Story logic from the Brief,
+          then checks them. That takes about a minute; the review opens here
+          when it&apos;s done.
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Button variant="outline" nativeButton={false} render={<Link href={briefHref(world)} />}>
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href={briefHref(world)} />}
+        >
           Watch setup on the Brief page
         </Button>
       </EmptyContent>
@@ -220,18 +319,26 @@ function DraftingState({ world, onDone }: { world: World; onDone: (data: GetWorl
 // The review
 
 function rowElement(entryId: string) {
-  return document.querySelector<HTMLElement>(`[${REVIEW_ROW_ATTR}="${CSS.escape(entryId)}"]`)
+  return document.querySelector<HTMLElement>(
+    `[${REVIEW_ROW_ATTR}="${CSS.escape(entryId)}"]`
+  )
 }
 
 function focusIsInSidebarOrNowhere() {
   const active = document.activeElement
-  return !active || active === document.body || !!active.closest(`[${REVIEW_ROW_ATTR}]`)
+  return (
+    !active ||
+    active === document.body ||
+    !!active.closest(`[${REVIEW_ROW_ATTR}]`)
+  )
 }
 
 function ReviewWorkspace({ initial }: { initial: GetWorldResponse }) {
   const { world } = initial
   const router = useRouter()
-  const [selectedId, setSelectedId] = React.useState<string | null>(() => nextUndecided(initial.entries, null))
+  const [selectedId, setSelectedId] = React.useState<string | null>(() =>
+    nextUndecided(initial.entries, null)
+  )
   const [editing, setEditing] = React.useState(false)
   const [starting, setStarting] = React.useState(false)
   const [solvabilityNews, setSolvabilityNews] = React.useState("")
@@ -239,29 +346,47 @@ function ReviewWorkspace({ initial }: { initial: GetWorldResponse }) {
   const focusRow = React.useRef(true)
   const editButton = React.useRef<HTMLButtonElement>(null)
 
-  const select = React.useCallback((entryId: string | null, options: { focus?: boolean } = {}) => {
-    focusRow.current = options.focus ?? focusIsInSidebarOrNowhere()
-    setSelectedId(entryId)
-    setEditing(false)
-  }, [])
+  const select = React.useCallback(
+    (entryId: string | null, options: { focus?: boolean } = {}) => {
+      focusRow.current = options.focus ?? focusIsInSidebarOrNowhere()
+      setSelectedId(entryId)
+      setEditing(false)
+    },
+    []
+  )
 
-  const review = useSetupReview(initial, { select: (entryId) => select(entryId) })
-  const sections = React.useMemo(() => reviewSections(review.entries), [review.entries])
+  const review = useSetupReview(initial, {
+    select: (entryId) => select(entryId),
+  })
+  const sections = React.useMemo(
+    () => reviewSections(review.entries),
+    [review.entries]
+  )
   const order = React.useMemo(() => sidebarOrder(sections), [sections])
-  const progress = React.useMemo(() => reviewProgress(review.entries), [review.entries])
+  const progress = React.useMemo(
+    () => reviewProgress(review.entries),
+    [review.entries]
+  )
   const selected = order.find((entry) => entry.id === selectedId) ?? null
   const why = React.useMemo(
-    () => (selected ? whyDrafted(selected, { entries: review.entries, brief: world.brief }) : null),
+    () =>
+      selected
+        ? whyDrafted(selected, { entries: review.entries, brief: world.brief })
+        : null,
     [selected, review.entries, world.brief]
   )
-  const canSelect = React.useCallback((entryId: string) => order.some((entry) => entry.id === entryId), [order])
+  const canSelect = React.useCallback(
+    (entryId: string) => order.some((entry) => entry.id === entryId),
+    [order]
+  )
 
   const decide = React.useCallback(
     (action: ReviewAction) => {
       if (!selected) return
       review.decide(selected.id, action)
       // After a decision the card moves on; Restore keeps the Entry in view to act on it.
-      if (action !== "restore") select(nextUndecided(review.entries, selected.id))
+      if (action !== "restore")
+        select(nextUndecided(review.entries, selected.id))
     },
     [review, select, selected]
   )
@@ -270,7 +395,12 @@ function ReviewWorkspace({ initial }: { initial: GetWorldResponse }) {
     (delta: 1 | -1) => {
       if (order.length === 0) return
       const index = order.findIndex((entry) => entry.id === selectedId)
-      const next = index === -1 ? (delta === 1 ? 0 : order.length - 1) : Math.min(order.length - 1, Math.max(0, index + delta))
+      const next =
+        index === -1
+          ? delta === 1
+            ? 0
+            : order.length - 1
+          : Math.min(order.length - 1, Math.max(0, index + delta))
       select(order[next].id)
     },
     [order, select, selectedId]
@@ -284,10 +414,22 @@ function ReviewWorkspace({ initial }: { initial: GetWorldResponse }) {
   React.useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const { decide, move, selected, editing } = keys.current
-      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || editing) return
+      if (
+        event.defaultPrevented ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        editing
+      )
+        return
       if (isTypingTarget(event.target)) return
       const target = event.target instanceof Element ? event.target : null
-      if (target?.closest('[role="menu"], [role="dialog"], [role="alertdialog"], [role="listbox"], [data-slot="toast"]')) return
+      if (
+        target?.closest(
+          '[role="menu"], [role="dialog"], [role="alertdialog"], [role="listbox"], [data-slot="toast"]'
+        )
+      )
+        return
       const onRow = !!target?.closest(`[${REVIEW_ROW_ATTR}]`)
       const onControl = !!target?.closest("button, a, summary, [role='button']")
       switch (event.key) {
@@ -305,7 +447,9 @@ function ReviewWorkspace({ initial }: { initial: GetWorldResponse }) {
         case "Backspace":
         case "Delete":
           if (!selected || event.repeat) return
-          decide(reviewDecision(selected.status) === "removed" ? "restore" : "remove")
+          decide(
+            reviewDecision(selected.status) === "removed" ? "restore" : "remove"
+          )
           break
         case "e":
         case "E":
@@ -346,7 +490,11 @@ function ReviewWorkspace({ initial }: { initial: GetWorldResponse }) {
     if (passed === lastPassed.current) return
     lastPassed.current = passed
     const gaps = review.solvability?.gaps.length ?? 0
-    setSolvabilityNews(passed ? "The World is solvable again." : `The World can't be solved yet: ${gaps} ${gaps === 1 ? "gap" : "gaps"}.`)
+    setSolvabilityNews(
+      passed
+        ? "The World is solvable again."
+        : `The World can't be solved yet: ${gaps} ${gaps === 1 ? "gap" : "gaps"}.`
+    )
   }, [review.solvability])
 
   const startBlocked = !review.solvability?.passed
@@ -365,19 +513,40 @@ function ReviewWorkspace({ initial }: { initial: GetWorldResponse }) {
       router.push(withScenario(sessionHref(sessionId)))
     } catch (error) {
       setStarting(false)
-      toast.add({ title: "Couldn't start a Session", description: `${errorMessage(error)} Your review is unchanged.`, type: "error", priority: "high" })
+      toast.add({
+        title: "Couldn't start a Session",
+        description: `${errorMessage(error)} Your review is unchanged.`,
+        type: "error",
+        priority: "high",
+      })
     }
   }
 
   const startButton = (size: "sm" | "default") => (
     <Tooltip>
       <TooltipTrigger
-        render={<Button size={size} onClick={start} disabled={!!startBlocked || starting} focusableWhenDisabled className="data-disabled:opacity-50" aria-describedby={startBlocked ? "start-blocked" : undefined} />}
+        render={
+          <Button
+            size={size}
+            onClick={start}
+            disabled={!!startBlocked || starting}
+            focusableWhenDisabled
+            className="data-disabled:opacity-50"
+            aria-describedby={startBlocked ? "start-blocked" : undefined}
+          />
+        }
       >
-        {starting ? <Spinner data-icon="inline-start" /> : <PlayIcon data-icon="inline-start" aria-hidden />}
+        {starting ? (
+          <Spinner data-icon="inline-start" />
+        ) : (
+          <PlayIcon data-icon="inline-start" aria-hidden />
+        )}
         Start Session
       </TooltipTrigger>
-      <TooltipContent>{startBlocked ?? "Start playing this World. The Session gets its own copy of every Entry that isn't removed."}</TooltipContent>
+      <TooltipContent>
+        {startBlocked ??
+          "Start playing this World. The Session gets its own copy of every Entry that isn't removed."}
+      </TooltipContent>
     </Tooltip>
   )
 
@@ -394,14 +563,20 @@ function ReviewWorkspace({ initial }: { initial: GetWorldResponse }) {
                   void review.approveRest()
                   select(null)
                 }}
-                disabled={progress.undecided === 0 || review.approvingRest || editing}
+                disabled={
+                  progress.undecided === 0 || review.approvingRest || editing
+                }
                 focusableWhenDisabled
                 // Stays focusable so its tooltip can say why; dim it like any disabled button.
                 className="data-disabled:opacity-50"
               />
             }
           >
-            {review.approvingRest ? <Spinner data-icon="inline-start" /> : <CheckCheckIcon data-icon="inline-start" aria-hidden />}
+            {review.approvingRest ? (
+              <Spinner data-icon="inline-start" />
+            ) : (
+              <CheckCheckIcon data-icon="inline-start" aria-hidden />
+            )}
             {/* Icon-only on phones; the tooltip and accessible name keep the words. */}
             <span className="max-sm:sr-only">Approve the rest as drafted</span>
           </TooltipTrigger>
@@ -427,19 +602,32 @@ function ReviewWorkspace({ initial }: { initial: GetWorldResponse }) {
 
       <div className="grid flex-1 grid-cols-1 md:grid-cols-[18rem_minmax(0,1fr)]">
         <aside className="border-b max-md:max-h-80 max-md:overflow-y-auto md:sticky md:top-14 md:h-[calc(100svh-3.5rem)] md:overflow-y-auto md:border-r md:border-b-0">
-          <ReviewSidebar sections={sections} progress={progress} selectedId={selected?.id ?? null} onSelect={(entryId) => select(entryId, { focus: true })} />
+          <ReviewSidebar
+            sections={sections}
+            progress={progress}
+            selectedId={selected?.id ?? null}
+            onSelect={(entryId) => select(entryId, { focus: true })}
+          />
         </aside>
 
         <div className="px-4 py-6 md:px-8 md:py-8">
           <div className="mx-auto flex max-w-2xl flex-col gap-6">
             <div className="flex flex-col gap-1">
-              <h1 className="font-heading text-xl font-semibold tracking-tight">Review what setup drafted</h1>
+              <h1 className="font-heading text-xl font-semibold tracking-tight">
+                Review what setup drafted
+              </h1>
               <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-                Approve what fits your story, edit what&apos;s close, remove what doesn&apos;t. Entries you don&apos;t review stay in the World as drafted.
+                Approve what fits your story, edit what&apos;s close, remove
+                what doesn&apos;t. Entries you don&apos;t review stay in the
+                World as drafted.
               </p>
             </div>
 
-            <SolvabilityBanner solvability={review.solvability} canSelect={canSelect} onSelect={(entryId) => select(entryId, { focus: true })} />
+            <SolvabilityBanner
+              solvability={review.solvability}
+              canSelect={canSelect}
+              onSelect={(entryId) => select(entryId, { focus: true })}
+            />
 
             {selected ? (
               <EntryCard
@@ -463,16 +651,21 @@ function ReviewWorkspace({ initial }: { initial: GetWorldResponse }) {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-xl">
                     <CircleCheckBigIcon aria-hidden />
-                    {progress.undecided === 0 ? "Review finished" : "Pick an Entry to review"}
+                    {progress.undecided === 0
+                      ? "Review finished"
+                      : "Pick an Entry to review"}
                   </CardTitle>
                   <CardDescription className="max-w-prose leading-relaxed">
                     {progress.undecided === 0 ? (
                       <>
-                        {progress.approved} approved and {progress.removed} removed. Pick any Entry in the list to change your mind.
+                        {progress.approved} approved and {progress.removed}{" "}
+                        removed. Pick any Entry in the list to change your mind.
                       </>
                     ) : (
                       <>
-                        {progress.undecided} {progress.undecided === 1 ? "Entry is" : "Entries are"} still to review. Pick one in the list, or press ↓.
+                        {progress.undecided}{" "}
+                        {progress.undecided === 1 ? "Entry is" : "Entries are"}{" "}
+                        still to review. Pick one in the list, or press ↓.
                       </>
                     )}
                   </CardDescription>
@@ -480,7 +673,6 @@ function ReviewWorkspace({ initial }: { initial: GetWorldResponse }) {
                 <CardFooter>{startButton("default")}</CardFooter>
               </Card>
             )}
-
           </div>
         </div>
       </div>

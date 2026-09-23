@@ -15,7 +15,10 @@ import { indexAnnotations } from "./editor-context"
 import { SandsEditorView } from "./sands-editor-view"
 import type { SandsBlock } from "./schema-config"
 
-export type BriefEditorChange = { document: SandsBlock[]; conversion: BriefConversion }
+export type BriefEditorChange = {
+  document: SandsBlock[]
+  conversion: BriefConversion
+}
 
 export type BriefEditorHandle = {
   editor: () => SandsEditor | null
@@ -38,19 +41,38 @@ export type BriefEditorProps = {
 }
 
 function targetOf(item: BriefIssue | BriefWarning) {
-  return "fieldBlockId" in item ? (item.fieldBlockId ?? item.blockId) : item.blockId
+  return "fieldBlockId" in item
+    ? (item.fieldBlockId ?? item.blockId)
+    : item.blockId
 }
 
-export function BriefEditor({ initialDocument, readOnly, highlightIssues = true, onChange, className, ref }: BriefEditorProps) {
+export function BriefEditor({
+  initialDocument,
+  readOnly,
+  highlightIssues = true,
+  onChange,
+  className,
+  ref,
+}: BriefEditorProps) {
   const editorRef = React.useRef<SandsEditor | null>(null)
-  const [conversion, setConversion] = React.useState(() => documentToBrief(initialDocument))
+  const [conversion, setConversion] = React.useState(() =>
+    documentToBrief(initialDocument)
+  )
 
   const annotations = React.useMemo(
     () =>
       highlightIssues
         ? indexAnnotations([
-            ...conversion.issues.map((issue) => ({ blockId: targetOf(issue), severity: "error" as const, message: issue.message })),
-            ...conversion.warnings.map((warning) => ({ blockId: warning.blockId, severity: "warning" as const, message: warning.message })),
+            ...conversion.issues.map((issue) => ({
+              blockId: targetOf(issue),
+              severity: "error" as const,
+              message: issue.message,
+            })),
+            ...conversion.warnings.map((warning) => ({
+              blockId: warning.blockId,
+              severity: "warning" as const,
+              message: warning.message,
+            })),
           ])
         : new Map(),
     [conversion, highlightIssues]
@@ -70,7 +92,10 @@ export function BriefEditor({ initialDocument, readOnly, highlightIssues = true,
       focusBlock: (blockId) => {
         if (editorRef.current) focusBlock(editorRef.current, blockId)
       },
-      document: () => (editorRef.current?.document as SandsBlock[] | undefined) ?? [...initialDocument],
+      document: () =>
+        (editorRef.current?.document as SandsBlock[] | undefined) ?? [
+          ...initialDocument,
+        ],
     }),
     [initialDocument]
   )

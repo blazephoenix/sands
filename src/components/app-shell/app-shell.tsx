@@ -17,11 +17,20 @@ function Header() {
   return (
     <header className="sticky top-0 z-40 border-b bg-background">
       <div className="mx-auto flex h-14 max-w-screen-2xl items-center gap-3 px-4">
-        <Link href="/" className="shrink-0 font-heading font-semibold tracking-tight rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+        <Link
+          href="/"
+          className="shrink-0 rounded-md font-heading font-semibold tracking-tight outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
           Sands
         </Link>
-        <Separator orientation="vertical" className="data-vertical:h-5 data-vertical:self-center" />
-        <div ref={setBreadcrumbs} className="flex min-w-0 flex-1 items-center" />
+        <Separator
+          orientation="vertical"
+          className="data-vertical:h-5 data-vertical:self-center"
+        />
+        <div
+          ref={setBreadcrumbs}
+          className="flex min-w-0 flex-1 items-center"
+        />
         <div ref={setActions} className="flex shrink-0 items-center gap-2" />
         <ScenarioMenu />
         <ThemeToggle />
@@ -41,7 +50,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </a>
       <div className="flex min-h-svh flex-col">
         <Header />
-        <main id="main" tabIndex={-1} className="flex flex-1 flex-col outline-none">
+        <main
+          id="main"
+          tabIndex={-1}
+          className="flex flex-1 flex-col outline-none"
+        >
           {children}
         </main>
       </div>

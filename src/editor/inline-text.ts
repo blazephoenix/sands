@@ -23,7 +23,8 @@ export function inlineToText(
     } else if (node.type === "link") {
       out += inlineToText((node as { content: InlineLike[] }).content, nameOf)
     } else if (node.type === "entryMention") {
-      const props = (node as { props: { entryId: string; label: string } }).props
+      const props = (node as { props: { entryId: string; label: string } })
+        .props
       out += `@${nameOf?.(props.entryId) ?? props.label}`
     }
   }
@@ -31,7 +32,9 @@ export function inlineToText(
 }
 
 /** Entry ids mentioned in inline content, in order, without duplicates. */
-export function mentionedEntryIds(content: readonly InlineLike[] | undefined): string[] {
+export function mentionedEntryIds(
+  content: readonly InlineLike[] | undefined
+): string[] {
   const ids: string[] = []
   const visit = (nodes: readonly InlineLike[] | undefined) => {
     for (const node of nodes ?? []) {

@@ -2,14 +2,25 @@
  * The shared editor's BlockNote schema, with React rendering. Browser only;
  * the configs it renders live in `./schema-config.ts` (importable anywhere).
  */
-import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, defaultStyleSpecs } from "@blocknote/core"
+import {
+  BlockNoteSchema,
+  defaultBlockSpecs,
+  defaultInlineContentSpecs,
+  defaultStyleSpecs,
+} from "@blocknote/core"
 
 import { entryMentionSpec } from "./blocks/entry-mention"
 import { hiddenStyleSpec } from "./blocks/hidden-style"
-import { briefHeadingSpecs, createGroupDivider, entryHeadingSpecs } from "./blocks/section-headings"
+import {
+  briefHeadingSpecs,
+  createGroupDivider,
+  entryHeadingSpecs,
+} from "./blocks/section-headings"
 
 function create<R extends Record<string, () => unknown>>(record: R) {
-  return Object.fromEntries(Object.entries(record).map(([type, make]) => [type, make()])) as { [K in keyof R]: ReturnType<R[K]> }
+  return Object.fromEntries(
+    Object.entries(record).map(([type, make]) => [type, make()])
+  ) as { [K in keyof R]: ReturnType<R[K]> }
 }
 
 export const sandsSchema = BlockNoteSchema.create({

@@ -8,7 +8,14 @@ import type { SandsBlock } from "@/editor/schema-config"
 
 import { BRIEF_BLOCK_TYPES, BRIEF_BLOCKS } from "./fields"
 import { documentToBrief } from "./from-document"
-import { briefSection, headingBlock, newBriefTemplate, paragraphBlock, sectionHeading, sequentialIds } from "./to-document"
+import {
+  briefSection,
+  headingBlock,
+  newBriefTemplate,
+  paragraphBlock,
+  sectionHeading,
+  sequentialIds,
+} from "./to-document"
 
 const ids = () => sequentialIds("t")
 
@@ -19,7 +26,10 @@ function convert(blocks: SandsBlock[]) {
 /** A minimal valid Brief: one player Character, one Arc, one Ending. */
 function valid(extra: SandsBlock[] = []): SandsBlock[] {
   return [
-    sectionHeading("character", "jacob", { name: "Jacob Flannery", isPlayer: true }),
+    sectionHeading("character", "jacob", {
+      name: "Jacob Flannery",
+      isPlayer: true,
+    }),
     sectionHeading("arc", "arc-1", { name: "Introduction" }),
     sectionHeading("ending", "ending"),
     fieldParagraph("ending-condition", "Condition", "The killer is caught."),
@@ -46,12 +56,32 @@ describe("document -> Brief: sections and fields", () => {
       ])
     )
     expect(validation.success).toBe(true)
-    expect(draft.settings).toMatchObject([{ blockId: "setting", place: "London", period: "Autumn 1888" }])
-    expect(draft.characters).toMatchObject([{ blockId: "jacob", name: "Jacob Flannery", isPlayer: true }])
-    expect(draft.arcs).toMatchObject([{ blockId: "arc-1", name: "Introduction" }])
-    expect(draft.endings).toMatchObject([{ blockId: "ending", condition: "The killer is caught." }])
-    expect(draft.locations).toMatchObject([{ blockId: "yard", name: "Scotland Yard", description: "Gaslit corridors." }])
-    expect(draft.voices).toMatchObject([{ blockId: "voice", guidelines: "Short sentences.", samplePassages: "The river smelled of coal." }])
+    expect(draft.settings).toMatchObject([
+      { blockId: "setting", place: "London", period: "Autumn 1888" },
+    ])
+    expect(draft.characters).toMatchObject([
+      { blockId: "jacob", name: "Jacob Flannery", isPlayer: true },
+    ])
+    expect(draft.arcs).toMatchObject([
+      { blockId: "arc-1", name: "Introduction" },
+    ])
+    expect(draft.endings).toMatchObject([
+      { blockId: "ending", condition: "The killer is caught." },
+    ])
+    expect(draft.locations).toMatchObject([
+      {
+        blockId: "yard",
+        name: "Scotland Yard",
+        description: "Gaslit corridors.",
+      },
+    ])
+    expect(draft.voices).toMatchObject([
+      {
+        blockId: "voice",
+        guidelines: "Short sentences.",
+        samplePassages: "The river smelled of coal.",
+      },
+    ])
   })
 
   it("the template holds a Label line for every known field of every kind", () => {
@@ -72,12 +102,20 @@ describe("document -> Brief: sections and fields", () => {
         fieldParagraph("x1", "exit conditions", "Learned the shared trade."),
       ])
     )
-    expect(draft.characters[1]).toMatchObject({ role: "Second in command", personality: "Precise." })
+    expect(draft.characters[1]).toMatchObject({
+      role: "Second in command",
+      personality: "Precise.",
+    })
     expect(draft.arcs[1].exitConditions).toEqual(["Learned the shared trade."])
   })
 
   it("keeps Shift+Enter line breaks in multi-line values", () => {
-    const { draft } = convert(valid([sectionHeading("location", "docks", { name: "Docks" }), fieldParagraph("d", "Description", "Wool.\nTea.\n\n\nIvory.  ")]))
+    const { draft } = convert(
+      valid([
+        sectionHeading("location", "docks", { name: "Docks" }),
+        fieldParagraph("d", "Description", "Wool.\nTea.\n\n\nIvory.  "),
+      ])
+    )
     expect(draft.locations[0].description).toBe("Wool.\nTea.\n\nIvory.")
   })
 
@@ -87,15 +125,28 @@ describe("document -> Brief: sections and fields", () => {
       fieldParagraph("c1", "Aliases", "The American,  Flannery ,"),
       sectionHeading("arc", "a", { name: "Midpoint" }),
       fieldParagraph("a1", "Exit condition", "Learned the shared trade."),
-      fieldParagraph("a2", "Exit condition", "Visited a crime scene.\nMet Nell."),
+      fieldParagraph(
+        "a2",
+        "Exit condition",
+        "Visited a crime scene.\nMet Nell."
+      ),
       sectionHeading("ending", "e"),
     ])
     expect(draft.characters[0].aliases).toEqual(["The American", "Flannery"])
-    expect(draft.arcs[0].exitConditions).toEqual(["Learned the shared trade.", "Visited a crime scene.", "Met Nell."])
+    expect(draft.arcs[0].exitConditions).toEqual([
+      "Learned the shared trade.",
+      "Visited a crime scene.",
+      "Met Nell.",
+    ])
   })
 
   it("points each field at its paragraph", () => {
-    const { fieldBlockIds } = convert(valid([sectionHeading("setting", "s"), fieldParagraph("s-place", "place", "London")]))
+    const { fieldBlockIds } = convert(
+      valid([
+        sectionHeading("setting", "s"),
+        fieldParagraph("s-place", "place", "London"),
+      ])
+    )
     expect(fieldBlockIds.s).toEqual({ place: "s-place" })
     expect(fieldBlockIds.jacob).toEqual({ name: "jacob" })
   })
@@ -106,7 +157,9 @@ describe("document -> Brief: custom fields, typos and Hidden", () => {
     const { draft } = convert(
       valid([
         sectionHeading("character", "max", { name: "Max Rober" }),
-        fieldParagraph("m1", "Motive", "Revenge against his father.", { hidden: true }),
+        fieldParagraph("m1", "Motive", "Revenge against his father.", {
+          hidden: true,
+        }),
         fieldParagraph("m2", "Habit", "Squares his papers before he stands."),
         fieldParagraph("m3", "Scar", ""),
       ])
@@ -114,7 +167,11 @@ describe("document -> Brief: custom fields, typos and Hidden", () => {
     const max = draft.characters.find((c) => c.blockId === "max")!
     expect(max.keyFacts).toEqual([
       { label: "Motive", text: "Revenge against his father.", hidden: true },
-      { label: "Habit", text: "Squares his papers before he stands.", hidden: false },
+      {
+        label: "Habit",
+        text: "Squares his papers before he stands.",
+        hidden: false,
+      },
     ])
     // As they land in an Entry's key_facts at setup.
     expect(max.keyFacts.map((f) => formatKeyFact(f.label, f.text))).toEqual([
@@ -125,17 +182,32 @@ describe("document -> Brief: custom fields, typos and Hidden", () => {
 
   it("warns about a near miss of a known label and keeps it as a custom field", () => {
     const { draft, warnings, validation } = convert(
-      valid([sectionHeading("character", "max", { name: "Max Rober" }), fieldParagraph("typo", "Personalty", "Quiet.")])
+      valid([
+        sectionHeading("character", "max", { name: "Max Rober" }),
+        fieldParagraph("typo", "Personalty", "Quiet."),
+      ])
     )
     expect(validation.success).toBe(true)
     expect(warnings).toEqual([
-      expect.objectContaining({ code: "probable_typo", blockId: "typo", field: "Personalty", suggestion: "Personality" }),
+      expect.objectContaining({
+        code: "probable_typo",
+        blockId: "typo",
+        field: "Personalty",
+        suggestion: "Personality",
+      }),
     ])
-    expect(draft.characters[1].keyFacts).toEqual([{ label: "Personalty", text: "Quiet.", hidden: false }])
+    expect(draft.characters[1].keyFacts).toEqual([
+      { label: "Personalty", text: "Quiet.", hidden: false },
+    ])
   })
 
   it("does not take short custom labels for typos", () => {
-    const { warnings } = convert(valid([sectionHeading("character", "max", { name: "Max" }), fieldParagraph("aim", "Aim", "Revenge.")]))
+    const { warnings } = convert(
+      valid([
+        sectionHeading("character", "max", { name: "Max" }),
+        fieldParagraph("aim", "Aim", "Revenge."),
+      ])
+    )
     expect(warnings).toEqual([])
   })
 
@@ -143,12 +215,16 @@ describe("document -> Brief: custom fields, typos and Hidden", () => {
     const { draft } = convert(
       valid([
         sectionHeading("character", "max", { name: "Max Rober" }),
-        fieldParagraph("m1", "Backstory", "Disowned by his father.", { hidden: true }),
+        fieldParagraph("m1", "Backstory", "Disowned by his father.", {
+          hidden: true,
+        }),
         fieldParagraph("m2", "Motive", "Revenge.", { hidden: true }),
         fieldParagraph("m3", "Role", "Clerk"),
       ])
     )
-    expect(draft.characters.find((c) => c.blockId === "max")?.hiddenFields).toEqual(["backstory"])
+    expect(
+      draft.characters.find((c) => c.blockId === "max")?.hiddenFields
+    ).toEqual(["backstory"])
     expect(hiddenTruth(draft)).toEqual([
       { blockId: "max", field: "backstory", text: "Disowned by his father." },
       { blockId: "max", field: "Motive", text: "Revenge." },
@@ -156,8 +232,12 @@ describe("document -> Brief: custom fields, typos and Hidden", () => {
   })
 
   it("warns about an unnamed Arc or Location", () => {
-    const { warnings } = convert(valid([sectionHeading("location", "nameless")]))
-    expect(warnings).toEqual([expect.objectContaining({ code: "unnamed_section", blockId: "nameless" })])
+    const { warnings } = convert(
+      valid([sectionHeading("location", "nameless")])
+    )
+    expect(warnings).toEqual([
+      expect.objectContaining({ code: "unnamed_section", blockId: "nameless" }),
+    ])
   })
 })
 
@@ -171,7 +251,11 @@ describe("document -> Brief: order and free prose", () => {
       sectionHeading("ending", "e"),
       sectionHeading("arc", "a3", { name: "End" }),
     ])
-    expect(draft.arcs.map((a) => a.name)).toEqual(["Introduction", "Midpoint", "End"])
+    expect(draft.arcs.map((a) => a.name)).toEqual([
+      "Introduction",
+      "Midpoint",
+      "End",
+    ])
   })
 
   it("ends a section at free prose: a later Label line is prose too", () => {
@@ -185,7 +269,14 @@ describe("document -> Brief: order and free prose", () => {
     )
     expect(draft.locations[0].description).toBe("Gaslit.")
     expect(draft.prose).toEqual([
-      { heading: null, headingBlockId: null, paragraphs: ["The Yard is under pressure.", "Description: Not part of the Yard any more."] },
+      {
+        heading: null,
+        headingBlockId: null,
+        paragraphs: [
+          "The Yard is under pressure.",
+          "Description: Not part of the Yard any more.",
+        ],
+      },
     ])
   })
 
@@ -202,7 +293,10 @@ describe("document -> Brief: order and free prose", () => {
 
   it("treats lists, quotes and headings as prose, even when they read Label: value", () => {
     const { draft } = convert(
-      valid([sectionHeading("location", "yard", { name: "Scotland Yard" }), bullet("b", "Description: a list item")])
+      valid([
+        sectionHeading("location", "yard", { name: "Scotland Yard" }),
+        bullet("b", "Description: a list item"),
+      ])
     )
     expect(draft.locations[0].description).toBe("")
     expect(draft.prose[0].paragraphs).toEqual(["- Description: a list item"])
@@ -222,8 +316,19 @@ describe("document -> Brief: order and free prose", () => {
       ])
     )
     expect(draft.prose).toEqual([
-      { heading: null, headingBlockId: null, paragraphs: ["Before any heading."] },
-      { heading: "Notes for the Writer", headingBlockId: "h1", paragraphs: ["The killings are never shown.", "Every constable blames the dockers."] },
+      {
+        heading: null,
+        headingBlockId: null,
+        paragraphs: ["Before any heading."],
+      },
+      {
+        heading: "Notes for the Writer",
+        headingBlockId: "h1",
+        paragraphs: [
+          "The killings are never shown.",
+          "Every constable blames the dockers.",
+        ],
+      },
       { heading: "Tone", headingBlockId: "h2", paragraphs: ["Fog, not gore."] },
       { heading: "Empty section", headingBlockId: "h3", paragraphs: [] },
     ])
@@ -236,7 +341,12 @@ describe("document -> Brief: §7.1 rules, each issue names its block and field",
     const { issues } = convert(template)
     const character = template.find((b) => b.type === "character")!
     expect(issues).toEqual([
-      expect.objectContaining({ code: "character_unnamed", blockId: character.id, field: "name", fieldBlockId: character.id }),
+      expect.objectContaining({
+        code: "character_unnamed",
+        blockId: character.id,
+        field: "name",
+        fieldBlockId: character.id,
+      }),
     ])
   })
 
@@ -246,33 +356,85 @@ describe("document -> Brief: §7.1 rules, each issue names its block and field",
       sectionHeading("arc", "a", { name: "A" }),
       sectionHeading("ending", "e"),
     ])
-    expect(none.issues).toEqual([expect.objectContaining({ code: "no_player_character", blockId: "c1", field: "isPlayer" })])
+    expect(none.issues).toEqual([
+      expect.objectContaining({
+        code: "no_player_character",
+        blockId: "c1",
+        field: "isPlayer",
+      }),
+    ])
 
-    const two = convert(valid([sectionHeading("character", "c2", { name: "Amanda", isPlayer: true })]))
-    expect(two.issues).toEqual([expect.objectContaining({ code: "several_player_characters", blockId: "c2", field: "isPlayer" })])
+    const two = convert(
+      valid([
+        sectionHeading("character", "c2", { name: "Amanda", isPlayer: true }),
+      ])
+    )
+    expect(two.issues).toEqual([
+      expect.objectContaining({
+        code: "several_player_characters",
+        blockId: "c2",
+        field: "isPlayer",
+      }),
+    ])
 
-    const noCharacters = convert([sectionHeading("arc", "a", { name: "A" }), sectionHeading("ending", "e")])
-    expect(noCharacters.issues).toEqual([expect.objectContaining({ code: "no_player_character", blockId: null, field: null })])
+    const noCharacters = convert([
+      sectionHeading("arc", "a", { name: "A" }),
+      sectionHeading("ending", "e"),
+    ])
+    expect(noCharacters.issues).toEqual([
+      expect.objectContaining({
+        code: "no_player_character",
+        blockId: null,
+        field: null,
+      }),
+    ])
   })
 
   it("requires at least one Arc", () => {
-    const { issues, validation } = convert([sectionHeading("character", "c", { name: "Jacob", isPlayer: true }), sectionHeading("ending", "e")])
+    const { issues, validation } = convert([
+      sectionHeading("character", "c", { name: "Jacob", isPlayer: true }),
+      sectionHeading("ending", "e"),
+    ])
     expect(validation.success).toBe(false)
-    expect(issues).toEqual([expect.objectContaining({ code: "no_arc", blockId: null, field: null })])
+    expect(issues).toEqual([
+      expect.objectContaining({ code: "no_arc", blockId: null, field: null }),
+    ])
   })
 
   it("requires exactly one Ending", () => {
-    const none = convert([sectionHeading("character", "c", { name: "Jacob", isPlayer: true }), sectionHeading("arc", "a", { name: "A" })])
-    expect(none.issues).toEqual([expect.objectContaining({ code: "no_ending", blockId: null })])
+    const none = convert([
+      sectionHeading("character", "c", { name: "Jacob", isPlayer: true }),
+      sectionHeading("arc", "a", { name: "A" }),
+    ])
+    expect(none.issues).toEqual([
+      expect.objectContaining({ code: "no_ending", blockId: null }),
+    ])
 
     const two = convert(valid([sectionHeading("ending", "ending-2")]))
-    expect(two.issues).toEqual([expect.objectContaining({ code: "several_endings", blockId: "ending-2", field: null })])
+    expect(two.issues).toEqual([
+      expect.objectContaining({
+        code: "several_endings",
+        blockId: "ending-2",
+        field: null,
+      }),
+    ])
   })
 
   it("requires every Character to be named, pointing at the heading", () => {
-    const { issues } = convert(valid([sectionHeading("character", "unnamed"), fieldParagraph("u1", "Role", "The killer")]))
+    const { issues } = convert(
+      valid([
+        sectionHeading("character", "unnamed"),
+        fieldParagraph("u1", "Role", "The killer"),
+      ])
+    )
     expect(issues).toEqual([
-      { code: "character_unnamed", message: "Every Character needs a name.", blockId: "unnamed", field: "name", fieldBlockId: "unnamed" },
+      {
+        code: "character_unnamed",
+        message: "Every Character needs a name.",
+        blockId: "unnamed",
+        field: "name",
+        fieldBlockId: "unnamed",
+      },
     ])
   })
 

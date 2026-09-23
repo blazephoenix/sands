@@ -71,7 +71,11 @@ describe("autosave", () => {
     })
     edit(1)
     await vi.advanceTimersByTimeAsync(800)
-    expect(autosave.getStatus()).toEqual({ kind: "error", message: "failed: offline", retrying: true })
+    expect(autosave.getStatus()).toEqual({
+      kind: "error",
+      message: "failed: offline",
+      retrying: true,
+    })
     expect(autosave.dirty).toBe(true)
     await vi.advanceTimersByTimeAsync(2000)
     expect(autosave.getStatus().kind).toBe("error")
@@ -90,7 +94,10 @@ describe("autosave", () => {
     await vi.advanceTimersByTimeAsync(800)
     await vi.advanceTimersByTimeAsync(20_000)
     expect(save).toHaveBeenCalledTimes(1)
-    expect(autosave.getStatus()).toMatchObject({ kind: "error", retrying: false })
+    expect(autosave.getStatus()).toMatchObject({
+      kind: "error",
+      retrying: false,
+    })
   })
 
   it("flush saves now and reports whether everything is saved", async () => {

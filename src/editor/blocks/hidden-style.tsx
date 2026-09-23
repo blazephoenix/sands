@@ -11,5 +11,12 @@ import { hiddenStyleConfig } from "../schema-config"
 export const HIDDEN_TOOLTIP = "Hidden: the Writer never states this"
 
 export const hiddenStyleSpec = createReactStyleSpec(hiddenStyleConfig, {
-  render: (props) => <span ref={props.contentRef} className="sands-hidden" data-hidden="" title={HIDDEN_TOOLTIP} />,
+  render: (props) => (
+    <span
+      ref={props.contentRef}
+      className="sands-hidden"
+      data-hidden=""
+      title={HIDDEN_TOOLTIP}
+    />
+  ),
 })

@@ -35,7 +35,9 @@ export function entryTitle(entry: Pick<Entry, "name">) {
 }
 
 export function errorMessage(error: unknown) {
-  return error instanceof ApiError ? error.message : "Something went wrong. Try again."
+  return error instanceof ApiError
+    ? error.message
+    : "Something went wrong. Try again."
 }
 
 function statusRequest(to: EntryStatus): PatchEntryRequest {
@@ -47,10 +49,14 @@ function statusRequest(to: EntryStatus): PatchEntryRequest {
 
 const UNDO_TIMEOUT_MS = 6000
 
-export function useSetupReview(initial: GetWorldResponse, options: { select: (entryId: string) => void }) {
+export function useSetupReview(
+  initial: GetWorldResponse,
+  options: { select: (entryId: string) => void }
+) {
   const worldId = initial.world.id
   const [entries, setEntries] = React.useState<Entry[]>(initial.entries)
-  const [solvability, setSolvability] = React.useState<SolvabilityResult | null>(initial.world.solvability)
+  const [solvability, setSolvability] =
+    React.useState<SolvabilityResult | null>(initial.world.solvability)
   const [pending, setPending] = React.useState(0)
   const [approvingRest, setApprovingRest] = React.useState(false)
   const [announcement, setAnnouncement] = React.useState("")
@@ -70,12 +76,20 @@ export function useSetupReview(initial: GetWorldResponse, options: { select: (en
     setEntries(entriesRef.current)
   }, [])
 
-  const current = React.useCallback((id: string) => entriesRef.current.find((entry) => entry.id === id), [])
+  const current = React.useCallback(
+    (id: string) => entriesRef.current.find((entry) => entry.id === id),
+    []
+  )
 
-  const applySolvability = React.useCallback((next: SolvabilityResult | null) => {
-    if (!next) return
-    setSolvability((now) => (!now || next.checkedAt >= now.checkedAt ? next : now))
-  }, [])
+  const applySolvability = React.useCallback(
+    (next: SolvabilityResult | null) => {
+      if (!next) return
+      setSolvability((now) =>
+        !now || next.checkedAt >= now.checkedAt ? next : now
+      )
+    },
+    []
+  )
 
   /** Shows `optimistic` at once, sends the request, then keeps the stored Entry or rolls back. Throws on failure. */
   const send = React.useCallback(
@@ -87,11 +101,15 @@ export function useSetupReview(initial: GetWorldResponse, options: { select: (en
       setPending((n) => n + 1)
       try {
         const response = await api.patchEntry(entry.id, request)
-        if (latest()) commit((all) => all.map((e) => (e.id === entry.id ? response.entry : e)))
+        if (latest())
+          commit((all) =>
+            all.map((e) => (e.id === entry.id ? response.entry : e))
+          )
         applySolvability(response.solvability)
         return response.entry
       } catch (error) {
-        if (latest()) commit((all) => all.map((e) => (e.id === entry.id ? entry : e)))
+        if (latest())
+          commit((all) => all.map((e) => (e.id === entry.id ? entry : e)))
         throw error
       } finally {
         setPending((n) => n - 1)
@@ -101,7 +119,8 @@ export function useSetupReview(initial: GetWorldResponse, options: { select: (en
   )
 
   const setStatus = React.useCallback(
-    (entry: Entry, to: EntryStatus) => send(entry, statusRequest(to), { ...entry, status: to } as Entry),
+    (entry: Entry, to: EntryStatus) =>
+      send(entry, statusRequest(to), { ...entry, status: to } as Entry),
     [send]
   )
 
@@ -124,22 +143,40 @@ export function useSetupReview(initial: GetWorldResponse, options: { select: (en
     undoToast.current = id
   }, [])
 
-  const showError = React.useCallback((title: string, error: unknown, after: string) => {
-    toast.add({ title, description: `${errorMessage(error)} ${after}`.trim(), type: "error", priority: "high", timeout: 10_000 })
-  }, [])
+  const showError = React.useCallback(
+    (title: string, error: unknown, after: string) => {
+      toast.add({
+        title,
+        description: `${errorMessage(error)} ${after}`.trim(),
+        type: "error",
+        priority: "high",
+        timeout: 10_000,
+      })
+    },
+    []
+  )
 
   /** Puts Entries back to the statuses they had, after an Undo. */
   const revert = React.useCallback(
-    (previous: readonly { id: string; status: EntryStatus }[], what: string) => {
+    (
+      previous: readonly { id: string; status: EntryStatus }[],
+      what: string
+    ) => {
       const attempts = previous.flatMap(({ id, status }) => {
         const entry = current(id)
-        return entry && entry.status !== status ? [setStatus(entry, status)] : []
+        return entry && entry.status !== status
+          ? [setStatus(entry, status)]
+          : []
       })
       if (previous.length === 1) selectRef.current(previous[0].id)
       setAnnouncement(`Undone: ${what}.`)
       void Promise.allSettled(attempts).then((results) => {
-        const failed = results.find((result): result is PromiseRejectedResult => result.status === "rejected")
-        if (failed) showError(`Couldn't undo: ${what}`, failed.reason, "Try again.")
+        const failed = results.find(
+          (result): result is PromiseRejectedResult =>
+            result.status === "rejected"
+        )
+        if (failed)
+          showError(`Couldn't undo: ${what}`, failed.reason, "Try again.")
       })
     },
     [current, setStatus, showError]
@@ -169,8 +206,14 @@ export function useSetupReview(initial: GetWorldResponse, options: { select: (en
       showUndo(what, () => revert([{ id, status: entry.status }], what))
       setStatus(entry, to).catch((error: unknown) => {
         if (undoToast.current) toast.close(undoToast.current)
-        setAnnouncement(`Couldn't ${WORDS[action].verb} ${name}. It's back as it was.`)
-        showError(`Couldn't ${WORDS[action].verb} ${name}`, error, "It's back as it was.")
+        setAnnouncement(
+          `Couldn't ${WORDS[action].verb} ${name}. It's back as it was.`
+        )
+        showError(
+          `Couldn't ${WORDS[action].verb} ${name}`,
+          error,
+          "It's back as it was."
+        )
       })
       return true
     },
@@ -179,13 +222,21 @@ export function useSetupReview(initial: GetWorldResponse, options: { select: (en
 
   /** "Approve the rest as drafted": every undecided Entry, with one Undo. */
   const approveRest = React.useCallback(async () => {
-    const targets = entriesRef.current.filter((entry) => reviewDecision(entry.status) === "undecided")
+    const targets = entriesRef.current.filter(
+      (entry) => reviewDecision(entry.status) === "undecided"
+    )
     if (targets.length === 0) return
     setApprovingRest(true)
-    const results = await Promise.allSettled(targets.map((entry) => setStatus(entry, "accepted")))
+    const results = await Promise.allSettled(
+      targets.map((entry) => setStatus(entry, "accepted"))
+    )
     setApprovingRest(false)
-    const approved = targets.filter((_, index) => results[index].status === "fulfilled")
-    const failure = results.find((result): result is PromiseRejectedResult => result.status === "rejected")
+    const approved = targets.filter(
+      (_, index) => results[index].status === "fulfilled"
+    )
+    const failure = results.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected"
+    )
     const noun = (n: number) => `${n} ${n === 1 ? "Entry" : "Entries"}`
     if (approved.length > 0) {
       const what = `${noun(approved.length)} approved as drafted`
@@ -199,8 +250,14 @@ export function useSetupReview(initial: GetWorldResponse, options: { select: (en
     }
     if (failure) {
       const failed = targets.length - approved.length
-      setAnnouncement(`Couldn't approve ${noun(failed)}. They're back in To review.`)
-      showError(`Couldn't approve ${noun(failed)}`, failure.reason, `${failed === 1 ? "It's" : "They're"} back in To review.`)
+      setAnnouncement(
+        `Couldn't approve ${noun(failed)}. They're back in To review.`
+      )
+      showError(
+        `Couldn't approve ${noun(failed)}`,
+        failure.reason,
+        `${failed === 1 ? "It's" : "They're"} back in To review.`
+      )
     }
   }, [revert, setStatus, showError, showUndo])
 
@@ -209,7 +266,11 @@ export function useSetupReview(initial: GetWorldResponse, options: { select: (en
     async (id: string, content: EntryContent) => {
       const entry = current(id)
       if (!entry || entry.status === "locked") return
-      await send(entry, { action: "edit", content }, { ...entry, ...content, status: "edited" } as Entry)
+      await send(entry, { action: "edit", content }, {
+        ...entry,
+        ...content,
+        status: "edited",
+      } as Entry)
     },
     [current, send]
   )

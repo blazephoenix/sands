@@ -6,7 +6,12 @@ import { z } from "zod"
 
 import { briefSchema } from "./brief"
 
-export const setupStatusSchema = z.enum(["draft", "drafting", "review", "ready"])
+export const setupStatusSchema = z.enum([
+  "draft",
+  "drafting",
+  "review",
+  "ready",
+])
 export type SetupStatus = z.infer<typeof setupStatusSchema>
 
 /** One reason a World is not solvable, in words the Author can act on (spec §8 step 3). */
@@ -49,7 +54,11 @@ export const worldSchema = z
   })
   .superRefine((world, ctx) => {
     if (world.setupStatus !== "draft" && world.brief === null) {
-      ctx.addIssue({ code: "custom", message: "A World past draft needs a validated Brief.", path: ["brief"] })
+      ctx.addIssue({
+        code: "custom",
+        message: "A World past draft needs a validated Brief.",
+        path: ["brief"],
+      })
     }
   })
 export type World = z.infer<typeof worldSchema>

@@ -7,7 +7,13 @@
  */
 import * as React from "react"
 
-import type { Entry, EntryKind, EntrySource, EntryStatus, JevFlag } from "@/domain/entry"
+import type {
+  Entry,
+  EntryKind,
+  EntrySource,
+  EntryStatus,
+  JevFlag,
+} from "@/domain/entry"
 
 export type EditorSurface = "brief" | "entry"
 
@@ -23,11 +29,20 @@ export type EntrySummary = {
 
 export type EntryIndex = ReadonlyMap<string, EntrySummary>
 
-export function buildEntryIndex(entries: readonly Pick<Entry, keyof EntrySummary>[]): EntryIndex {
+export function buildEntryIndex(
+  entries: readonly Pick<Entry, keyof EntrySummary>[]
+): EntryIndex {
   return new Map(
     entries.map((entry) => [
       entry.id,
-      { id: entry.id, kind: entry.kind, name: entry.name, status: entry.status, source: entry.source, description: entry.description },
+      {
+        id: entry.id,
+        kind: entry.kind,
+        name: entry.name,
+        status: entry.status,
+        source: entry.source,
+        description: entry.description,
+      },
     ])
   )
 }
@@ -93,7 +108,9 @@ export function useSandsEditorContext() {
 }
 
 /** Groups annotations by block id. */
-export function indexAnnotations(items: readonly ({ blockId: string | null } & BlockAnnotation)[]) {
+export function indexAnnotations(
+  items: readonly ({ blockId: string | null } & BlockAnnotation)[]
+) {
   const map = new Map<string, BlockAnnotation[]>()
   for (const { blockId, severity, message } of items) {
     if (!blockId) continue

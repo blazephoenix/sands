@@ -29,9 +29,11 @@ import {
 
 const noRender = () => ({ dom: {} as HTMLElement })
 
-function spec<const T extends string, const P extends PropSchema, const C extends "inline" | "none">(
-  config: BlockConfig<T, P, C>
-) {
+function spec<
+  const T extends string,
+  const P extends PropSchema,
+  const C extends "inline" | "none",
+>(config: BlockConfig<T, P, C>) {
   return createBlockSpec(config, { render: noRender })()
 }
 
@@ -45,22 +47,30 @@ export function createHeadlessSchema() {
       quote: defaultBlockSpecs.quote,
       entryGroup: spec(entryGroupConfig),
       ...Object.fromEntries(
-        Object.entries({ ...briefBlockConfigs, ...entryBlockConfigs }).map(([type, config]) => [type, spec(config)])
+        Object.entries({ ...briefBlockConfigs, ...entryBlockConfigs }).map(
+          ([type, config]) => [type, spec(config)]
+        )
       ),
     },
     inlineContentSpecs: {
       ...defaultInlineContentSpecs,
-      entryMention: createInlineContentSpec(entryMentionConfig, { render: noRender }),
+      entryMention: createInlineContentSpec(entryMentionConfig, {
+        render: noRender,
+      }),
     },
     styleSpecs: {
       ...defaultStyleSpecs,
-      hidden: createStyleSpec(hiddenStyleConfig, { render: () => ({ dom: {} as HTMLElement }) }),
+      hidden: createStyleSpec(hiddenStyleConfig, {
+        render: () => ({ dom: {} as HTMLElement }),
+      }),
     },
   })
 }
 
 /** Loads `blocks` into a headless editor and returns BlockNote's normalised document. */
-export function normaliseDocument(blocks: readonly (SandsBlock | SandsPartialBlock)[]): SandsBlock[] {
+export function normaliseDocument(
+  blocks: readonly (SandsBlock | SandsPartialBlock)[]
+): SandsBlock[] {
   const editor = BlockNoteEditor.create({
     schema: createHeadlessSchema(),
     initialContent: blocks.length > 0 ? (blocks as never) : undefined,

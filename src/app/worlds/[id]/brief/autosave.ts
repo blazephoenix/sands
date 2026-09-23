@@ -79,7 +79,8 @@ export class Autosave<T> {
         continue
       }
       if (!this.dirty) {
-        if (this.status.kind !== "saved") this.setStatus({ kind: "saved", at: this.now() })
+        if (this.status.kind !== "saved")
+          this.setStatus({ kind: "saved", at: this.now() })
         return true
       }
       await this.run()
@@ -142,7 +143,8 @@ export class Autosave<T> {
 
     const version = this.version
     const snapshot = this.options.snapshot()
-    if (this.status.kind === "error") this.setStatus({ ...this.status, retrying: true })
+    if (this.status.kind === "error")
+      this.setStatus({ ...this.status, retrying: true })
     else this.setStatus({ kind: "saving" })
 
     this.lastError = null
@@ -161,7 +163,9 @@ export class Autosave<T> {
 
     if (this.lastError) {
       const retryable = this.options.isRetryable?.(this.lastError) ?? true
-      const message = this.options.messageOf?.(this.lastError) ?? "The server did not save the Brief."
+      const message =
+        this.options.messageOf?.(this.lastError) ??
+        "The server did not save the Brief."
       this.setStatus({ kind: "error", message, retrying: retryable })
       if (retryable) {
         const delays = this.options.retryDelaysMs ?? DEFAULT_RETRY_DELAYS_MS

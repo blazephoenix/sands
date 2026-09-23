@@ -21,11 +21,32 @@ import * as React from "react"
 import type { Entry, EntryKind } from "@/domain/entry"
 
 import { entryBlockInfo } from "./blocks/section-headings"
-import { ALLOW_LOCKED_META, flashBlock, focusBlock, sectionOf, type SandsEditor } from "./commands"
-import { buildEntryIndex, indexAnnotations, type BlockAction, type EntryBlockInfo, type EntrySummary } from "./editor-context"
-import { documentToEntries, entriesToDocument, entryBlocksOf, type EntryBlockConversion } from "./entry-blocks"
+import {
+  ALLOW_LOCKED_META,
+  flashBlock,
+  focusBlock,
+  sectionOf,
+  type SandsEditor,
+} from "./commands"
+import {
+  buildEntryIndex,
+  indexAnnotations,
+  type BlockAction,
+  type EntryBlockInfo,
+  type EntrySummary,
+} from "./editor-context"
+import {
+  documentToEntries,
+  entriesToDocument,
+  entryBlocksOf,
+  type EntryBlockConversion,
+} from "./entry-blocks"
 import { SandsEditorView } from "./sands-editor-view"
-import { isEntryBlockType, type EntryBlock, type SandsBlock } from "./schema-config"
+import {
+  isEntryBlockType,
+  type EntryBlock,
+  type SandsBlock,
+} from "./schema-config"
 
 export type EntryEditorHandle = {
   editor: () => SandsEditor | null
@@ -57,43 +78,80 @@ export type EntryEditorProps = {
   ref?: React.Ref<EntryEditorHandle>
 }
 
-function headingForEntry(editor: SandsEditor, entryId: string): EntryBlock | undefined {
+function headingForEntry(
+  editor: SandsEditor,
+  entryId: string
+): EntryBlock | undefined {
   const direct = editor.getBlock(entryId) as SandsBlock | undefined
   if (direct && isEntryBlockType(direct.type)) return direct as EntryBlock
-  return entryBlocksOf(editor.document as SandsBlock[]).find((block) => block.props.entryId === entryId)
+  return entryBlocksOf(editor.document as SandsBlock[]).find(
+    (block) => block.props.entryId === entryId
+  )
 }
 
 /** What counts as an edit: content and issues, not heading metadata. */
 function fingerprint(conversion: EntryBlockConversion) {
-  return JSON.stringify([conversion.entryId, conversion.content, conversion.issues])
+  return JSON.stringify([
+    conversion.entryId,
+    conversion.content,
+    conversion.issues,
+  ])
 }
 
-export function EntryEditor({ entries, mentionEntries, readOnly, entryActions, entryLabelNote, onEntryChange, className, ref }: EntryEditorProps) {
+export function EntryEditor({
+  entries,
+  mentionEntries,
+  readOnly,
+  entryActions,
+  entryLabelNote,
+  onEntryChange,
+  className,
+  ref,
+}: EntryEditorProps) {
   const editorRef = React.useRef<SandsEditor | null>(null)
   const [initialContent] = React.useState(() => entriesToDocument(entries))
-  const [live, setLive] = React.useState<EntryBlockConversion[]>(() => documentToEntries(initialContent))
+  const [live, setLive] = React.useState<EntryBlockConversion[]>(() =>
+    documentToEntries(initialContent)
+  )
   const kindOfRef = React.useRef(new Map<string, EntryKind>())
   const lastSeen = React.useRef(new Map<string, string>())
   /** Sections whose next change is an id assignment, not an edit. */
   const assigning = React.useRef(new Set<string>())
 
-  const kindOf = React.useCallback((id: string) => kindOfRef.current.get(id), [])
+  const kindOf = React.useCallback(
+    (id: string) => kindOfRef.current.get(id),
+    []
+  )
 
   React.useEffect(() => {
-    kindOfRef.current = new Map([...(mentionEntries ?? []), ...entries].map((entry) => [entry.id, entry.kind]))
+    kindOfRef.current = new Map(
+      [...(mentionEntries ?? []), ...entries].map((entry) => [
+        entry.id,
+        entry.kind,
+      ])
+    )
   }, [entries, mentionEntries])
 
   React.useEffect(() => {
-    for (const conversion of documentToEntries(initialContent)) lastSeen.current.set(conversion.blockId, fingerprint(conversion))
+    for (const conversion of documentToEntries(initialContent))
+      lastSeen.current.set(conversion.blockId, fingerprint(conversion))
   }, [initialContent])
 
   // The mention index: stored Entries, with names updated live from the editor.
   const entryIndex = React.useMemo(() => {
-    const index = new Map(buildEntryIndex([...(mentionEntries ?? []), ...entries]))
+    const index = new Map(
+      buildEntryIndex([...(mentionEntries ?? []), ...entries])
+    )
     for (const conversion of live) {
-      const existing = conversion.entryId ? index.get(conversion.entryId) : undefined
+      const existing = conversion.entryId
+        ? index.get(conversion.entryId)
+        : undefined
       if (existing && conversion.content) {
-        index.set(conversion.entryId, { ...existing, name: conversion.content.name, description: conversion.content.description } satisfies EntrySummary)
+        index.set(conversion.entryId, {
+          ...existing,
+          name: conversion.content.name,
+          description: conversion.content.description,
+        } satisfies EntrySummary)
       }
     }
     return index
@@ -101,7 +159,8 @@ export function EntryEditor({ entries, mentionEntries, readOnly, entryActions, e
 
   const kindCounts = React.useMemo(() => {
     const counts: Partial<Record<EntryKind, number>> = {}
-    for (const conversion of live) counts[conversion.kind] = (counts[conversion.kind] ?? 0) + 1
+    for (const conversion of live)
+      counts[conversion.kind] = (counts[conversion.kind] ?? 0) + 1
     return counts
   }, [live])
 
@@ -109,8 +168,16 @@ export function EntryEditor({ entries, mentionEntries, readOnly, entryActions, e
     () =>
       indexAnnotations(
         live.flatMap((conversion) => [
-          ...conversion.issues.map((issue) => ({ blockId: issue.fieldBlockId ?? issue.blockId, severity: "error" as const, message: issue.message })),
-          ...conversion.warnings.map((warning) => ({ blockId: warning.fieldBlockId, severity: "warning" as const, message: warning.message })),
+          ...conversion.issues.map((issue) => ({
+            blockId: issue.fieldBlockId ?? issue.blockId,
+            severity: "error" as const,
+            message: issue.message,
+          })),
+          ...conversion.warnings.map((warning) => ({
+            blockId: warning.fieldBlockId,
+            severity: "warning" as const,
+            message: warning.message,
+          })),
         ])
       ),
     [live]
@@ -125,9 +192,19 @@ export function EntryEditor({ entries, mentionEntries, readOnly, entryActions, e
       for (const entry of entries) {
         const heading = headingForEntry(editor, entry.id)
         if (!heading) continue
-        const next = { status: entry.status, source: entry.source, sourceTurn: entry.sourceTurn ?? -1, jevFlags: JSON.stringify(entry.jevFlags) }
+        const next = {
+          status: entry.status,
+          source: entry.source,
+          sourceTurn: entry.sourceTurn ?? -1,
+          jevFlags: JSON.stringify(entry.jevFlags),
+        }
         const props = heading.props
-        if (props.status !== next.status || props.source !== next.source || props.sourceTurn !== next.sourceTurn || props.jevFlags !== next.jevFlags) {
+        if (
+          props.status !== next.status ||
+          props.source !== next.source ||
+          props.sourceTurn !== next.sourceTurn ||
+          props.jevFlags !== next.jevFlags
+        ) {
           editor.updateBlock(heading, { props: next as never })
         }
       }
@@ -151,7 +228,12 @@ export function EntryEditor({ entries, mentionEntries, readOnly, entryActions, e
         if (!editor || !heading) return
         editor.domElement
           ?.querySelector(`.bn-block[data-id="${CSS.escape(heading.id)}"]`)
-          ?.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })
+          ?.scrollIntoView({
+            block: "center",
+            behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
+              ? "auto"
+              : "smooth",
+          })
         flashBlock(editor, heading.id)
       },
       assignEntryId: (blockId, entryId) => {
@@ -164,8 +246,13 @@ export function EntryEditor({ entries, mentionEntries, readOnly, entryActions, e
       focusedEntry: () => {
         const editor = editorRef.current
         if (!editor) return null
-        const heading = sectionOf(editor, editor.getTextCursorPosition().block.id)?.heading
-        return heading && isEntryBlockType(heading.type) ? entryBlockInfo(heading as EntryBlock) : null
+        const heading = sectionOf(
+          editor,
+          editor.getTextCursorPosition().block.id
+        )?.heading
+        return heading && isEntryBlockType(heading.type)
+          ? entryBlockInfo(heading as EntryBlock)
+          : null
       },
     }),
     []
@@ -178,7 +265,13 @@ export function EntryEditor({ entries, mentionEntries, readOnly, entryActions, e
       initialContent={initialContent}
       readOnly={readOnly}
       className={className}
-      context={{ entryIndex, entryActions, entryLabelNote, kindCounts, annotations }}
+      context={{
+        entryIndex,
+        entryActions,
+        entryLabelNote,
+        kindCounts,
+        annotations,
+      }}
       onReady={(editor) => {
         editorRef.current = editor
       }}
@@ -189,7 +282,11 @@ export function EntryEditor({ entries, mentionEntries, readOnly, entryActions, e
           const print = fingerprint(conversion)
           if (lastSeen.current.get(conversion.blockId) === print) continue
           lastSeen.current.set(conversion.blockId, print)
-          if (assigning.current.delete(conversion.blockId) || conversion.status === "locked") continue
+          if (
+            assigning.current.delete(conversion.blockId) ||
+            conversion.status === "locked"
+          )
+            continue
           onEntryChange?.(conversion)
         }
       }}

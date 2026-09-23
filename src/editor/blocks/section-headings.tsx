@@ -9,10 +9,28 @@
 import { createReactBlockSpec } from "@blocknote/react"
 import { FlagIcon, LockIcon } from "lucide-react"
 
-import { BRIEF_BLOCK_ICONS, ENTRY_KIND_ICONS, entryStatusLabel, formatProbability, sourceLabel } from "@/components/codex/entry-badges"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  BRIEF_BLOCK_ICONS,
+  ENTRY_KIND_ICONS,
+  entryStatusLabel,
+  formatProbability,
+  sourceLabel,
+} from "@/components/codex/entry-badges"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { BRIEF_BLOCKS, type BriefBlockType } from "@/brief/fields"
-import { ENTRY_GROUP_LABELS, ENTRY_KIND_LABELS, ENTRY_KINDS_BY_GROUP, jevFlagSchema, type EntryGroup, type EntrySource, type EntryStatus } from "@/domain/entry"
+import {
+  ENTRY_GROUP_LABELS,
+  ENTRY_KIND_LABELS,
+  ENTRY_KINDS_BY_GROUP,
+  jevFlagSchema,
+  type EntryGroup,
+  type EntrySource,
+  type EntryStatus,
+} from "@/domain/entry"
 import { z } from "zod"
 
 import { useSandsEditorContext, type EntryBlockInfo } from "../editor-context"
@@ -33,13 +51,22 @@ function Notes({ blockId }: { blockId: string }) {
   const notes = ctx.annotations.get(blockId) ?? []
   if (notes.length === 0) return null
   return (
-    <span className="sands-field-note" data-severity={notes.some((n) => n.severity === "error") ? "error" : "warning"} contentEditable={false}>
+    <span
+      className="sands-field-note"
+      data-severity={
+        notes.some((n) => n.severity === "error") ? "error" : "warning"
+      }
+      contentEditable={false}
+    >
       {notes.map((n) => n.message).join(" ")}
     </span>
   )
 }
 
-type HeadingProps = { block: SandsBlock; contentRef?: (node: HTMLElement | null) => void }
+type HeadingProps = {
+  block: SandsBlock
+  contentRef?: (node: HTMLElement | null) => void
+}
 
 function BriefHeading({ block, contentRef }: HeadingProps) {
   const ctx = useSandsEditorContext()
@@ -47,15 +74,29 @@ function BriefHeading({ block, contentRef }: HeadingProps) {
   const spec = BRIEF_BLOCKS[type]
   const Icon = BRIEF_BLOCK_ICONS[type]
   const isPlayer = block.type === "character" && block.props.isPlayer
-  const invalid = (ctx.annotations.get(block.id) ?? []).some((n) => n.severity === "error")
+  const invalid = (ctx.annotations.get(block.id) ?? []).some(
+    (n) => n.severity === "error"
+  )
   return (
-    <div className="sands-heading" data-kind={type} data-invalid={invalid || undefined}>
-      <span className="sands-heading-label" contentEditable={false} suppressContentEditableWarning>
+    <div
+      className="sands-heading"
+      data-kind={type}
+      data-invalid={invalid || undefined}
+    >
+      <span
+        className="sands-heading-label"
+        contentEditable={false}
+        suppressContentEditableWarning
+      >
         <Icon aria-hidden />
         <span>{spec.title}</span>
-        {isPlayer ? <span className="sands-heading-bit">· Player character</span> : null}
+        {isPlayer ? (
+          <span className="sands-heading-bit">· Player character</span>
+        ) : null}
       </span>
-      {spec.named ? <div ref={contentRef} className="sands-heading-name" /> : null}
+      {spec.named ? (
+        <div ref={contentRef} className="sands-heading-name" />
+      ) : null}
       <Notes blockId={block.id} />
     </div>
   )
@@ -63,7 +104,16 @@ function BriefHeading({ block, contentRef }: HeadingProps) {
 
 function briefHeadingSpec<T extends BriefBlockType>(type: T) {
   return createReactBlockSpec(briefBlockConfigs[type], {
-    render: (props) => <BriefHeading block={props.block as unknown as SandsBlock} contentRef={"contentRef" in props ? (props.contentRef as HeadingProps["contentRef"]) : undefined} />,
+    render: (props) => (
+      <BriefHeading
+        block={props.block as unknown as SandsBlock}
+        contentRef={
+          "contentRef" in props
+            ? (props.contentRef as HeadingProps["contentRef"])
+            : undefined
+        }
+      />
+    ),
   })
 }
 
@@ -109,17 +159,29 @@ function JudgeFlag({ info }: { info: EntryBlockInfo }) {
   if (info.jevFlags.length === 0) return null
   const failed = info.jevFlags.some((flag) => flag.verdict === "fail")
   const summary = info.jevFlags
-    .map((flag) => `${flag.prompt} p = ${formatProbability(flag.probability)}, ${flag.verdict === "fail" ? "failed" : "uncertain"}`)
+    .map(
+      (flag) =>
+        `${flag.prompt} p = ${formatProbability(flag.probability)}, ${flag.verdict === "fail" ? "failed" : "uncertain"}`
+    )
     .join(" ")
   return (
     <Tooltip>
-      <TooltipTrigger render={<span className="sands-heading-bit sands-heading-flag" data-failed={failed || undefined} aria-label={`Judge flag: ${summary}`} />}>
+      <TooltipTrigger
+        render={
+          <span
+            className="sands-heading-bit sands-heading-flag"
+            data-failed={failed || undefined}
+            aria-label={`Judge flag: ${summary}`}
+          />
+        }
+      >
         · <FlagIcon aria-hidden /> {failed ? "Judge flag" : "Judge unsure"}
       </TooltipTrigger>
       <TooltipContent className="max-w-sm flex-col items-start gap-1">
         {info.jevFlags.map((flag) => (
           <span key={`${flag.question}-${flag.prompt}`}>
-            {flag.prompt} p = {formatProbability(flag.probability)}, {flag.verdict === "fail" ? "failed" : "uncertain"}
+            {flag.prompt} p = {formatProbability(flag.probability)},{" "}
+            {flag.verdict === "fail" ? "failed" : "uncertain"}
           </span>
         ))}
       </TooltipContent>
@@ -127,29 +189,54 @@ function JudgeFlag({ info }: { info: EntryBlockInfo }) {
   )
 }
 
-function EntryHeading({ block, contentRef }: { block: EntryBlock; contentRef: (node: HTMLElement | null) => void }) {
+function EntryHeading({
+  block,
+  contentRef,
+}: {
+  block: EntryBlock
+  contentRef: (node: HTMLElement | null) => void
+}) {
   const ctx = useSandsEditorContext()
   const info = entryBlockInfo(block)
   const Icon = ENTRY_KIND_ICONS[info.kind]
   const handle = handleOf(info.name)
   const note = ctx.entryLabelNote?.(info)
   const locked = info.status === "locked"
-  const invalid = (ctx.annotations.get(block.id) ?? []).some((n) => n.severity === "error")
+  const invalid = (ctx.annotations.get(block.id) ?? []).some(
+    (n) => n.severity === "error"
+  )
   return (
-    <div className="sands-heading" data-kind={info.kind} data-status={info.status} data-invalid={invalid || undefined}>
-      <span className="sands-heading-label" contentEditable={false} suppressContentEditableWarning>
+    <div
+      className="sands-heading"
+      data-kind={info.kind}
+      data-status={info.status}
+      data-invalid={invalid || undefined}
+    >
+      <span
+        className="sands-heading-label"
+        contentEditable={false}
+        suppressContentEditableWarning
+      >
         <Icon aria-hidden />
         <span>{ENTRY_KIND_LABELS[info.kind].singular}</span>
         {handle ? <span className="sands-heading-bit">· {handle}</span> : null}
-        <span className="sands-heading-bit">· {sourceLabel(info.source, info.sourceTurn).toLowerCase()}</span>
+        <span className="sands-heading-bit">
+          · {sourceLabel(info.source, info.sourceTurn).toLowerCase()}
+        </span>
         <span className="sands-heading-bit sands-heading-status">
           · {locked ? <LockIcon aria-hidden /> : null}
           {entryStatusLabel(info.status).toLowerCase()}
         </span>
         <JudgeFlag info={info} />
-        {note ? <span className="sands-heading-bit sands-heading-note">· {note}</span> : null}
+        {note ? (
+          <span className="sands-heading-bit sands-heading-note">· {note}</span>
+        ) : null}
       </span>
-      <div ref={contentRef} className="sands-heading-name" aria-readonly={locked || undefined} />
+      <div
+        ref={contentRef}
+        className="sands-heading-name"
+        aria-readonly={locked || undefined}
+      />
       <Notes blockId={block.id} />
     </div>
   )
@@ -157,7 +244,12 @@ function EntryHeading({ block, contentRef }: { block: EntryBlock; contentRef: (n
 
 function entryHeadingSpec<T extends EntryBlockType>(type: T) {
   return createReactBlockSpec(entryBlockConfigs[type], {
-    render: (props) => <EntryHeading block={props.block as unknown as EntryBlock} contentRef={props.contentRef} />,
+    render: (props) => (
+      <EntryHeading
+        block={props.block as unknown as EntryBlock}
+        contentRef={props.contentRef}
+      />
+    ),
   })
 }
 
@@ -178,17 +270,29 @@ function GroupDivider({ group }: { group: EntryGroup }) {
   const counts = ENTRY_KINDS_BY_GROUP[group]
     .map((kind) => [kind, ctx.kindCounts[kind] ?? 0] as const)
     .filter(([, count]) => count > 0)
-    .map(([kind, count]) => `${count} ${count === 1 ? ENTRY_KIND_LABELS[kind].singular : ENTRY_KIND_LABELS[kind].plural}`)
+    .map(
+      ([kind, count]) =>
+        `${count} ${count === 1 ? ENTRY_KIND_LABELS[kind].singular : ENTRY_KIND_LABELS[kind].plural}`
+    )
   return (
-    <div className="sands-divider" role="separator" aria-label={ENTRY_GROUP_LABELS[group]} contentEditable={false} suppressContentEditableWarning>
+    <div
+      className="sands-divider"
+      role="separator"
+      aria-label={ENTRY_GROUP_LABELS[group]}
+      contentEditable={false}
+      suppressContentEditableWarning
+    >
       <span className="sands-divider-title">{ENTRY_GROUP_LABELS[group]}</span>
-      {counts.length > 0 ? <span className="sands-divider-counts">{counts.join(", ")}</span> : null}
+      {counts.length > 0 ? (
+        <span className="sands-divider-counts">{counts.join(", ")}</span>
+      ) : null}
     </div>
   )
 }
 
 export const createGroupDivider = createReactBlockSpec(entryGroupConfig, {
   meta: { selectable: false },
-  render: (props) => <GroupDivider group={(props.block.props as { group: EntryGroup }).group} />,
+  render: (props) => (
+    <GroupDivider group={(props.block.props as { group: EntryGroup }).group} />
+  ),
 })
-

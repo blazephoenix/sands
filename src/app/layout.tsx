@@ -17,7 +17,8 @@ const fontMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: { default: "Sands", template: "%s · Sands" },
-  description: "A creation harness: an AI writes a story inside the constraints an Author sets.",
+  description:
+    "A creation harness: an AI writes a story inside the constraints an Author sets.",
 }
 
 export default function RootLayout({
@@ -29,7 +30,12 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", geist.variable)}
+      className={cn(
+        "antialiased",
+        fontMono.variable,
+        "font-sans",
+        geist.variable
+      )}
     >
       <body>
         <ThemeProvider>

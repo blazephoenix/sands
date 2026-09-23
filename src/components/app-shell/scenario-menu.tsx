@@ -20,8 +20,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { SCENARIO_IDS, SCENARIO_QUERY, SCENARIOS, parseScenarios, type ScenarioId } from "@/fixtures/scenarios"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
+  SCENARIO_IDS,
+  SCENARIO_QUERY,
+  SCENARIOS,
+  parseScenarios,
+  type ScenarioId,
+} from "@/fixtures/scenarios"
 
 function ScenarioMenuInner() {
   const router = useRouter()
@@ -37,7 +47,10 @@ function ScenarioMenuInner() {
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
   }
 
-  const label = active.length > 0 ? `Scenarios: ${active.map((id) => SCENARIOS[id].label).join(", ")}` : "Force a fixture scenario"
+  const label =
+    active.length > 0
+      ? `Scenarios: ${active.map((id) => SCENARIOS[id].label).join(", ")}`
+      : "Force a fixture scenario"
 
   return (
     <DropdownMenu>
@@ -45,12 +58,23 @@ function ScenarioMenuInner() {
         <TooltipTrigger
           render={
             <DropdownMenuTrigger
-              render={<Button variant={active.length > 0 ? "secondary" : "ghost"} size={active.length > 0 ? "sm" : "icon"} aria-label={label} />}
+              render={
+                <Button
+                  variant={active.length > 0 ? "secondary" : "ghost"}
+                  size={active.length > 0 ? "sm" : "icon"}
+                  aria-label={label}
+                />
+              }
             />
           }
         >
-          <FlaskConicalIcon data-icon={active.length > 0 ? "inline-start" : undefined} aria-hidden />
-          {active.length > 0 ? <Badge variant="outline">{active.length}</Badge> : null}
+          <FlaskConicalIcon
+            data-icon={active.length > 0 ? "inline-start" : undefined}
+            aria-hidden
+          />
+          {active.length > 0 ? (
+            <Badge variant="outline">{active.length}</Badge>
+          ) : null}
         </TooltipTrigger>
         <TooltipContent>{label} (dev only)</TooltipContent>
       </Tooltip>
@@ -61,18 +85,27 @@ function ScenarioMenuInner() {
             <DropdownMenuCheckboxItem
               key={id}
               checked={active.includes(id)}
-              onCheckedChange={(checked) => apply(checked ? [...active, id] : active.filter((a) => a !== id))}
+              onCheckedChange={(checked) =>
+                apply(
+                  checked ? [...active, id] : active.filter((a) => a !== id)
+                )
+              }
             >
               <span className="flex flex-col">
                 <span>{SCENARIOS[id].label}</span>
-                <span className="text-xs text-muted-foreground">{SCENARIOS[id].description}</span>
+                <span className="text-xs text-muted-foreground">
+                  {SCENARIOS[id].description}
+                </span>
               </span>
             </DropdownMenuCheckboxItem>
           ))}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem disabled={active.length === 0} onClick={() => apply([])}>
+          <DropdownMenuItem
+            disabled={active.length === 0}
+            onClick={() => apply([])}
+          >
             Clear scenarios
           </DropdownMenuItem>
           <DropdownMenuItem

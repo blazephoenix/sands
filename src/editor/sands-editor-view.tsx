@@ -9,7 +9,12 @@ import "@blocknote/shadcn/style.css"
 
 import * as React from "react"
 import { BlockNoteView } from "@blocknote/shadcn"
-import { FormattingToolbarController, SideMenuController, SuggestionMenuController, useCreateBlockNote } from "@blocknote/react"
+import {
+  FormattingToolbarController,
+  SideMenuController,
+  SuggestionMenuController,
+  useCreateBlockNote,
+} from "@blocknote/react"
 import { useTheme } from "next-themes"
 
 import { BRIEF_BLOCKS, BRIEF_BLOCK_TYPES } from "@/brief/fields"
@@ -17,10 +22,24 @@ import { ENTRY_KINDS } from "@/domain/entry"
 import { cn } from "@/lib/utils"
 
 import type { SandsEditor } from "./commands"
-import { SandsEditorContext, type BlockAnnotation, type SandsEditorContextValue } from "./editor-context"
+import {
+  SandsEditorContext,
+  type BlockAnnotation,
+  type SandsEditorContextValue,
+} from "./editor-context"
 import { ENTRY_NAME_PLACEHOLDER } from "./entry-fields"
-import { installLockGuard, refreshSections, sectionsExtension } from "./extensions"
-import { BlockMenu, SandsFormattingToolbar, getMentionItems, getSlashItems, makeSideMenu } from "./menus"
+import {
+  installLockGuard,
+  refreshSections,
+  sectionsExtension,
+} from "./extensions"
+import {
+  BlockMenu,
+  SandsFormattingToolbar,
+  getMentionItems,
+  getSlashItems,
+  makeSideMenu,
+} from "./menus"
 import { sandsSchema } from "./schema"
 import { ENTRY_BLOCK_TYPE, type SandsBlock } from "./schema-config"
 
@@ -50,15 +69,36 @@ class ExtensionBridge {
 }
 
 const PLACEHOLDERS: Record<string, string | undefined> = {
-  ...Object.fromEntries(BRIEF_BLOCK_TYPES.filter((type) => BRIEF_BLOCKS[type].named).map((type) => [type, BRIEF_BLOCKS[type].namePlaceholder])),
-  ...Object.fromEntries(ENTRY_KINDS.map((kind) => [ENTRY_BLOCK_TYPE[kind], ENTRY_NAME_PLACEHOLDER[kind]])),
+  ...Object.fromEntries(
+    BRIEF_BLOCK_TYPES.filter((type) => BRIEF_BLOCKS[type].named).map((type) => [
+      type,
+      BRIEF_BLOCKS[type].namePlaceholder,
+    ])
+  ),
+  ...Object.fromEntries(
+    ENTRY_KINDS.map((kind) => [
+      ENTRY_BLOCK_TYPE[kind],
+      ENTRY_NAME_PLACEHOLDER[kind],
+    ])
+  ),
 }
 
-function inParagraph(tr: { selection: { $from: { parent: { type: { name: string } } } } }) {
+function inParagraph(tr: {
+  selection: { $from: { parent: { type: { name: string } } } }
+}) {
   return tr.selection.$from.parent.type.name === "paragraph"
 }
 
-export function SandsEditorView({ surface, initialContent, context, readOnly = false, onChange, onReady, className, label }: SandsEditorViewProps) {
+export function SandsEditorView({
+  surface,
+  initialContent,
+  context,
+  readOnly = false,
+  onChange,
+  onReady,
+  className,
+  label,
+}: SandsEditorViewProps) {
   const { resolvedTheme } = useTheme()
   const [bridge] = React.useState(() => new ExtensionBridge())
   const [blockMenuOpen, setBlockMenuOpen] = React.useState(false)
@@ -66,12 +106,19 @@ export function SandsEditorView({ surface, initialContent, context, readOnly = f
   const editor = useCreateBlockNote(
     {
       schema: sandsSchema,
-      initialContent: initialContent.length > 0 ? (initialContent as never) : undefined,
+      initialContent:
+        initialContent.length > 0 ? (initialContent as never) : undefined,
       trailingBlock: surface === "brief",
       placeholders: {
         ...PLACEHOLDERS,
-        default: surface === "brief" ? "Write free prose, or type / for a Setting, Character, Arc…" : "Type / to add an Entry",
-        emptyDocument: surface === "brief" ? "Type / to add a Setting, Character, Arc or Ending" : "Type / to add an Entry",
+        default:
+          surface === "brief"
+            ? "Write free prose, or type / for a Setting, Character, Arc…"
+            : "Type / to add an Entry",
+        emptyDocument:
+          surface === "brief"
+            ? "Type / to add a Setting, Character, Arc or Ending"
+            : "Type / to add an Entry",
       },
       extensions: [
         sectionsExtension({
@@ -113,7 +160,15 @@ export function SandsEditorView({ surface, initialContent, context, readOnly = f
       annotations: context?.annotations ?? new Map(),
       kindCounts: context?.kindCounts ?? {},
     }),
-    [surface, readOnly, context?.entryIndex, context?.entryActions, context?.entryLabelNote, context?.annotations, context?.kindCounts]
+    [
+      surface,
+      readOnly,
+      context?.entryIndex,
+      context?.entryActions,
+      context?.entryLabelNote,
+      context?.annotations,
+      context?.kindCounts,
+    ]
   )
 
   return (
@@ -131,18 +186,29 @@ export function SandsEditorView({ surface, initialContent, context, readOnly = f
         data-surface={surface}
         onChange={() => onChange?.(editor.document as SandsBlock[], editor)}
       >
-        <SuggestionMenuController triggerCharacter="/" getItems={(query) => getSlashItems(editor, surface, query)} />
+        <SuggestionMenuController
+          triggerCharacter="/"
+          getItems={(query) => getSlashItems(editor, surface, query)}
+        />
         {surface === "entry" ? (
           <SuggestionMenuController
             triggerCharacter="@"
             shouldOpen={(tr) => inParagraph(tr)}
-            getItems={(query) => getMentionItems(editor, index ?? new Map(), query)}
+            getItems={(query) =>
+              getMentionItems(editor, index ?? new Map(), query)
+            }
           />
         ) : null}
         <SideMenuController sideMenu={sideMenu} />
-        <FormattingToolbarController formattingToolbar={SandsFormattingToolbar} />
+        <FormattingToolbarController
+          formattingToolbar={SandsFormattingToolbar}
+        />
       </BlockNoteView>
-      <BlockMenu editor={editor} open={blockMenuOpen} onOpenChange={setBlockMenuOpen} />
+      <BlockMenu
+        editor={editor}
+        open={blockMenuOpen}
+        onOpenChange={setBlockMenuOpen}
+      />
     </SandsEditorContext.Provider>
   )
 }

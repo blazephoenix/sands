@@ -56,55 +56,109 @@ const PREFIX = "mk"
 // Builders (also for ticket 04's Turn script).
 
 const RULE_QUESTIONS: Record<Rule, string> = {
-  character_drift: "Does anything a named character says or does contradict their personality or backstory?",
+  character_drift:
+    "Does anything a named character says or does contradict their personality or backstory?",
   arc: "Does the Draft depict events from later_arcs, or contradict current_arc?",
-  location: "Does the Draft introduce a named place a character could travel to that is not in codex?",
-  knowledge: "Does a character reveal information that is not in allowed_reveals or knowledge_revealed?",
-  unplanned_clue: "Does the Draft present evidence implicating the hidden character that is not a discoverable or found Clue?",
+  location:
+    "Does the Draft introduce a named place a character could travel to that is not in codex?",
+  knowledge:
+    "Does a character reveal information that is not in allowed_reveals or knowledge_revealed?",
+  unplanned_clue:
+    "Does the Draft present evidence implicating the hidden character that is not a discoverable or found Clue?",
   outcome: "Does the Draft contradict outcome?",
   agency: "Does the Player character say or do more than player_input?",
   period: "Does the Draft contain anachronisms for setting?",
-  codex: "Does the Draft contradict an accepted or edited Entry in codex, or mention anything in rejected_names?",
-  reputation: "Does NPC behaviour toward the Player contradict reputation_band?",
+  codex:
+    "Does the Draft contradict an accepted or edited Entry in codex, or mention anything in rejected_names?",
+  reputation:
+    "Does NPC behaviour toward the Player contradict reputation_band?",
   voice: "Does the Draft depart from voice?",
   ending: "Does the Draft narrate an Ending other than ending?",
 }
 
 /** The Opening has no Player input: Agency asks whether the Player character does anything beyond arriving (spec §9.0). */
-const OPENING_AGENCY_QUESTION = "Does the Player character say or do anything beyond arriving at the start location?"
+const OPENING_AGENCY_QUESTION =
+  "Does the Player character say or do anything beyond arriving at the start location?"
 
-export type RuleOptions = { endingTurn?: boolean; opening?: boolean; seed?: number }
+export type RuleOptions = {
+  endingTurn?: boolean
+  opening?: boolean
+  seed?: number
+}
 
 /**
  * Rule results for one Draft: low probabilities except the `overrides`.
  * `ending` is only asked on ending Turns; the Opening has no Outcome to
  * contradict, so it is not asked `outcome`.
  */
-export function buildRules(overrides: Partial<Record<Rule, number>> = {}, options: RuleOptions = {}): RuleResult[] {
+export function buildRules(
+  overrides: Partial<Record<Rule, number>> = {},
+  options: RuleOptions = {}
+): RuleResult[] {
   const seed = options.seed ?? 1
-  const asked = RULES.filter((rule) => (rule !== "ending" || options.endingTurn) && (rule !== "outcome" || !options.opening))
+  const asked = RULES.filter(
+    (rule) =>
+      (rule !== "ending" || options.endingTurn) &&
+      (rule !== "outcome" || !options.opening)
+  )
   return asked.map((rule, index) => {
-    const probability = overrides[rule] ?? Math.round((0.03 + ((seed * 7 + index * 13) % 17) / 100) * 100) / 100
-    const question = options.opening && rule === "agency" ? OPENING_AGENCY_QUESTION : RULE_QUESTIONS[rule]
+    const probability =
+      overrides[rule] ??
+      Math.round((0.03 + ((seed * 7 + index * 13) % 17) / 100) * 100) / 100
+    const question =
+      options.opening && rule === "agency"
+        ? OPENING_AGENCY_QUESTION
+        : RULE_QUESTIONS[rule]
     return { rule, question, probability, ...ruleVerdict(probability) }
   })
 }
 
-export function buildDraft(id: string, text: string, rules: RuleResult[], shipped = false): Draft {
+export function buildDraft(
+  id: string,
+  text: string,
+  rules: RuleResult[],
+  shipped = false
+): Draft {
   const highestViolation = Math.max(...rules.map((rule) => rule.probability))
-  return { id, text, rules, highestViolation, passed: rules.every((rule) => !rule.failed), shipped }
+  return {
+    id,
+    text,
+    rules,
+    highestViolation,
+    passed: rules.every((rule) => !rule.failed),
+    shipped,
+  }
 }
 
-export function buildRound(index: number, drafts: Draft[], feedback: string[] = []): Round {
+export function buildRound(
+  index: number,
+  drafts: Draft[],
+  feedback: string[] = []
+): Round {
   return { index, feedback, drafts }
 }
 
 /** A Round where both Drafts pass and the first ships. */
-function cleanRound(turnKey: string, passage: string, alternative: string, seed: number, options: Omit<RuleOptions, "seed"> = {}): Round[] {
+function cleanRound(
+  turnKey: string,
+  passage: string,
+  alternative: string,
+  seed: number,
+  options: Omit<RuleOptions, "seed"> = {}
+): Round[] {
   return [
     buildRound(1, [
-      buildDraft(`${turnKey}-r1a`, passage, buildRules({}, { ...options, seed }), true),
-      buildDraft(`${turnKey}-r1b`, alternative, buildRules({}, { ...options, seed: seed + 3 })),
+      buildDraft(
+        `${turnKey}-r1a`,
+        passage,
+        buildRules({}, { ...options, seed }),
+        true
+      ),
+      buildDraft(
+        `${turnKey}-r1b`,
+        alternative,
+        buildRules({}, { ...options, seed: seed + 3 })
+      ),
     ]),
   ]
 }
@@ -128,19 +182,36 @@ export type TurnSpec = TurnBase & {
   intent: [string, number]
   target: [string, string, number]
   classification: [Classification, number]
-  outcome: Omit<Outcome, "ending" | "deathRoll"> & Partial<Pick<Outcome, "ending" | "deathRoll">>
+  outcome: Omit<Outcome, "ending" | "deathRoll"> &
+    Partial<Pick<Outcome, "ending" | "deathRoll">>
 }
 
 /** The Opening: Turn 0, no Player input, nothing read and no Outcome (spec §9.0). */
 export type OpeningSpec = Omit<TurnBase, "idx">
 
-function assembleTurn(sessionId: string, spec: TurnBase, played: { input: string; reading: TurnLog["reading"]; outcome: Outcome } | null): Turn {
+function assembleTurn(
+  sessionId: string,
+  spec: TurnBase,
+  played: {
+    input: string
+    reading: TurnLog["reading"]
+    outcome: Outcome
+  } | null
+): Turn {
   const key = `${sessionId}-t${spec.idx}`
   const endingTurn = (played?.outcome.ending ?? "none") !== "none"
   const rounds =
     spec.rounds ??
-    cleanRound(key, spec.passage, spec.alternative ?? `${spec.passage.split(". ")[0]}.`, spec.idx + 2, { endingTurn, opening: played === null })
-  const shipped = rounds.flatMap((round) => round.drafts).find((draft) => draft.shipped)!
+    cleanRound(
+      key,
+      spec.passage,
+      spec.alternative ?? `${spec.passage.split(". ")[0]}.`,
+      spec.idx + 2,
+      { endingTurn, opening: played === null }
+    )
+  const shipped = rounds
+    .flatMap((round) => round.drafts)
+    .find((draft) => draft.shipped)!
   const readingMs = played ? 410 : 0
   const resolvingMs = played ? 3 : 0
   return {
@@ -168,7 +239,12 @@ function assembleTurn(sessionId: string, spec: TurnBase, played: { input: string
       jevModelVersion: "jev-1.13.0",
     },
     state: spec.state,
-    backgroundStatus: spec.background === null ? "pending" : spec.background.error ? "failed" : "done",
+    backgroundStatus:
+      spec.background === null
+        ? "pending"
+        : spec.background.error
+          ? "failed"
+          : "done",
     createdAt: fixtureTime(spec.minutes),
   }
 }
@@ -179,7 +255,11 @@ export function buildTurn(sessionId: string, spec: TurnSpec): Turn {
     input: spec.input,
     reading: {
       intent: { value: spec.intent[0], probability: spec.intent[1] },
-      target: { value: spec.target[0], label: spec.target[1], probability: spec.target[2] },
+      target: {
+        value: spec.target[0],
+        label: spec.target[1],
+        probability: spec.target[2],
+      },
       classification: {
         value: classification,
         probability: classificationP,
@@ -194,11 +274,22 @@ export function buildOpening(sessionId: string, spec: OpeningSpec): Turn {
   return assembleTurn(sessionId, { ...spec, idx: OPENING_IDX }, null)
 }
 
-function background(partial: Partial<BackgroundResults> = {}): BackgroundResults {
-  return { newEntryIds: [], arcCheck: [], arcAdvancedTo: null, pacing: null, error: null, ...partial }
+function background(
+  partial: Partial<BackgroundResults> = {}
+): BackgroundResults {
+  return {
+    newEntryIds: [],
+    arcCheck: [],
+    arcAdvancedTo: null,
+    pacing: null,
+    error: null,
+    ...partial,
+  }
 }
 
-function state(partial: Partial<PlayerState> & Pick<PlayerState, "locationId">): PlayerState {
+function state(
+  partial: Partial<PlayerState> & Pick<PlayerState, "locationId">
+): PlayerState {
   return {
     arcIndex: 0,
     cluesFound: [],
@@ -215,10 +306,42 @@ function state(partial: Partial<PlayerState> & Pick<PlayerState, "locationId">):
 // Sessions
 
 const SESSIONS: Session[] = [
-  { id: SESSION_IDS.midPlay, worldId: WORLD, mode: "harness", seed: 1888, ending: "none", createdAt: fixtureTime(120), updatedAt: fixtureTime(146) },
-  { id: SESSION_IDS.win, worldId: WORLD, mode: "harness", seed: 42, ending: "win", createdAt: fixtureTime(200), updatedAt: fixtureTime(214) },
-  { id: SESSION_IDS.death, worldId: WORLD, mode: "harness", seed: 7, ending: "death", createdAt: fixtureTime(300), updatedAt: fixtureTime(306) },
-  { id: SESSION_IDS.removed, worldId: WORLD, mode: "harness", seed: 99, ending: "removed", createdAt: fixtureTime(400), updatedAt: fixtureTime(412) },
+  {
+    id: SESSION_IDS.midPlay,
+    worldId: WORLD,
+    mode: "harness",
+    seed: 1888,
+    ending: "none",
+    createdAt: fixtureTime(120),
+    updatedAt: fixtureTime(146),
+  },
+  {
+    id: SESSION_IDS.win,
+    worldId: WORLD,
+    mode: "harness",
+    seed: 42,
+    ending: "win",
+    createdAt: fixtureTime(200),
+    updatedAt: fixtureTime(214),
+  },
+  {
+    id: SESSION_IDS.death,
+    worldId: WORLD,
+    mode: "harness",
+    seed: 7,
+    ending: "death",
+    createdAt: fixtureTime(300),
+    updatedAt: fixtureTime(306),
+  },
+  {
+    id: SESSION_IDS.removed,
+    worldId: WORLD,
+    mode: "harness",
+    seed: 99,
+    ending: "removed",
+    createdAt: fixtureTime(400),
+    updatedAt: fixtureTime(412),
+  },
 ]
 
 export function seedSessions(): Session[] {
@@ -242,7 +365,8 @@ export function seedSessionEntries(): Entry[] {
   const nell = out.find((entry) => entry.id === copyId(mid, "mk-nell"))!
   Object.assign(nell, {
     status: "edited",
-    description: "A flower seller outside Spitalfields Market. She talks only where the constables cannot hear.",
+    description:
+      "A flower seller outside Spitalfields Market. She talks only where the constables cannot hear.",
     updatedAt: fixtureTime(138),
   })
 
@@ -255,9 +379,15 @@ export function seedSessionEntries(): Entry[] {
       templateId: null,
       kind: "npc",
       name: "Tobias Wren",
-      description: "A lamplighter on Whitechapel High Street who lit the lamps outside Whitlock's shop.",
+      description:
+        "A lamplighter on Whitechapel High Street who lit the lamps outside Whitlock's shop.",
       keyFacts: [],
-      data: { ...person, role: "Lamplighter", personality: "Talkative, superstitious.", backstory: "Has lit the same street for thirty years." },
+      data: {
+        ...person,
+        role: "Lamplighter",
+        personality: "Talkative, superstitious.",
+        backstory: "Has lit the same street for thirty years.",
+      },
       source: "play",
       sourceTurn: 3,
       status: "proposed",
@@ -273,9 +403,15 @@ export function seedSessionEntries(): Entry[] {
       templateId: null,
       kind: "npc",
       name: "Hattie Crouch",
-      description: "Keeps a lodging house by the docks and rents a room to a quiet young clerk.",
+      description:
+        "Keeps a lodging house by the docks and rents a room to a quiet young clerk.",
       keyFacts: [],
-      data: { ...person, role: "Landlady", personality: "Sharp-tongued, counts every penny.", backstory: "Widowed; takes in lodgers from the shipping offices." },
+      data: {
+        ...person,
+        role: "Landlady",
+        personality: "Sharp-tongued, counts every penny.",
+        backstory: "Widowed; takes in lodgers from the shipping offices.",
+      },
       source: "play",
       sourceTurn: 5,
       status: "proposed",
@@ -303,7 +439,9 @@ function seededOpening(sessionId: string, minutes: number): Turn {
     passage: opening.passage,
     alternative: opening.alternative,
     background: background({
-      arcCheck: [{ exitConditionId: c("exit-1"), probability: 0.07, met: false }],
+      arcCheck: [
+        { exitConditionId: c("exit-1"), probability: 0.07, met: false },
+      ],
       pacing: { probability: 0.86, nudge: false, reason: null },
     }),
     state: state({ locationId: c("yard") }),
@@ -330,11 +468,22 @@ function midPlayTurns(): Turn[] {
       intent: ["examine", 0.91],
       target: ["none", "none", 0.83],
       classification: ["on_script", 0.93],
-      outcome: { kind: "narrated", summary: "Jacob reads the case file; nothing is decided.", reputationDelta: 0, offScriptDelta: 0 },
-      directive: "Arc 1, Introduction. Captain James hands over the file with visible reluctance. Normal Band: he is civil, not warm.",
+      outcome: {
+        kind: "narrated",
+        summary: "Jacob reads the case file; nothing is decided.",
+        reputationDelta: 0,
+        offScriptDelta: 0,
+      },
+      directive:
+        "Arc 1, Introduction. Captain James hands over the file with visible reluctance. Normal Band: he is civil, not warm.",
       passage:
         "Captain James slid the file across the desk as if it owed him money. Three names, three dates, three addresses east of the Tower. Jacob read it twice. The Captain watched him the whole time and said nothing useful.",
-      background: background({ arcCheck: [{ exitConditionId: c("exit-1"), probability: 0.91, met: true }], arcAdvancedTo: 1 }),
+      background: background({
+        arcCheck: [
+          { exitConditionId: c("exit-1"), probability: 0.91, met: true },
+        ],
+        arcAdvancedTo: 1,
+      }),
       state: state({ locationId: yard, arcIndex: 1 }),
     }),
     buildTurn(s, {
@@ -344,23 +493,36 @@ function midPlayTurns(): Turn[] {
       intent: ["question", 0.95],
       target: [c("amanda"), "Amanda Hopkins", 0.96],
       classification: ["on_script", 0.9],
-      outcome: { kind: "questioned", summary: "Amanda may reveal what she knows at normal Band.", reputationDelta: 0, offScriptDelta: 0 },
-      directive: "Allowed reveal: Amanda on the victims' trade. She is precise and a little amused.",
+      outcome: {
+        kind: "questioned",
+        summary: "Amanda may reveal what she knows at normal Band.",
+        reputationDelta: 0,
+        offScriptDelta: 0,
+      },
+      directive:
+        "Allowed reveal: Amanda on the victims' trade. She is precise and a little amused.",
       passage:
-        "Hopkins did not need the file. \"They all lent money to the same house,\" she said. \"Rober and Sons, wool. It is in the ledgers, if anyone had bothered to read them.\"",
+        'Hopkins did not need the file. "They all lent money to the same house," she said. "Rober and Sons, wool. It is in the ledgers, if anyone had bothered to read them."',
       discovery: [
         {
           target: { kind: "knowledge", entryId: c("k-amanda") },
-          question: "Did the Draft reveal that all three victims lent money to Rober & Sons?",
+          question:
+            "Did the Draft reveal that all three victims lent money to Rober & Sons?",
           probability: 0.88,
           revealed: true,
         },
       ],
       background: background({
-        arcCheck: [{ exitConditionId: c("exit-2"), probability: 0.32, met: false }],
+        arcCheck: [
+          { exitConditionId: c("exit-2"), probability: 0.32, met: false },
+        ],
         pacing: { probability: 0.74, nudge: false, reason: null },
       }),
-      state: state({ locationId: yard, arcIndex: 1, knowledgeRevealed: { [c("amanda")]: [c("k-amanda")] } }),
+      state: state({
+        locationId: yard,
+        arcIndex: 1,
+        knowledgeRevealed: { [c("amanda")]: [c("k-amanda")] },
+      }),
     }),
     buildTurn(s, {
       idx: 3,
@@ -369,8 +531,14 @@ function midPlayTurns(): Turn[] {
       intent: ["move", 0.97],
       target: [whitechapel, "Whitechapel High Street", 0.95],
       classification: ["on_script", 0.88],
-      outcome: { kind: "moved", summary: "Jacob moves to Whitechapel High Street.", reputationDelta: 0, offScriptDelta: 0 },
-      directive: "Scene: Whitechapel High Street, morning. Describe only this street.",
+      outcome: {
+        kind: "moved",
+        summary: "Jacob moves to Whitechapel High Street.",
+        reputationDelta: 0,
+        offScriptDelta: 0,
+      },
+      directive:
+        "Scene: Whitechapel High Street, morning. Describe only this street.",
       passage: "",
       rounds: [
         buildRound(1, [
@@ -381,7 +549,7 @@ function midPlayTurns(): Turn[] {
           ),
           buildDraft(
             `${s}-t3-r1b`,
-            "\"Right then,\" Jacob said to the cabman, and told him to wait while he walked the length of the street.",
+            '"Right then," Jacob said to the cabman, and told him to wait while he walked the length of the street.',
             buildRules({ agency: 0.67 }, { seed: 5 })
           ),
         ]),
@@ -408,10 +576,16 @@ function midPlayTurns(): Turn[] {
       ],
       background: background({
         newEntryIds: [`${s}.play-tobias`],
-        arcCheck: [{ exitConditionId: c("exit-2"), probability: 0.41, met: false }],
+        arcCheck: [
+          { exitConditionId: c("exit-2"), probability: 0.41, met: false },
+        ],
         pacing: { probability: 0.69, nudge: false, reason: null },
       }),
-      state: state({ locationId: whitechapel, arcIndex: 1, knowledgeRevealed: { [c("amanda")]: [c("k-amanda")] } }),
+      state: state({
+        locationId: whitechapel,
+        arcIndex: 1,
+        knowledgeRevealed: { [c("amanda")]: [c("k-amanda")] },
+      }),
     }),
     buildTurn(s, {
       idx: 4,
@@ -420,8 +594,14 @@ function midPlayTurns(): Turn[] {
       intent: ["examine", 0.94],
       target: ["none", "none", 0.8],
       classification: ["on_script", 0.9],
-      outcome: { kind: "examined", summary: "C5, the docker's cap, is discoverable here.", reputationDelta: 0, offScriptDelta: 0 },
-      directive: "Discoverable: C5 (a labelled red herring). Let the constables be pleased with it.",
+      outcome: {
+        kind: "examined",
+        summary: "C5, the docker's cap, is discoverable here.",
+        reputationDelta: 0,
+        offScriptDelta: 0,
+      },
+      directive:
+        "Discoverable: C5 (a labelled red herring). Let the constables be pleased with it.",
       passage:
         "In the gutter by the shop step lay a docker's cap, sodden and trodden flat. The constable at the door looked delighted. Jacob turned it over with his cane and did not share his delight.",
       discovery: [
@@ -433,7 +613,9 @@ function midPlayTurns(): Turn[] {
         },
       ],
       background: background({
-        arcCheck: [{ exitConditionId: c("exit-2"), probability: 0.83, met: true }],
+        arcCheck: [
+          { exitConditionId: c("exit-2"), probability: 0.83, met: true },
+        ],
         arcAdvancedTo: 2,
         pacing: { probability: 0.8, nudge: false, reason: null },
       }),
@@ -447,29 +629,48 @@ function midPlayTurns(): Turn[] {
     buildTurn(s, {
       idx: 5,
       minutes: 139,
-      input: "I take a constable's lantern and search the docks alone after dark.",
+      input:
+        "I take a constable's lantern and search the docks alone after dark.",
       intent: ["move", 0.86],
       target: [docks, "St Katharine Docks", 0.9],
       classification: ["reckless", 0.77],
       outcome: {
         kind: "reckless_survived",
-        summary: "Death roll 0.63 against odds of 0.50: Jacob survives the night.",
+        summary:
+          "Death roll 0.63 against odds of 0.50: Jacob survives the night.",
         reputationDelta: 0,
         offScriptDelta: 0,
         deathRoll: { odds: 0.5, roll: 0.63, lethal: false },
       },
-      directive: "Scene: St Katharine Docks at night. Danger is close but nothing happens to Jacob. C2 is discoverable.",
+      directive:
+        "Scene: St Katharine Docks at night. Danger is close but nothing happens to Jacob. C2 is discoverable.",
       passage: "",
       rounds: [
         buildRound(1, [
-          buildDraft(`${s}-t5-r1a`, "Jacob drew his revolver and fired at the shape by the warehouse.", buildRules({ agency: 0.74 }, { seed: 8 })),
-          buildDraft(`${s}-t5-r1b`, "Somewhere in the dark, Max Rober was watching him, and Jacob knew it.", buildRules({ knowledge: 0.69, unplanned_clue: 0.55 }, { seed: 9 })),
+          buildDraft(
+            `${s}-t5-r1a`,
+            "Jacob drew his revolver and fired at the shape by the warehouse.",
+            buildRules({ agency: 0.74 }, { seed: 8 })
+          ),
+          buildDraft(
+            `${s}-t5-r1b`,
+            "Somewhere in the dark, Max Rober was watching him, and Jacob knew it.",
+            buildRules({ knowledge: 0.69, unplanned_clue: 0.55 }, { seed: 9 })
+          ),
         ]),
         buildRound(
           2,
           [
-            buildDraft(`${s}-t5-r2a`, "Jacob called out to the watchman and asked him to walk the quay with him.", buildRules({ agency: 0.58 }, { seed: 10 })),
-            buildDraft(`${s}-t5-r2b`, "The electric lamps along the quay buzzed and flickered as Jacob passed.", buildRules({ period: 0.62 }, { seed: 11 })),
+            buildDraft(
+              `${s}-t5-r2a`,
+              "Jacob called out to the watchman and asked him to walk the quay with him.",
+              buildRules({ agency: 0.58 }, { seed: 10 })
+            ),
+            buildDraft(
+              `${s}-t5-r2b`,
+              "The electric lamps along the quay buzzed and flickered as Jacob passed.",
+              buildRules({ period: 0.62 }, { seed: 11 })
+            ),
           ],
           [
             "Agency (0.74): the Draft has Jacob fire a revolver the Player never drew. Rewrite without adding his actions.",
@@ -485,7 +686,11 @@ function midPlayTurns(): Turn[] {
               buildRules({ agency: 0.52 }, { seed: 12 }),
               true
             ),
-            buildDraft(`${s}-t5-r3b`, "A young man in a clerk's coat slipped between the warehouses as Jacob raised the lantern.", buildRules({ knowledge: 0.61 }, { seed: 13 })),
+            buildDraft(
+              `${s}-t5-r3b`,
+              "A young man in a clerk's coat slipped between the warehouses as Jacob raised the lantern.",
+              buildRules({ knowledge: 0.61 }, { seed: 13 })
+            ),
           ],
           [
             "Agency (0.58): the Draft has Jacob speak to the watchman. Rewrite without adding his words.",
@@ -503,7 +708,9 @@ function midPlayTurns(): Turn[] {
       ],
       background: background({
         newEntryIds: [`${s}.play-hattie`],
-        arcCheck: [{ exitConditionId: c("exit-3"), probability: 0.04, met: false }],
+        arcCheck: [
+          { exitConditionId: c("exit-3"), probability: 0.04, met: false },
+        ],
         pacing: { probability: 0.52, nudge: false, reason: null },
       }),
       state: state({
@@ -520,14 +727,21 @@ function midPlayTurns(): Turn[] {
       intent: ["question", 0.93],
       target: [c("pryce"), "Dr. Henry Pryce", 0.94],
       classification: ["on_script", 0.91],
-      outcome: { kind: "questioned", summary: "Pryce may reveal what he knows at low Band or above.", reputationDelta: 5, offScriptDelta: 0 },
-      directive: "Allowed reveal: Pryce on the wounds (C1). He enjoys Jacob's bluntness.",
+      outcome: {
+        kind: "questioned",
+        summary: "Pryce may reveal what he knows at low Band or above.",
+        reputationDelta: 5,
+        offScriptDelta: 0,
+      },
+      directive:
+        "Allowed reveal: Pryce on the wounds (C1). He enjoys Jacob's bluntness.",
       passage:
-        "Pryce laid the three drawings side by side. \"Same blade,\" he said. \"Short, hooked, and kept very sharp. Your man is right-handed, and he is not in a hurry.\"",
+        'Pryce laid the three drawings side by side. "Same blade," he said. "Short, hooked, and kept very sharp. Your man is right-handed, and he is not in a hurry."',
       discovery: [
         {
           target: { kind: "knowledge", entryId: c("k-pryce") },
-          question: "Did the Draft reveal that the same blade killed all three men?",
+          question:
+            "Did the Draft reveal that the same blade killed all three men?",
           probability: 0.92,
           revealed: true,
         },
@@ -543,7 +757,10 @@ function midPlayTurns(): Turn[] {
         locationId: yard,
         arcIndex: 2,
         cluesFound: [c("c5"), c("c1")],
-        knowledgeRevealed: { [c("amanda")]: [c("k-amanda")], [c("pryce")]: [c("k-pryce")] },
+        knowledgeRevealed: {
+          [c("amanda")]: [c("k-amanda")],
+          [c("pryce")]: [c("k-pryce")],
+        },
         reputation: 65,
       }),
     }),
@@ -553,7 +770,11 @@ function midPlayTurns(): Turn[] {
 function winTurns(): Turn[] {
   const s = SESSION_IDS.win
   const c = (key: string) => copyId(s, `${PREFIX}-${key}`)
-  const done = (arcIndex: number) => background({ pacing: { probability: 0.82, nudge: false, reason: null }, arcAdvancedTo: arcIndex > 0 ? arcIndex : null })
+  const done = (arcIndex: number) =>
+    background({
+      pacing: { probability: 0.82, nudge: false, reason: null },
+      arcAdvancedTo: arcIndex > 0 ? arcIndex : null,
+    })
   return [
     seededOpening(s, 200),
     buildTurn(s, {
@@ -563,12 +784,29 @@ function winTurns(): Turn[] {
       intent: ["question", 0.94],
       target: [c("pryce"), "Dr. Henry Pryce", 0.95],
       classification: ["on_script", 0.92],
-      outcome: { kind: "questioned", summary: "Pryce may reveal the wounds.", reputationDelta: 5, offScriptDelta: 0 },
+      outcome: {
+        kind: "questioned",
+        summary: "Pryce may reveal the wounds.",
+        reputationDelta: 5,
+        offScriptDelta: 0,
+      },
       directive: "Allowed reveal: C1.",
-      passage: "\"One blade,\" Pryce said. \"Hooked. The same hand every time.\"",
-      discovery: [{ target: { kind: "clue", entryId: c("c1") }, question: "Did the Draft reveal the matching wounds?", probability: 0.91, revealed: true }],
+      passage: '"One blade," Pryce said. "Hooked. The same hand every time."',
+      discovery: [
+        {
+          target: { kind: "clue", entryId: c("c1") },
+          question: "Did the Draft reveal the matching wounds?",
+          probability: 0.91,
+          revealed: true,
+        },
+      ],
       background: done(0),
-      state: state({ locationId: c("yard"), arcIndex: 1, cluesFound: [c("c1")], reputation: 65 }),
+      state: state({
+        locationId: c("yard"),
+        arcIndex: 1,
+        cluesFound: [c("c1")],
+        reputation: 65,
+      }),
     }),
     buildTurn(s, {
       idx: 2,
@@ -577,12 +815,30 @@ function winTurns(): Turn[] {
       intent: ["examine", 0.9],
       target: ["none", "none", 0.8],
       classification: ["on_script", 0.9],
-      outcome: { kind: "examined", summary: "C2 is discoverable at the docks.", reputationDelta: 5, offScriptDelta: 0 },
+      outcome: {
+        kind: "examined",
+        summary: "C2 is discoverable at the docks.",
+        reputationDelta: 5,
+        offScriptDelta: 0,
+      },
       directive: "Discoverable: C2.",
-      passage: "On a nail by the chandlery door hung a torn page of accounts. Three names on it had been underlined, hard.",
-      discovery: [{ target: { kind: "clue", entryId: c("c2") }, question: "Did the Draft reveal the ledger page?", probability: 0.89, revealed: true }],
+      passage:
+        "On a nail by the chandlery door hung a torn page of accounts. Three names on it had been underlined, hard.",
+      discovery: [
+        {
+          target: { kind: "clue", entryId: c("c2") },
+          question: "Did the Draft reveal the ledger page?",
+          probability: 0.89,
+          revealed: true,
+        },
+      ],
       background: done(2),
-      state: state({ locationId: c("docks"), arcIndex: 2, cluesFound: [c("c1"), c("c2")], reputation: 70 }),
+      state: state({
+        locationId: c("docks"),
+        arcIndex: 2,
+        cluesFound: [c("c1"), c("c2")],
+        reputation: 70,
+      }),
     }),
     buildTurn(s, {
       idx: 3,
@@ -591,12 +847,30 @@ function winTurns(): Turn[] {
       intent: ["question", 0.92],
       target: [c("nell"), "Nell Garvey", 0.93],
       classification: ["on_script", 0.91],
-      outcome: { kind: "questioned", summary: "Nell may reveal what she saw at normal Band.", reputationDelta: 5, offScriptDelta: 0 },
+      outcome: {
+        kind: "questioned",
+        summary: "Nell may reveal what she saw at normal Band.",
+        reputationDelta: 5,
+        offScriptDelta: 0,
+      },
       directive: "Allowed reveal: C3. High Band: Nell is warm with Jacob.",
-      passage: "\"A clerk,\" Nell said, turning a violet in her fingers. \"Young. Good coat. Came out of Carrow's before it was light.\"",
-      discovery: [{ target: { kind: "clue", entryId: c("c3") }, question: "Did the Draft reveal the young clerk?", probability: 0.9, revealed: true }],
+      passage:
+        '"A clerk," Nell said, turning a violet in her fingers. "Young. Good coat. Came out of Carrow\'s before it was light."',
+      discovery: [
+        {
+          target: { kind: "clue", entryId: c("c3") },
+          question: "Did the Draft reveal the young clerk?",
+          probability: 0.9,
+          revealed: true,
+        },
+      ],
       background: done(0),
-      state: state({ locationId: c("spitalfields"), arcIndex: 2, cluesFound: [c("c1"), c("c2"), c("c3")], reputation: 75 }),
+      state: state({
+        locationId: c("spitalfields"),
+        arcIndex: 2,
+        cluesFound: [c("c1"), c("c2"), c("c3")],
+        reputation: 75,
+      }),
     }),
     buildTurn(s, {
       idx: 4,
@@ -607,7 +881,8 @@ function winTurns(): Turn[] {
       classification: ["on_script", 0.95],
       outcome: {
         kind: "decisive_success",
-        summary: "Three of the four required Clues are found: the arrest succeeds and the story is won.",
+        summary:
+          "Three of the four required Clues are found: the arrest succeeds and the story is won.",
         reputationDelta: 0,
         offScriptDelta: 0,
         ending: "win",
@@ -616,7 +891,13 @@ function winTurns(): Turn[] {
       passage:
         "Max Rober put down his pen when he saw them, and squared the papers on his desk before he stood. He did not ask why. On the walk to the Yard he said only one thing: that his father would read about it in the morning.",
       background: done(0),
-      state: state({ locationId: c("docks"), arcIndex: 2, cluesFound: [c("c1"), c("c2"), c("c3")], reputation: 75, ending: "win" }),
+      state: state({
+        locationId: c("docks"),
+        arcIndex: 2,
+        cluesFound: [c("c1"), c("c2"), c("c3")],
+        reputation: 75,
+        ending: "win",
+      }),
     }),
   ]
 }
@@ -633,22 +914,30 @@ function deathTurns(): Turn[] {
       intent: ["move", 0.96],
       target: [c("spitalfields"), "Spitalfields Market", 0.95],
       classification: ["on_script", 0.9],
-      outcome: { kind: "moved", summary: "Jacob moves to Spitalfields Market.", reputationDelta: 0, offScriptDelta: 0 },
+      outcome: {
+        kind: "moved",
+        summary: "Jacob moves to Spitalfields Market.",
+        reputationDelta: 0,
+        offScriptDelta: 0,
+      },
       directive: "Scene: Spitalfields Market before dawn.",
-      passage: "The market was waking in the dark: carts, lanterns, a boy asleep on a sack of onions.",
+      passage:
+        "The market was waking in the dark: carts, lanterns, a boy asleep on a sack of onions.",
       background: background({ arcAdvancedTo: 1 }),
       state: state({ locationId: c("spitalfields"), arcIndex: 1 }),
     }),
     buildTurn(s, {
       idx: 2,
       minutes: 306,
-      input: "I follow the young clerk into Carrow's warehouse alone, unarmed, in the dark.",
+      input:
+        "I follow the young clerk into Carrow's warehouse alone, unarmed, in the dark.",
       intent: ["move", 0.8],
       target: [c("spitalfields"), "Spitalfields Market", 0.72],
       classification: ["reckless", 0.88],
       outcome: {
         kind: "reckless_death",
-        summary: "Death roll 0.12 against odds of 0.35: the action is lethal. The story ends in death.",
+        summary:
+          "Death roll 0.12 against odds of 0.35: the action is lethal. The story ends in death.",
         reputationDelta: 0,
         offScriptDelta: 0,
         deathRoll: { odds: 0.35, roll: 0.12, lethal: true },
@@ -658,7 +947,11 @@ function deathTurns(): Turn[] {
       passage:
         "The warehouse door was open, which should have told him something. Inside it smelled of tea and cold iron. Jacob heard the step behind him a moment too late, and then he heard nothing at all.",
       background: background(),
-      state: state({ locationId: c("spitalfields"), arcIndex: 1, ending: "death" }),
+      state: state({
+        locationId: c("spitalfields"),
+        arcIndex: 1,
+        ending: "death",
+      }),
     }),
   ]
 }
@@ -667,7 +960,17 @@ function removedTurns(): Turn[] {
   const s = SESSION_IDS.removed
   const c = (key: string) => copyId(s, `${PREFIX}-${key}`)
   const yard = c("yard")
-  const offScript = (idx: number, minutes: number, input: string, passage: string, directive: string, count: number, rep: number, warnings: number[], ending: "none" | "removed" = "none") =>
+  const offScript = (
+    idx: number,
+    minutes: number,
+    input: string,
+    passage: string,
+    directive: string,
+    count: number,
+    rep: number,
+    warnings: number[],
+    ending: "none" | "removed" = "none"
+  ) =>
     buildTurn(s, {
       idx,
       minutes,
@@ -688,14 +991,57 @@ function removedTurns(): Turn[] {
       directive,
       passage,
       background: background(),
-      state: state({ locationId: yard, reputation: rep, offScriptCount: count, warningsGiven: warnings, ending }),
+      state: state({
+        locationId: yard,
+        reputation: rep,
+        offScriptCount: count,
+        warningsGiven: warnings,
+        ending,
+      }),
     })
   return [
     seededOpening(s, 400),
-    offScript(1, 402, "I insult Captain James in front of his men.", "The room went quiet. Captain James looked at Jacob the way a man looks at a stain.", "Off-script. Low patience from the Captain.", 1, 50, []),
-    offScript(2, 405, "I tear up the case file.", "\"That,\" said the Captain, very softly, \"was the only copy. You have had your warning, Mr. Flannery.\"", "Off-script count 2: the Captain warns Jacob in the story.", 2, 40, [2]),
-    offScript(3, 408, "I tell the newspapers the Yard is useless.", "The morning papers carried his words by nine. By ten the Captain had them pinned to his door. \"Once more,\" he said, \"and you are on the boat home.\"", "Off-script count 3: final warning in the story.", 3, 30, [2, 3]),
-    offScript(4, 412, "I walk out of the Yard and spend the day in a public house.", "When Jacob came back, his desk had been cleared. The Captain did not look up. \"The Home Office thanks you for your time,\" he said. \"Your ship sails on Thursday.\"", "Ending: removed. The Captain takes Jacob off the case.", 4, 20, [2, 3], "removed"),
+    offScript(
+      1,
+      402,
+      "I insult Captain James in front of his men.",
+      "The room went quiet. Captain James looked at Jacob the way a man looks at a stain.",
+      "Off-script. Low patience from the Captain.",
+      1,
+      50,
+      []
+    ),
+    offScript(
+      2,
+      405,
+      "I tear up the case file.",
+      '"That," said the Captain, very softly, "was the only copy. You have had your warning, Mr. Flannery."',
+      "Off-script count 2: the Captain warns Jacob in the story.",
+      2,
+      40,
+      [2]
+    ),
+    offScript(
+      3,
+      408,
+      "I tell the newspapers the Yard is useless.",
+      'The morning papers carried his words by nine. By ten the Captain had them pinned to his door. "Once more," he said, "and you are on the boat home."',
+      "Off-script count 3: final warning in the story.",
+      3,
+      30,
+      [2, 3]
+    ),
+    offScript(
+      4,
+      412,
+      "I walk out of the Yard and spend the day in a public house.",
+      'When Jacob came back, his desk had been cleared. The Captain did not look up. "The Home Office thanks you for your time," he said. "Your ship sails on Thursday."',
+      "Ending: removed. The Captain takes Jacob off the case.",
+      4,
+      20,
+      [2, 3],
+      "removed"
+    ),
   ]
 }
 
@@ -709,7 +1055,13 @@ function removedTurns(): Turn[] {
 // Forced scenarios swap in the Ending steps or extra Rounds.
 
 /** A character the Drafter names from a Passage during background work. */
-export type ScriptNpc = { name: string; description: string; role: string; personality: string; backstory: string }
+export type ScriptNpc = {
+  name: string
+  description: string
+  role: string
+  personality: string
+  backstory: string
+}
 
 export type ScriptStep = {
   key: string
@@ -719,7 +1071,12 @@ export type ScriptStep = {
   /** Template key of the targeted Entry (or "none"), with the Judge's probability. */
   target: [string, number]
   classification: [Classification, number]
-  outcome: { kind: Outcome["kind"]; summary: string; reputationDelta?: number; offScriptDelta?: number }
+  outcome: {
+    kind: Outcome["kind"]
+    summary: string
+    reputationDelta?: number
+    offScriptDelta?: number
+  }
   directive: string
   /** Template key of the Location the Passage is set in; the Player's Location when omitted. */
   location?: string
@@ -741,40 +1098,74 @@ export const TURN_SCRIPT: ScriptStep[] = [
     intent: ["examine", 0.9],
     target: ["geoffrey", 0.64],
     classification: ["on_script", 0.92],
-    outcome: { kind: "narrated", summary: "Jacob reads the case file; nothing is decided." },
-    directive: "Arc 1, Introduction. Captain James hands over the file with visible reluctance. Normal Band: he is civil, not warm.",
+    outcome: {
+      kind: "narrated",
+      summary: "Jacob reads the case file; nothing is decided.",
+    },
+    directive:
+      "Arc 1, Introduction. Captain James hands over the file with visible reluctance. Normal Band: he is civil, not warm.",
     location: "yard",
     passage:
       "Captain James kept the file in a drawer he had to unlock, as though the dead might get out. Three merchants in three weeks, all east of the Tower: Whitlock the draper, Carrow the tea importer, Ashby the ship's broker. Each killed before dawn by a single wound, and none of them robbed of so much as a watch. Jacob read it twice. The Captain watched him from the window and offered nothing but the weather.",
-    alternative: "The file was thin for three dead men. Captain James let Jacob read it standing, and did not ask what he thought.",
+    alternative:
+      "The file was thin for three dead men. Captain James let Jacob read it standing, and did not ask what he thought.",
   },
   {
     key: "amanda",
-    keywords: ["amanda", "hopkins", "victims", "trade", "common", "money", "ledgers"],
+    keywords: [
+      "amanda",
+      "hopkins",
+      "victims",
+      "trade",
+      "common",
+      "money",
+      "ledgers",
+    ],
     intent: ["question", 0.95],
     target: ["amanda", 0.95],
     classification: ["on_script", 0.91],
-    outcome: { kind: "questioned", summary: "Amanda may reveal what she knows at normal Band." },
-    directive: "Allowed reveal: Amanda on the victims' trade. She is precise and a little amused.",
+    outcome: {
+      kind: "questioned",
+      summary: "Amanda may reveal what she knows at normal Band.",
+    },
+    directive:
+      "Allowed reveal: Amanda on the victims' trade. She is precise and a little amused.",
     location: "yard",
     reveals: ["k-amanda"],
     passage:
-      "Amanda Hopkins had the victims' papers spread across her desk before Jacob finished the question. \"Whitlock, Carrow, Ashby,\" she said, tapping each in turn. \"Different trades, different parishes. But every one of them lent money to the same house: Rober and Sons, wool, down at St Katharine's.\" She closed the folder. \"Nobody upstairs thinks that matters. Nobody upstairs has read a ledger since the Crimea.\"",
-    alternative: "\"Money,\" Hopkins said, without looking up. \"It is always money, and this time it is Rober and Sons.\"",
+      'Amanda Hopkins had the victims\' papers spread across her desk before Jacob finished the question. "Whitlock, Carrow, Ashby," she said, tapping each in turn. "Different trades, different parishes. But every one of them lent money to the same house: Rober and Sons, wool, down at St Katharine\'s." She closed the folder. "Nobody upstairs thinks that matters. Nobody upstairs has read a ledger since the Crimea."',
+    alternative:
+      '"Money," Hopkins said, without looking up. "It is always money, and this time it is Rober and Sons."',
   },
   {
     key: "pryce",
-    keywords: ["pryce", "surgeon", "doctor", "wound", "wounds", "bodies", "body", "mortuary", "blade", "knife"],
+    keywords: [
+      "pryce",
+      "surgeon",
+      "doctor",
+      "wound",
+      "wounds",
+      "bodies",
+      "body",
+      "mortuary",
+      "blade",
+      "knife",
+    ],
     intent: ["question", 0.94],
     target: ["pryce", 0.95],
     classification: ["on_script", 0.92],
-    outcome: { kind: "questioned", summary: "Pryce may reveal what he knows at low Band or above." },
-    directive: "Allowed reveal: Pryce on the wounds (C1). He enjoys Jacob's bluntness.",
+    outcome: {
+      kind: "questioned",
+      summary: "Pryce may reveal what he knows at low Band or above.",
+    },
+    directive:
+      "Allowed reveal: Pryce on the wounds (C1). He enjoys Jacob's bluntness.",
     location: "yard",
     reveals: ["k-pryce", "c1"],
     passage:
-      "Dr. Pryce received him in the cold room below the Yard, drying his hands on a towel that had seen better decades. \"Same blade, all three,\" he said. \"Short, hooked, kept very sharp. One stroke, from the right, by a man of middling height who was not in a hurry.\" He folded the towel with great care. \"Whoever he is, Mr. Flannery, he has thought about this for a long time.\"",
-    alternative: "Pryce laid three drawings side by side. \"One blade,\" he said. \"Hooked. The same hand every time.\"",
+      'Dr. Pryce received him in the cold room below the Yard, drying his hands on a towel that had seen better decades. "Same blade, all three," he said. "Short, hooked, kept very sharp. One stroke, from the right, by a man of middling height who was not in a hurry." He folded the towel with great care. "Whoever he is, Mr. Flannery, he has thought about this for a long time."',
+    alternative:
+      'Pryce laid three drawings side by side. "One blade," he said. "Hooked. The same hand every time."',
   },
   {
     key: "whitechapel",
@@ -782,17 +1173,23 @@ export const TURN_SCRIPT: ScriptStep[] = [
     intent: ["move", 0.96],
     target: ["whitechapel", 0.95],
     classification: ["on_script", 0.89],
-    outcome: { kind: "moved", summary: "Jacob moves to Whitechapel High Street." },
-    directive: "Scene: Whitechapel High Street, morning. Describe only this street.",
+    outcome: {
+      kind: "moved",
+      summary: "Jacob moves to Whitechapel High Street.",
+    },
+    directive:
+      "Scene: Whitechapel High Street, morning. Describe only this street.",
     location: "whitechapel",
     oneRejected: true,
     passage:
       "Whitechapel High Street was all barrows, breath and wet straw. The draper's shop where Whitlock died still had its shutters up, painted over in black, and a woman in mourning was sweeping the step as though she could sweep the whole business away. Costermongers called their prices. Nobody looked at the shop, which was how Jacob knew that everybody remembered it.",
-    alternative: "The street smelled of wet straw and coal smoke. The draper's shutters were painted black.",
+    alternative:
+      "The street smelled of wet straw and coal smoke. The draper's shutters were painted black.",
     newNpcs: [
       {
         name: "Ada Pruitt",
-        description: "Whitlock's widowed sister, who keeps the draper's shop open for the sake of its creditors.",
+        description:
+          "Whitlock's widowed sister, who keeps the draper's shop open for the sake of its creditors.",
         role: "Draper's sister",
         personality: "Brisk, proud, tired of policemen.",
         backstory: "Kept house for her brother for eleven years.",
@@ -801,49 +1198,89 @@ export const TURN_SCRIPT: ScriptStep[] = [
   },
   {
     key: "ground",
-    keywords: ["ground", "gutter", "search", "examine", "look around", "step", "shop"],
+    keywords: [
+      "ground",
+      "gutter",
+      "search",
+      "examine",
+      "look around",
+      "step",
+      "shop",
+    ],
     intent: ["examine", 0.93],
     target: ["none", 0.81],
     classification: ["on_script", 0.9],
-    outcome: { kind: "examined", summary: "C5, the docker's cap, is discoverable here." },
-    directive: "Discoverable: C5 (a labelled red herring). Let the constables be pleased with it.",
+    outcome: {
+      kind: "examined",
+      summary: "C5, the docker's cap, is discoverable here.",
+    },
+    directive:
+      "Discoverable: C5 (a labelled red herring). Let the constables be pleased with it.",
     location: "whitechapel",
     reveals: ["c5"],
     passage:
       "In the gutter by the shop step lay a docker's cap, sodden and trodden flat, with a green ribbon stitched inside the band. The constable at the door looked delighted with it. Jacob turned it over with the end of his cane. It had lain there a good deal longer than a week, and the constable, who had not thought of that, went on looking delighted.",
-    alternative: "A docker's cap lay in the gutter. The constable on the door was very pleased with it.",
+    alternative:
+      "A docker's cap lay in the gutter. The constable on the door was very pleased with it.",
   },
   {
     key: "nell",
-    keywords: ["nell", "garvey", "flower", "flowers", "violets", "spitalfields", "market", "witness"],
+    keywords: [
+      "nell",
+      "garvey",
+      "flower",
+      "flowers",
+      "violets",
+      "spitalfields",
+      "market",
+      "witness",
+    ],
     intent: ["question", 0.93],
     target: ["nell", 0.94],
     classification: ["on_script", 0.91],
-    outcome: { kind: "questioned", summary: "Nell may reveal what she saw at normal Band." },
+    outcome: {
+      kind: "questioned",
+      summary: "Nell may reveal what she saw at normal Band.",
+    },
     directive: "Allowed reveal: C3. Normal Band: Nell is wary, then fair.",
     location: "spitalfields",
     reveals: ["k-nell", "c3"],
     passage:
-      "Nell Garvey sold violets from a basket at the market's edge and priced her answers higher than her flowers. She let Jacob wait while she served two housemaids. \"A clerk,\" she said at last, turning a stem in her fingers. \"Young. Good coat, better boots. Came out of Carrow's side door before it was light, the morning they found him. Walked like he had somewhere to be and all day to get there.\"",
-    alternative: "\"A clerk,\" Nell said. \"Young, good coat. Out of Carrow's before it was light.\"",
+      'Nell Garvey sold violets from a basket at the market\'s edge and priced her answers higher than her flowers. She let Jacob wait while she served two housemaids. "A clerk," she said at last, turning a stem in her fingers. "Young. Good coat, better boots. Came out of Carrow\'s side door before it was light, the morning they found him. Walked like he had somewhere to be and all day to get there."',
+    alternative:
+      '"A clerk," Nell said. "Young, good coat. Out of Carrow\'s before it was light."',
   },
   {
     key: "docks",
-    keywords: ["docks", "dock", "quay", "katharine", "chandlery", "pembury", "wharf", "river"],
+    keywords: [
+      "docks",
+      "dock",
+      "quay",
+      "katharine",
+      "chandlery",
+      "pembury",
+      "wharf",
+      "river",
+    ],
     intent: ["examine", 0.88],
     target: ["docks", 0.9],
     classification: ["on_script", 0.88],
-    outcome: { kind: "examined", summary: "C2 is discoverable at St Katharine Docks." },
+    outcome: {
+      kind: "examined",
+      summary: "C2 is discoverable at St Katharine Docks.",
+    },
     directive: "Scene: St Katharine Docks by day. Discoverable: C2.",
     location: "docks",
     reveals: ["c2"],
     passage:
       "St Katharine Docks smelled of tar, tea and river. The ships' chandler was shouting at a boy about rope and did not stop to look at Jacob. By the chandlery door, caught on a nail at the height of a man's hand, a torn page of accounts lifted and fell in the wind. Three names on it had been underlined, hard enough to cut the paper: Whitlock, Carrow, Ashby.",
-    alternative: "On a nail by the chandlery hung a torn page of accounts. Three names were underlined.",
+    alternative:
+      "On a nail by the chandlery hung a torn page of accounts. Three names were underlined.",
     newNpcs: [
       {
         name: "Silas Pembury",
-        description: "The ships' chandler on the quay at St Katharine Docks. Loud, and sees who comes and goes.",
+        description:
+          "The ships' chandler on the quay at St Katharine Docks. Loud, and sees who comes and goes.",
         role: "Ships' chandler",
         personality: "Loud, quick to anger, quicker to forget.",
         backstory: "Has kept the chandlery on the quay since the docks opened.",
@@ -856,13 +1293,18 @@ export const TURN_SCRIPT: ScriptStep[] = [
     intent: ["examine", 0.91],
     target: ["spitalfields", 0.77],
     classification: ["on_script", 0.9],
-    outcome: { kind: "examined", summary: "C4 is discoverable behind Carrow's warehouse." },
-    directive: "Scene: behind Carrow's warehouse at Spitalfields Market. Discoverable: C4.",
+    outcome: {
+      kind: "examined",
+      summary: "C4 is discoverable behind Carrow's warehouse.",
+    },
+    directive:
+      "Scene: behind Carrow's warehouse at Spitalfields Market. Discoverable: C4.",
     location: "spitalfields",
     reveals: ["c4"],
     passage:
       "Behind Carrow's warehouse the straw had been raked into a heap and left to rot. Jacob went through it on his knees while a carter watched with open interest. At the bottom, where the damp had kept it, lay a silver cufflink, one of a pair. The engraving was worn, but plain enough: J.R.",
-    alternative: "In the rotting straw behind the warehouse lay a silver cufflink engraved J.R.",
+    alternative:
+      "In the rotting straw behind the warehouse lay a silver cufflink engraved J.R.",
   },
   {
     key: "josiah",
@@ -870,12 +1312,17 @@ export const TURN_SCRIPT: ScriptStep[] = [
     intent: ["question", 0.9],
     target: ["josiah", 0.92],
     classification: ["on_script", 0.86],
-    outcome: { kind: "questioned", summary: "Josiah reveals nothing below high Band." },
-    directive: "No allowed reveals: Josiah's Knowledge needs high Band. He is proud and gives nothing about his family.",
+    outcome: {
+      kind: "questioned",
+      summary: "Josiah reveals nothing below high Band.",
+    },
+    directive:
+      "No allowed reveals: Josiah's Knowledge needs high Band. He is proud and gives nothing about his family.",
     location: "docks",
     passage:
       "Josiah Rober received him standing, in an office that smelled of lanolin and money, and did not offer a chair. He answered every question about his debtors with a date and a figure. When the questions turned toward his family, the merchant looked at the clock on the wall until the silence did the work of showing Jacob out.",
-    alternative: "Josiah Rober answered with dates and figures, and nothing else.",
+    alternative:
+      "Josiah Rober answered with dates and figures, and nothing else.",
   },
 ]
 
@@ -887,11 +1334,16 @@ export const TANGENTIAL_STEPS: ScriptStep[] = [
     intent: ["other", 0.74],
     target: ["none", 0.86],
     classification: ["tangential", 0.71],
-    outcome: { kind: "narrated", summary: "Nothing in the story depends on this; it is narrated." },
-    directive: "Tangential action. Narrate it briefly; no reveals, no new places.",
+    outcome: {
+      kind: "narrated",
+      summary: "Nothing in the story depends on this; it is narrated.",
+    },
+    directive:
+      "Tangential action. Narrate it briefly; no reveals, no new places.",
     passage:
       "The fog came up from the river in the afternoon and did not go home. Jacob found a coffee stall under the railway arches and drank something that had been introduced to coffee once, briefly. Around him London went about its business, and none of its business was his case.",
-    alternative: "The fog came up from the river. Jacob drank bad coffee under the arches.",
+    alternative:
+      "The fog came up from the river. Jacob drank bad coffee under the arches.",
   },
   {
     key: "lamps",
@@ -899,11 +1351,16 @@ export const TANGENTIAL_STEPS: ScriptStep[] = [
     intent: ["other", 0.7],
     target: ["none", 0.84],
     classification: ["tangential", 0.68],
-    outcome: { kind: "narrated", summary: "Nothing in the story depends on this; it is narrated." },
-    directive: "Tangential action. Narrate it briefly; no reveals, no new places.",
+    outcome: {
+      kind: "narrated",
+      summary: "Nothing in the story depends on this; it is narrated.",
+    },
+    directive:
+      "Tangential action. Narrate it briefly; no reveals, no new places.",
     passage:
       "A newsboy was selling the killings on every corner, with a drawing of the murderer on the front page who looked like nobody at all. The gas lamps came on one by one. Jacob stood a while and watched the crowd, and the case sat in his pocket like a stone.",
-    alternative: "The gas lamps came on one by one, and the case sat in Jacob's pocket like a stone.",
+    alternative:
+      "The gas lamps came on one by one, and the case sat in Jacob's pocket like a stone.",
   },
 ]
 
@@ -913,7 +1370,11 @@ export const TANGENTIAL_STEPS: ScriptStep[] = [
 // differently; the Session's seed picks one, so a replay starts the same way.
 // None reveals anything: Jacob arrives, and the case is only in the air.
 
-export type OpeningScript = { key: string; passage: string; alternative: string }
+export type OpeningScript = {
+  key: string
+  passage: string
+  alternative: string
+}
 
 export const OPENING_DIRECTIVE =
   "Opening. Set the first scene: Jacob arrives at Scotland Yard, Arc 1 (Introduction) under way. No reveals. Jacob does nothing beyond arriving. Normal Band."
@@ -957,7 +1418,11 @@ export const ENDING_STEPS: Record<ForcedEnding, ScriptStep> = {
     intent: ["arrest", 0.95],
     target: ["max", 0.94],
     classification: ["on_script", 0.95],
-    outcome: { kind: "decisive_success", summary: "The arrest of the right man with the Clues it needs succeeds: the story is won." },
+    outcome: {
+      kind: "decisive_success",
+      summary:
+        "The arrest of the right man with the Clues it needs succeeds: the story is won.",
+    },
     directive: "Ending: win. Narrate the arrest. Max goes quietly.",
     location: "docks",
     passage:
@@ -983,11 +1448,16 @@ export const ENDING_STEPS: Record<ForcedEnding, ScriptStep> = {
     intent: ["other", 0.83],
     target: ["geoffrey", 0.7],
     classification: ["off_script", 0.86],
-    outcome: { kind: "off_script", summary: "", reputationDelta: ENGINE_CONFIG.offScriptPenalty, offScriptDelta: 1 },
+    outcome: {
+      kind: "off_script",
+      summary: "",
+      reputationDelta: ENGINE_CONFIG.offScriptPenalty,
+      offScriptDelta: 1,
+    },
     directive: "Ending: removed. The Captain takes Jacob off the case.",
     location: "yard",
     passage:
-      "When Jacob came back to the Yard his desk had been cleared and his coat hung on the door. Captain James did not look up from his papers. \"The Home Office thanks you for your time, Mr. Flannery,\" he said. \"Your ship sails on Thursday. Someone will see you to it.\"",
+      'When Jacob came back to the Yard his desk had been cleared and his coat hung on the door. Captain James did not look up from his papers. "The Home Office thanks you for your time, Mr. Flannery," he said. "Your ship sails on Thursday. Someone will see you to it."',
     alternative: "His desk had been cleared. The Captain did not look up.",
   },
 }
@@ -996,7 +1466,11 @@ export const ENDING_STEPS: Record<ForcedEnding, ScriptStep> = {
 
 export function getSession(id: string): Session {
   const session = getStore().sessions.get(id)
-  if (!session) throw new StoreError("not_found", `There is no Session "${id}". Start a new one from its World.`)
+  if (!session)
+    throw new StoreError(
+      "not_found",
+      `There is no Session "${id}". Start a new one from its World.`
+    )
   return session
 }
 
@@ -1009,10 +1483,16 @@ export function listTurns(sessionId: string): Turn[] {
  * and moves a World in review to ready. The World must have passed setup's
  * solvability check.
  */
-export function createSession(request: { worldId: string; mode: "harness" | "baseline" }): CreateSessionResponse {
+export function createSession(request: {
+  worldId: string
+  mode: "harness" | "baseline"
+}): CreateSessionResponse {
   const world = getWorld(request.worldId)
   if (world.setupStatus === "draft" || world.setupStatus === "drafting") {
-    throw new StoreError("conflict", "This World has not finished setup. Run setup and review its Entries before starting a Session.")
+    throw new StoreError(
+      "conflict",
+      "This World has not finished setup. Run setup and review its Entries before starting a Session."
+    )
   }
   if (!world.solvability?.passed) {
     const gap = world.solvability?.gaps[0]?.message
@@ -1032,23 +1512,31 @@ export function createSession(request: { worldId: string; mode: "harness" | "bas
     createdAt: now,
     updatedAt: now,
   }
-  const worldEntries = [...store.entries.values()].filter((entry) => entry.worldId === world.id && entry.sessionId === null)
-  const entries = copyEntriesForSession(worldEntries, session.id, { now, newId: (entry) => copyId(session.id, entry.id) })
+  const worldEntries = [...store.entries.values()].filter(
+    (entry) => entry.worldId === world.id && entry.sessionId === null
+  )
+  const entries = copyEntriesForSession(worldEntries, session.id, {
+    now,
+    newId: (entry) => copyId(session.id, entry.id),
+  })
 
   store.sessions.set(session.id, session)
   store.turns.set(session.id, [])
   for (const entry of entries) store.entries.set(entry.id, entry)
-  if (world.setupStatus === "review") saveWorld({ ...world, setupStatus: "ready", updatedAt: now })
+  if (world.setupStatus === "review")
+    saveWorld({ ...world, setupStatus: "ready", updatedAt: now })
   return { session, entries }
 }
-
 
 /** A Session with the World it is played in, as `GET /api/sessions/[id]` returns it. */
 export function getSessionView(id: string) {
   const session = getSession(id)
   const siblings = [...getStore().sessions.values()]
     .filter((other) => other.worldId === session.worldId)
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))
+    .sort(
+      (a, b) =>
+        a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)
+    )
   return {
     session,
     sessionNumber: siblings.findIndex((other) => other.id === session.id) + 1,
@@ -1081,15 +1569,26 @@ function liveSessionEntries(sessionId: string) {
 }
 
 function playerName(entries: readonly Entry[]) {
-  const player = entries.find((entry) => entry.kind === "character" && entry.data.isPlayer)
+  const player = entries.find(
+    (entry) => entry.kind === "character" && entry.data.isPlayer
+  )
   return player?.name || "the Player character"
 }
 
 /** The Player state before the first Turn: at the start Location, first Arc, starting Reputation. */
 export function initialState(entries: readonly Entry[]): PlayerState {
-  const locations = entries.filter((entry) => entry.kind === "location" && isLiveEntry(entry))
-  const start = locations.find((entry) => entry.kind === "location" && entry.data.isStart) ?? locations[0]
-  if (!start) throw new StoreError("conflict", "This Session has no Location to start in. Accept a Location in the Codex, then try again.")
+  const locations = entries.filter(
+    (entry) => entry.kind === "location" && isLiveEntry(entry)
+  )
+  const start =
+    locations.find(
+      (entry) => entry.kind === "location" && entry.data.isStart
+    ) ?? locations[0]
+  if (!start)
+    throw new StoreError(
+      "conflict",
+      "This Session has no Location to start in. Accept a Location in the Codex, then try again."
+    )
   return state({ locationId: start.id })
 }
 
@@ -1099,13 +1598,20 @@ function clampReputation(value: number) {
 }
 
 /** Picks the step for an input: the unplayed step with the most keyword hits, else a tangential one. */
-export function pickStep(input: string, playedPassages: ReadonlySet<string>, turnCount: number): ScriptStep {
+export function pickStep(
+  input: string,
+  playedPassages: ReadonlySet<string>,
+  turnCount: number
+): ScriptStep {
   const text = ` ${input.toLowerCase().replace(/[^a-z0-9' ]+/g, " ")} `
   let best: ScriptStep | null = null
   let bestHits = 0
   for (const step of TURN_SCRIPT) {
     if (playedPassages.has(step.passage)) continue
-    const hits = step.keywords.filter((keyword) => text.includes(` ${keyword} `) || text.includes(` ${keyword}'s `)).length
+    const hits = step.keywords.filter(
+      (keyword) =>
+        text.includes(` ${keyword} `) || text.includes(` ${keyword}'s `)
+    ).length
     if (hits > bestHits) {
       best = step
       bestHits = hits
@@ -1116,36 +1622,57 @@ export function pickStep(input: string, playedPassages: ReadonlySet<string>, tur
 
 export type RoundsMode = "script" | "second-round" | "flagged"
 
-const FAILING_DRAFTS: { text: string; rule: Rule; probability: number; feedback: string }[] = [
+const FAILING_DRAFTS: {
+  text: string
+  rule: Rule
+  probability: number
+  feedback: string
+}[] = [
   {
     text: "Jacob drew his revolver and fired a warning shot into the fog.",
     rule: "agency",
     probability: 0.74,
-    feedback: "Agency (0.74): the Draft has Jacob fire a revolver the Player never drew. Rewrite without adding his actions.",
+    feedback:
+      "Agency (0.74): the Draft has Jacob fire a revolver the Player never drew. Rewrite without adding his actions.",
   },
   {
     text: "Jacob hailed a cab for the Ten Bells, where every rumour in Whitechapel was for sale.",
     rule: "location",
     probability: 0.79,
-    feedback: "Location (0.79): the Draft introduces the Ten Bells as a place to go. Keep to the Codex's Locations.",
+    feedback:
+      "Location (0.79): the Draft introduces the Ten Bells as a place to go. Keep to the Codex's Locations.",
   },
   {
-    text: "\"I know who did it,\" Jacob announced, though he knew nothing of the kind.",
+    text: '"I know who did it," Jacob announced, though he knew nothing of the kind.',
     rule: "agency",
     probability: 0.66,
-    feedback: "Agency (0.66): the Draft has Jacob speak beyond the Player's input. Rewrite without adding his words.",
+    feedback:
+      "Agency (0.66): the Draft has Jacob speak beyond the Player's input. Rewrite without adding his words.",
   },
   {
     text: "Electric light spilled from the shop windows as Jacob passed.",
     rule: "period",
     probability: 0.72,
-    feedback: "Period (0.72): electric shop lighting is an anachronism for 1888 London. Use gas or oil.",
+    feedback:
+      "Period (0.72): electric shop lighting is an anachronism for 1888 London. Use gas or oil.",
   },
 ]
 
-function failingDraft(id: string, index: number, seed: number, options: Omit<RuleOptions, "seed">) {
+function failingDraft(
+  id: string,
+  index: number,
+  seed: number,
+  options: Omit<RuleOptions, "seed">
+) {
   const spec = FAILING_DRAFTS[index % FAILING_DRAFTS.length]
-  return { draft: buildDraft(id, spec.text, buildRules({ [spec.rule]: spec.probability }, { ...options, seed })), feedback: spec.feedback }
+  return {
+    draft: buildDraft(
+      id,
+      spec.text,
+      buildRules({ [spec.rule]: spec.probability }, { ...options, seed })
+    ),
+    feedback: spec.feedback,
+  }
 }
 
 /** The Rounds of a played Turn or an Opening: the script's own, or the forced second Round or flagged Turn. */
@@ -1156,7 +1683,8 @@ function roundsFor(
   seed: number,
   options: Omit<RuleOptions, "seed">
 ): Round[] {
-  const rules = (overrides: Partial<Record<Rule, number>> = {}, offset = 0) => buildRules(overrides, { ...options, seed: seed + offset })
+  const rules = (overrides: Partial<Record<Rule, number>> = {}, offset = 0) =>
+    buildRules(overrides, { ...options, seed: seed + offset })
   if (mode === "script") {
     if (step.oneRejected) {
       return [
@@ -1167,20 +1695,40 @@ function roundsFor(
       ]
     }
     return [
-      buildRound(1, [buildDraft(`${key}-r1a`, step.passage, rules(), true), buildDraft(`${key}-r1b`, step.alternative, rules({}, 3))]),
+      buildRound(1, [
+        buildDraft(`${key}-r1a`, step.passage, rules(), true),
+        buildDraft(`${key}-r1b`, step.alternative, rules({}, 3)),
+      ]),
     ]
   }
 
   const failed = (round: number) => {
-    const a = failingDraft(`${key}-r${round}a`, round * 2 - 2, seed + round, options)
-    const b = failingDraft(`${key}-r${round}b`, round * 2 - 1, seed + round + 1, options)
+    const a = failingDraft(
+      `${key}-r${round}a`,
+      round * 2 - 2,
+      seed + round,
+      options
+    )
+    const b = failingDraft(
+      `${key}-r${round}b`,
+      round * 2 - 1,
+      seed + round + 1,
+      options
+    )
     return { drafts: [a.draft, b.draft], feedback: [a.feedback, b.feedback] }
   }
   const round1 = failed(1)
   if (mode === "second-round") {
     return [
       buildRound(1, round1.drafts),
-      buildRound(2, [buildDraft(`${key}-r2a`, step.passage, rules({}, 5), true), buildDraft(`${key}-r2b`, step.alternative, rules({}, 6))], round1.feedback),
+      buildRound(
+        2,
+        [
+          buildDraft(`${key}-r2a`, step.passage, rules({}, 5), true),
+          buildDraft(`${key}-r2b`, step.alternative, rules({}, 6)),
+        ],
+        round1.feedback
+      ),
     ]
   }
   const round2 = failed(2)
@@ -1191,8 +1739,17 @@ function roundsFor(
     buildRound(
       3,
       [
-        buildDraft(`${key}-r3a`, step.passage, rules({ agency: 0.53 }, 7), true),
-        buildDraft(`${key}-r3b`, step.alternative, rules({ knowledge: 0.61, agency: 0.57 }, 8)),
+        buildDraft(
+          `${key}-r3a`,
+          step.passage,
+          rules({ agency: 0.53 }, 7),
+          true
+        ),
+        buildDraft(
+          `${key}-r3b`,
+          step.alternative,
+          rules({ knowledge: 0.61, agency: 0.57 }, 8)
+        ),
       ],
       round2.feedback
     ),
@@ -1200,7 +1757,11 @@ function roundsFor(
 }
 
 /** One step of a Turn's progress, as the Turn route streams it. */
-export type TurnPhaseStep = { phase: "reading" | "resolving" | "writing" | "judging"; round: number | null; ms: number }
+export type TurnPhaseStep = {
+  phase: "reading" | "resolving" | "writing" | "judging"
+  round: number | null
+  ms: number
+}
 
 /** Writing and judging, once per Round. */
 function roundPhases(rounds: readonly Round[]): TurnPhaseStep[] {
@@ -1222,44 +1783,83 @@ export type PlannedTurn = {
  * input, without saving anything. The last Turn's background work must be
  * settled first (`settleBackground`).
  */
-export function planTurn(sessionId: string, input: string, options: { rounds?: RoundsMode; ending?: ForcedEnding | null } = {}): PlannedTurn {
+export function planTurn(
+  sessionId: string,
+  input: string,
+  options: { rounds?: RoundsMode; ending?: ForcedEnding | null } = {}
+): PlannedTurn {
   const session = getSession(sessionId)
-  if (session.ending !== "none") throw new StoreError("conflict", "This Session has ended. Start a new Session from its World to play again.")
+  if (session.ending !== "none")
+    throw new StoreError(
+      "conflict",
+      "This Session has ended. Start a new Session from its World to play again."
+    )
   const turns = listTurns(sessionId)
   if (turns.length === 0) {
-    throw new StoreError("conflict", "This Session has not had its Opening yet. Reload the page to play it, then act.")
+    throw new StoreError(
+      "conflict",
+      "This Session has not had its Opening yet. Reload the page to play it, then act."
+    )
   }
   const previous = turns.at(-1)
   if (previous?.backgroundStatus === "pending") {
-    throw new StoreError("conflict", "The last Turn's background work is still running. Wait for it, then try again.")
+    throw new StoreError(
+      "conflict",
+      "The last Turn's background work is still running. Wait for it, then try again."
+    )
   }
   const { entries, byKey } = liveSessionEntries(sessionId)
   const before = previous?.state ?? initialState(entries)
   const idx = turns.length
   const ending = options.ending ?? null
-  const step = ending ? ENDING_STEPS[ending] : pickStep(input, new Set(turns.map((turn) => turn.passage)), idx)
+  const step = ending
+    ? ENDING_STEPS[ending]
+    : pickStep(input, new Set(turns.map((turn) => turn.passage)), idx)
   const name = playerName(entries)
 
   // Discovery: Clues and Knowledge the Passage reveals that were not known yet.
   const cluesFound = [...before.cluesFound]
-  const knowledgeRevealed: Record<string, string[]> = Object.fromEntries(Object.entries(before.knowledgeRevealed).map(([k, v]) => [k, [...v]]))
+  const knowledgeRevealed: Record<string, string[]> = Object.fromEntries(
+    Object.entries(before.knowledgeRevealed).map(([k, v]) => [k, [...v]])
+  )
   const discovery: Discovery[] = []
-  const required = new Set(entries.flatMap((entry) => (entry.kind === "decisive_action" ? entry.data.requires : [])))
+  const required = new Set(
+    entries.flatMap((entry) =>
+      entry.kind === "decisive_action" ? entry.data.requires : []
+    )
+  )
   let recovery = 0
   for (const key of step.reveals ?? []) {
     const entry = byKey.get(key)
     if (entry?.kind === "clue" && !cluesFound.includes(entry.id)) {
       cluesFound.push(entry.id)
       if (required.has(entry.id)) recovery += ENGINE_CONFIG.recovery
-      discovery.push({ target: { kind: "clue", entryId: entry.id }, question: `Did the Draft reveal ${entry.name.replace(/^[A-Z]{1,2}\d+ — /u, "").replace(/^./, (c) => c.toLowerCase())}?`, probability: 0.91, revealed: true })
+      discovery.push({
+        target: { kind: "clue", entryId: entry.id },
+        question: `Did the Draft reveal ${entry.name.replace(/^[A-Z]{1,2}\d+ — /u, "").replace(/^./, (c) => c.toLowerCase())}?`,
+        probability: 0.91,
+        revealed: true,
+      })
     }
-    if (entry?.kind === "knowledge" && !(knowledgeRevealed[entry.data.characterId] ?? []).includes(entry.id)) {
-      knowledgeRevealed[entry.data.characterId] = [...(knowledgeRevealed[entry.data.characterId] ?? []), entry.id]
-      discovery.push({ target: { kind: "knowledge", entryId: entry.id }, question: `Did the Draft reveal that ${entry.data.fact.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase())}?`, probability: 0.89, revealed: true })
+    if (
+      entry?.kind === "knowledge" &&
+      !(knowledgeRevealed[entry.data.characterId] ?? []).includes(entry.id)
+    ) {
+      knowledgeRevealed[entry.data.characterId] = [
+        ...(knowledgeRevealed[entry.data.characterId] ?? []),
+        entry.id,
+      ]
+      discovery.push({
+        target: { kind: "knowledge", entryId: entry.id },
+        question: `Did the Draft reveal that ${entry.data.fact.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase())}?`,
+        probability: 0.89,
+        revealed: true,
+      })
     }
   }
 
-  let offScriptCount = before.offScriptCount + (step.outcome.offScriptDelta ?? 0)
+  let offScriptCount =
+    before.offScriptCount + (step.outcome.offScriptDelta ?? 0)
   let summary = step.outcome.summary
   let deathRoll: Outcome["deathRoll"] = null
   if (ending === "removed") {
@@ -1267,14 +1867,23 @@ export function planTurn(sessionId: string, input: string, options: { rounds?: R
     summary = `Off-script count reaches ${offScriptCount}: ${name} is removed from the case.`
   }
   if (ending === "death") {
-    const odds = ENGINE_CONFIG.deathOddsPerArc[Math.min(before.arcIndex, ENGINE_CONFIG.deathOddsPerArc.length - 1)]
+    const odds =
+      ENGINE_CONFIG.deathOddsPerArc[
+        Math.min(before.arcIndex, ENGINE_CONFIG.deathOddsPerArc.length - 1)
+      ]
     deathRoll = { odds, roll: 0.07, lethal: true }
     summary = `Death roll 0.07 against odds of ${odds.toFixed(2)}: the action is lethal. The story ends in death.`
   }
   const reputationDelta = (step.outcome.reputationDelta ?? 0) + recovery
-  const warningsGiven = [...new Set([...before.warningsGiven, ...ENGINE_CONFIG.offScriptWarningsAt.filter((at) => at <= offScriptCount)])]
+  const warningsGiven = [
+    ...new Set([
+      ...before.warningsGiven,
+      ...ENGINE_CONFIG.offScriptWarningsAt.filter((at) => at <= offScriptCount),
+    ]),
+  ]
 
-  const target = step.target[0] === "none" ? undefined : byKey.get(step.target[0])
+  const target =
+    step.target[0] === "none" ? undefined : byKey.get(step.target[0])
   const location = step.location ? byKey.get(step.location) : undefined
   const after: PlayerState = {
     ...before,
@@ -1287,22 +1896,38 @@ export function planTurn(sessionId: string, input: string, options: { rounds?: R
     ending: ending ?? "none",
   }
 
-  const rounds = roundsFor(`${sessionId}-t${idx}`, step, options.rounds ?? "script", idx * 3 + 2, { endingTurn: ending !== null })
+  const rounds = roundsFor(
+    `${sessionId}-t${idx}`,
+    step,
+    options.rounds ?? "script",
+    idx * 3 + 2,
+    { endingTurn: ending !== null }
+  )
   const phases: TurnPhaseStep[] = [
     { phase: "reading", round: null, ms: 650 },
     { phase: "resolving", round: null, ms: 250 },
     ...roundPhases(rounds),
   ]
-  const spent = (phase: TurnPhaseStep["phase"]) => phases.filter((p) => p.phase === phase).reduce((sum, p) => sum + p.ms, 0)
+  const spent = (phase: TurnPhaseStep["phase"]) =>
+    phases.filter((p) => p.phase === phase).reduce((sum, p) => sum + p.ms, 0)
 
   const built = buildTurn(sessionId, {
     idx,
     minutes: 0,
     input,
     intent: step.intent,
-    target: target ? [target.id, target.name, step.target[1]] : ["none", "none", step.target[1]],
+    target: target
+      ? [target.id, target.name, step.target[1]]
+      : ["none", "none", step.target[1]],
     classification: step.classification,
-    outcome: { kind: step.outcome.kind, summary, reputationDelta, offScriptDelta: step.outcome.offScriptDelta ?? 0, deathRoll, ending: ending ?? "none" },
+    outcome: {
+      kind: step.outcome.kind,
+      summary,
+      reputationDelta,
+      offScriptDelta: step.outcome.offScriptDelta ?? 0,
+      deathRoll,
+      ending: ending ?? "none",
+    },
     directive: step.directive,
     passage: step.passage,
     rounds,
@@ -1336,16 +1961,29 @@ export function planTurn(sessionId: string, input: string, options: { rounds?: R
  * writing and judging. The seed picks which Opening; `rounds` forces extra
  * Rounds like any Turn.
  */
-export function planOpening(sessionId: string, options: { rounds?: RoundsMode } = {}): PlannedTurn {
+export function planOpening(
+  sessionId: string,
+  options: { rounds?: RoundsMode } = {}
+): PlannedTurn {
   const session = getSession(sessionId)
   if (listTurns(sessionId).length > 0) {
-    throw new StoreError("conflict", "This Session has already had its Opening. Reload the page to see it.")
+    throw new StoreError(
+      "conflict",
+      "This Session has already had its Opening. Reload the page to see it."
+    )
   }
   const { entries } = liveSessionEntries(sessionId)
   const script = pickOpening(session.seed)
-  const rounds = roundsFor(`${sessionId}-t${OPENING_IDX}`, script, options.rounds ?? "script", 2, { opening: true })
+  const rounds = roundsFor(
+    `${sessionId}-t${OPENING_IDX}`,
+    script,
+    options.rounds ?? "script",
+    2,
+    { opening: true }
+  )
   const phases = roundPhases(rounds)
-  const spent = (phase: TurnPhaseStep["phase"]) => phases.filter((p) => p.phase === phase).reduce((sum, p) => sum + p.ms, 0)
+  const spent = (phase: TurnPhaseStep["phase"]) =>
+    phases.filter((p) => p.phase === phase).reduce((sum, p) => sum + p.ms, 0)
   const built = buildOpening(sessionId, {
     minutes: 0,
     directive: OPENING_DIRECTIVE,
@@ -1399,11 +2037,17 @@ function openingsInFlight(): Set<string> {
 export function claimOpening(sessionId: string): () => void {
   getSession(sessionId)
   if (listTurns(sessionId).length > 0) {
-    throw new StoreError("conflict", "This Session has already had its Opening. Reload the page to see it.")
+    throw new StoreError(
+      "conflict",
+      "This Session has already had its Opening. Reload the page to see it."
+    )
   }
   const inFlight = openingsInFlight()
   if (inFlight.has(sessionId)) {
-    throw new StoreError("conflict", "This Session's Opening is already being written, perhaps in another tab. It appears here once it ships.")
+    throw new StoreError(
+      "conflict",
+      "This Session's Opening is already being written, perhaps in another tab. It appears here once it ships."
+    )
   }
   inFlight.add(sessionId)
   let released = false
@@ -1415,20 +2059,36 @@ export function claimOpening(sessionId: string): () => void {
 }
 
 /** Saves a planned Turn: the Turn row, the Session's Ending, and its background work (spec §9.1 step 7). */
-export function commitTurn(plan: PlannedTurn): { turn: Turn; session: Session } {
+export function commitTurn(plan: PlannedTurn): {
+  turn: Turn
+  session: Session
+} {
   const store = getStore()
   const session = getSession(plan.turn.sessionId)
   const turns = listTurns(session.id)
   if (turns.length !== plan.turn.idx || session.ending !== "none") {
-    throw new StoreError("conflict", "Another Turn finished first in this Session. Reload to see it.")
+    throw new StoreError(
+      "conflict",
+      "Another Turn finished first in this Session. Reload to see it."
+    )
   }
   // Written when the Passage ships, not when the Turn was planned.
-  const turn = turnSchema.parse({ ...plan.turn, createdAt: nowIso() } satisfies Turn)
-  const saved: Session = { ...session, ending: turn.state.ending, updatedAt: turn.createdAt }
+  const turn = turnSchema.parse({
+    ...plan.turn,
+    createdAt: nowIso(),
+  } satisfies Turn)
+  const saved: Session = {
+    ...session,
+    ending: turn.state.ending,
+    updatedAt: turn.createdAt,
+  }
   store.turns.set(session.id, [...turns, turn])
   store.sessions.set(session.id, saved)
   if (turn.backgroundStatus === "pending") {
-    backgroundJobs().set(turn.id, { dueAt: Date.parse(turn.createdAt) + BACKGROUND_MS, newNpcs: plan.newNpcs })
+    backgroundJobs().set(turn.id, {
+      dueAt: Date.parse(turn.createdAt) + BACKGROUND_MS,
+      newNpcs: plan.newNpcs,
+    })
   }
   return { turn, session: saved }
 }
@@ -1438,7 +2098,8 @@ export function commitTurn(plan: PlannedTurn): { turn: Turn; session: Session } 
 type BackgroundJob = { dueAt: number; newNpcs: ScriptNpc[] }
 
 declare global {
-  var __sandsBackgroundJobs: WeakMap<object, Map<string, BackgroundJob>> | undefined
+  var __sandsBackgroundJobs:
+    WeakMap<object, Map<string, BackgroundJob>> | undefined
 }
 
 /**
@@ -1458,7 +2119,9 @@ function backgroundJobs(): Map<string, BackgroundJob> {
 }
 
 /** The latest Turn's background work, if it is still running, with the time left. */
-export function pendingBackground(sessionId: string): { turnId: string; remainingMs: number } | null {
+export function pendingBackground(
+  sessionId: string
+): { turnId: string; remainingMs: number } | null {
   const last = listTurns(sessionId).at(-1)
   if (!last || last.backgroundStatus !== "pending") return null
   const jobs = backgroundJobs()
@@ -1472,21 +2135,37 @@ export function pendingBackground(sessionId: string): { turnId: string; remainin
 }
 
 function slug(name: string) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
 }
 
 /** Did the story meet this Exit condition, judging by the Session so far? */
-function exitConditionMet(key: string | null, turns: readonly Turn[], keyOf: (id: string) => string | null): boolean {
+function exitConditionMet(
+  key: string | null,
+  turns: readonly Turn[],
+  keyOf: (id: string) => string | null
+): boolean {
   const last = turns.at(-1)
   if (!last) return false
   // Arriving is not visiting: the Opening sets the scene, and the Player has done nothing yet.
-  const visited = new Set(turns.filter((turn) => !isOpening(turn)).map((turn) => keyOf(turn.state.locationId)))
-  const knowledge = new Set(Object.values(last.state.knowledgeRevealed).flat().map(keyOf))
+  const visited = new Set(
+    turns
+      .filter((turn) => !isOpening(turn))
+      .map((turn) => keyOf(turn.state.locationId))
+  )
+  const knowledge = new Set(
+    Object.values(last.state.knowledgeRevealed).flat().map(keyOf)
+  )
   switch (key) {
     case "exit-1":
       return visited.has("yard")
     case "exit-2":
-      return knowledge.has("k-amanda") && (visited.has("whitechapel") || visited.has("spitalfields"))
+      return (
+        knowledge.has("k-amanda") &&
+        (visited.has("whitechapel") || visited.has("spitalfields"))
+      )
     case "exit-3":
       return last.state.ending === "win"
     default:
@@ -1496,8 +2175,13 @@ function exitConditionMet(key: string | null, turns: readonly Turn[], keyOf: (id
 
 function madeProgress(turn: Turn, before: Turn | undefined) {
   if (!before) return true
-  const count = (t: Turn) => Object.values(t.state.knowledgeRevealed).flat().length
-  return turn.state.cluesFound.length > before.state.cluesFound.length || count(turn) > count(before) || turn.state.arcIndex > before.state.arcIndex
+  const count = (t: Turn) =>
+    Object.values(t.state.knowledgeRevealed).flat().length
+  return (
+    turn.state.cluesFound.length > before.state.cluesFound.length ||
+    count(turn) > count(before) ||
+    turn.state.arcIndex > before.state.arcIndex
+  )
 }
 
 /**
@@ -1506,7 +2190,10 @@ function madeProgress(turn: Turn, before: Turn | undefined) {
  * merges the results into that Turn's log and state (ADR-0006). Returns the
  * updated Turn and any new Entries, or null when nothing was pending or due.
  */
-export function settleBackground(sessionId: string, options: { force?: boolean } = {}): { turn: Turn; entries: Entry[] } | null {
+export function settleBackground(
+  sessionId: string,
+  options: { force?: boolean } = {}
+): { turn: Turn; entries: Entry[] } | null {
   const pending = pendingBackground(sessionId)
   if (!pending || (!options.force && pending.remainingMs > 0)) return null
   const store = getStore()
@@ -1518,7 +2205,9 @@ export function settleBackground(sessionId: string, options: { force?: boolean }
   const now = nowIso()
 
   // Extraction: named characters not in the Codex become proposed play NPCs.
-  const known = new Set(listSessionEntries(sessionId).map((entry) => entry.name.toLowerCase()))
+  const known = new Set(
+    listSessionEntries(sessionId).map((entry) => entry.name.toLowerCase())
+  )
   const created: Entry[] = []
   for (const npc of job.newNpcs) {
     const id = `${sessionId}.play-${slug(npc.name)}`
@@ -1533,7 +2222,15 @@ export function settleBackground(sessionId: string, options: { force?: boolean }
         name: npc.name,
         description: npc.description,
         keyFacts: [],
-        data: { role: npc.role, age: "", personality: npc.personality, backstory: npc.backstory, isPlayer: false, hiddenFields: [], aliases: [] },
+        data: {
+          role: npc.role,
+          age: "",
+          personality: npc.personality,
+          backstory: npc.backstory,
+          isPlayer: false,
+          hiddenFields: [],
+          aliases: [],
+        },
         source: "play",
         sourceTurn: last.idx,
         status: "proposed",
@@ -1546,23 +2243,39 @@ export function settleBackground(sessionId: string, options: { force?: boolean }
   }
 
   // Arc check: every Exit condition of the current Arc.
-  const keyById = new Map(entries.map((entry) => [entry.id, templateKey(entry)]))
+  const keyById = new Map(
+    entries.map((entry) => [entry.id, templateKey(entry)])
+  )
   const keyOf = (id: string) => keyById.get(id) ?? null
-  const exits = entries.filter((entry) => entry.kind === "exit_condition" && entry.data.arcIndex === last.state.arcIndex)
+  const exits = entries.filter(
+    (entry) =>
+      entry.kind === "exit_condition" &&
+      entry.data.arcIndex === last.state.arcIndex
+  )
   const arcCheck = exits.map((entry) => {
     const met = exitConditionMet(templateKey(entry), turns, keyOf)
     return { exitConditionId: entry.id, probability: met ? 0.88 : 0.23, met }
   })
   const arcCount = getWorld(session.worldId).brief?.arcs.length ?? 1
   const arcAdvancedTo =
-    arcCheck.length > 0 && arcCheck.every((check) => check.met) && last.state.arcIndex < arcCount - 1 ? last.state.arcIndex + 1 : null
+    arcCheck.length > 0 &&
+    arcCheck.every((check) => check.met) &&
+    last.state.arcIndex < arcCount - 1
+      ? last.state.arcIndex + 1
+      : null
 
   // Pacing: no progress over the last few Turns sets a nudge for the next Directive.
   const window = turns.slice(-ENGINE_CONFIG.pacingWindow)
   const stalled =
-    turns.length >= ENGINE_CONFIG.pacingWindow && window.every((turn) => !madeProgress(turn, turns[turn.idx - 1])) && arcAdvancedTo === null
-  const arcName = getWorld(session.worldId).brief?.arcs[last.state.arcIndex]?.name ?? `Arc ${last.state.arcIndex + 1}`
-  const reason = stalled ? `No progress toward the ${arcName} Arc's Exit conditions in the last ${ENGINE_CONFIG.pacingWindow} Turns.` : null
+    turns.length >= ENGINE_CONFIG.pacingWindow &&
+    window.every((turn) => !madeProgress(turn, turns[turn.idx - 1])) &&
+    arcAdvancedTo === null
+  const arcName =
+    getWorld(session.worldId).brief?.arcs[last.state.arcIndex]?.name ??
+    `Arc ${last.state.arcIndex + 1}`
+  const reason = stalled
+    ? `No progress toward the ${arcName} Arc's Exit conditions in the last ${ENGINE_CONFIG.pacingWindow} Turns.`
+    : null
 
   const results: BackgroundResults = background({
     newEntryIds: created.map((entry) => entry.id),
@@ -1573,8 +2286,19 @@ export function settleBackground(sessionId: string, options: { force?: boolean }
   const turn = turnSchema.parse({
     ...last,
     backgroundStatus: "done",
-    log: { ...last.log, background: results, timings: { ...last.log.timings, backgroundMs: Math.max(0, Date.now() - Date.parse(last.createdAt)) } },
-    state: { ...last.state, arcIndex: arcAdvancedTo ?? last.state.arcIndex, pacingNudge: { active: stalled, reason } },
+    log: {
+      ...last.log,
+      background: results,
+      timings: {
+        ...last.log.timings,
+        backgroundMs: Math.max(0, Date.now() - Date.parse(last.createdAt)),
+      },
+    },
+    state: {
+      ...last.state,
+      arcIndex: arcAdvancedTo ?? last.state.arcIndex,
+      pacingNudge: { active: stalled, reason },
+    },
   } satisfies Turn)
   store.turns.set(sessionId, [...turns.slice(0, -1), turn])
   backgroundJobs().delete(last.id)

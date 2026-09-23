@@ -48,7 +48,10 @@ export const ENTRY_KINDS_BY_GROUP: Record<EntryGroup, EntryKind[]> = {
   story_logic: ["exit_condition", "knowledge", "decisive_action"],
 }
 
-export const ENTRY_KIND_LABELS: Record<EntryKind, { singular: string; plural: string }> = {
+export const ENTRY_KIND_LABELS: Record<
+  EntryKind,
+  { singular: string; plural: string }
+> = {
   location: { singular: "Location", plural: "Locations" },
   character: { singular: "Character", plural: "Characters" },
   npc: { singular: "NPC", plural: "NPCs" },
@@ -63,7 +66,13 @@ export const ENTRY_KIND_LABELS: Record<EntryKind, { singular: string; plural: st
 export const entrySourceSchema = z.enum(["author", "setup", "play"])
 export type EntrySource = z.infer<typeof entrySourceSchema>
 
-export const entryStatusSchema = z.enum(["locked", "proposed", "accepted", "edited", "rejected"])
+export const entryStatusSchema = z.enum([
+  "locked",
+  "proposed",
+  "accepted",
+  "edited",
+  "rejected",
+])
 export type EntryStatus = z.infer<typeof entryStatusSchema>
 
 export const bandSchema = z.enum(["low", "normal", "high"])
@@ -173,7 +182,11 @@ const entryBase = {
 }
 
 function entryVariant<K extends EntryKind>(kind: K) {
-  return z.object({ ...entryBase, kind: z.literal(kind), data: entryDataSchemas[kind] })
+  return z.object({
+    ...entryBase,
+    kind: z.literal(kind),
+    data: entryDataSchemas[kind],
+  })
 }
 
 export const entrySchema = z
@@ -190,16 +203,32 @@ export const entrySchema = z
   ])
   .superRefine((entry, ctx) => {
     if (entry.source === "play" && entry.sourceTurn === null) {
-      ctx.addIssue({ code: "custom", message: "A play Entry needs its source Turn.", path: ["sourceTurn"] })
+      ctx.addIssue({
+        code: "custom",
+        message: "A play Entry needs its source Turn.",
+        path: ["sourceTurn"],
+      })
     }
     if (entry.source !== "play" && entry.sourceTurn !== null) {
-      ctx.addIssue({ code: "custom", message: "Only play Entries have a source Turn.", path: ["sourceTurn"] })
+      ctx.addIssue({
+        code: "custom",
+        message: "Only play Entries have a source Turn.",
+        path: ["sourceTurn"],
+      })
     }
     if (entry.sessionId === null && entry.templateId !== null) {
-      ctx.addIssue({ code: "custom", message: "Only Session copies point at a template.", path: ["templateId"] })
+      ctx.addIssue({
+        code: "custom",
+        message: "Only Session copies point at a template.",
+        path: ["templateId"],
+      })
     }
     if (entry.kind === "npc" && entry.data.isPlayer) {
-      ctx.addIssue({ code: "custom", message: "An NPC cannot be the Player character.", path: ["data", "isPlayer"] })
+      ctx.addIssue({
+        code: "custom",
+        message: "An NPC cannot be the Player character.",
+        path: ["data", "isPlayer"],
+      })
     }
   })
 export type Entry = z.infer<typeof entrySchema>
@@ -240,7 +269,9 @@ export function entryContentOf(entry: Entry): EntryContent {
 }
 
 /** Characters and NPCs are the kinds that keep Hidden fields in their data. */
-export function hasHiddenFields(entry: Entry): entry is EntryOfKind<"character" | "npc"> {
+export function hasHiddenFields(
+  entry: Entry
+): entry is EntryOfKind<"character" | "npc"> {
   return entry.kind === "character" || entry.kind === "npc"
 }
 
@@ -261,9 +292,15 @@ export function referencedEntryIds(entry: Entry): string[] {
     case "location":
       return entry.data.connections
     case "clue":
-      return [...(entry.data.locationId ? [entry.data.locationId] : []), ...entry.data.knownBy]
+      return [
+        ...(entry.data.locationId ? [entry.data.locationId] : []),
+        ...entry.data.knownBy,
+      ]
     case "knowledge":
-      return [entry.data.characterId, ...(entry.data.clueId ? [entry.data.clueId] : [])]
+      return [
+        entry.data.characterId,
+        ...(entry.data.clueId ? [entry.data.clueId] : []),
+      ]
     case "decisive_action":
       return [entry.data.correctTargetId, ...entry.data.requires]
     default:

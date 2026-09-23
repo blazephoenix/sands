@@ -19,7 +19,12 @@ function ThemeProvider({
       // on the client it cannot run anyway, and React warns about executable
       // script tags; a data-block type there silences that without changing
       // behaviour (the type attribute is covered by suppressHydrationWarning).
-      scriptProps={{ type: typeof window === "undefined" ? "text/javascript" : "application/json" }}
+      scriptProps={{
+        type:
+          typeof window === "undefined"
+            ? "text/javascript"
+            : "application/json",
+      }}
       {...props}
     >
       <ThemeHotkey />
@@ -37,7 +42,10 @@ function ThemeHotkey() {
 /** Switches between light and dark from whatever is showing now. */
 function useToggleTheme() {
   const { resolvedTheme, setTheme } = useTheme()
-  return React.useCallback(() => setTheme(resolvedTheme === "dark" ? "light" : "dark"), [resolvedTheme, setTheme])
+  return React.useCallback(
+    () => setTheme(resolvedTheme === "dark" ? "light" : "dark"),
+    [resolvedTheme, setTheme]
+  )
 }
 
 export { ThemeProvider, useToggleTheme }

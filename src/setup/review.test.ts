@@ -4,7 +4,13 @@ import type { Entry, EntryStatus } from "@/domain/entry"
 import { londonEntries } from "@/fixtures/entries"
 import { londonBrief } from "@/fixtures/worlds"
 
-import { nextUndecided, reviewDecision, reviewProgress, reviewSections, whyDrafted } from "./review"
+import {
+  nextUndecided,
+  reviewDecision,
+  reviewProgress,
+  reviewSections,
+  whyDrafted,
+} from "./review"
 
 /**
  * What setup drafted for Whitechapel, 1888: 29 Entries. 6 are locked from the
@@ -14,10 +20,13 @@ import { nextUndecided, reviewDecision, reviewProgress, reviewSections, whyDraft
 const drafted = () => londonEntries("w", "wc", "review")
 
 function withStatus(entries: Entry[], statuses: Record<string, EntryStatus>) {
-  return entries.map((entry) => (statuses[entry.id] ? { ...entry, status: statuses[entry.id] } : entry)) as Entry[]
+  return entries.map((entry) =>
+    statuses[entry.id] ? { ...entry, status: statuses[entry.id] } : entry
+  ) as Entry[]
 }
 
-const ids = (entries: readonly Entry[]) => entries.map((entry) => entry.id.replace(/^wc-/u, ""))
+const ids = (entries: readonly Entry[]) =>
+  entries.map((entry) => entry.id.replace(/^wc-/u, ""))
 
 describe("the Author's decision on an Entry, in the review's words", () => {
   it("maps proposed to undecided, accepted and edited to approved, rejected to removed, and keeps locked out", () => {
@@ -32,7 +41,14 @@ describe("the Author's decision on an Entry, in the review's words", () => {
 describe("the sidebar's sections", () => {
   it("sets the Author's locked Entries aside and puts Judge-flagged undecided Entries first", () => {
     const sections = reviewSections(drafted())
-    expect(ids(sections.locked)).toEqual(["jacob", "geoffrey", "amanda", "max", "yard", "exit-1"])
+    expect(ids(sections.locked)).toEqual([
+      "jacob",
+      "geoffrey",
+      "amanda",
+      "max",
+      "yard",
+      "exit-1",
+    ])
     expect(ids(sections.needsALook)).toEqual(["tower-bridge", "finch"])
     expect(ids(sections.approved)).toEqual(["pryce"])
     expect(ids(sections.removed)).toEqual(["abberline"])
@@ -63,7 +79,12 @@ describe("the sidebar's sections", () => {
   })
 
   it("moves a flagged Entry out of Needs a look once decided, keeping flagged Entries first in every section", () => {
-    const sections = reviewSections(withStatus(drafted(), { "wc-finch": "accepted", "wc-tower-bridge": "rejected" }))
+    const sections = reviewSections(
+      withStatus(drafted(), {
+        "wc-finch": "accepted",
+        "wc-tower-bridge": "rejected",
+      })
+    )
     expect(sections.needsALook).toEqual([])
     expect(ids(sections.approved)).toEqual(["finch", "pryce"])
     expect(ids(sections.removed)).toEqual(["tower-bridge", "abberline"])
@@ -72,7 +93,13 @@ describe("the sidebar's sections", () => {
 
 describe("progress", () => {
   it("counts reviewed, approved and removed among the Entries that need a decision", () => {
-    expect(reviewProgress(drafted())).toEqual({ total: 23, reviewed: 2, approved: 1, removed: 1, undecided: 21 })
+    expect(reviewProgress(drafted())).toEqual({
+      total: 23,
+      reviewed: 2,
+      approved: 1,
+      removed: 1,
+      undecided: 21,
+    })
   })
 })
 
@@ -85,14 +112,22 @@ describe("the next Entry after a decision", () => {
   })
 
   it("is null when nothing else is undecided", () => {
-    const entries = drafted().map((entry) => (entry.status === "proposed" && entry.id !== "wc-c1" ? { ...entry, status: "accepted" } : entry)) as Entry[]
+    const entries = drafted().map((entry) =>
+      entry.status === "proposed" && entry.id !== "wc-c1"
+        ? { ...entry, status: "accepted" }
+        : entry
+    ) as Entry[]
     expect(nextUndecided(entries, "wc-c1")).toBeNull()
   })
 })
 
 describe("why setup drafted an Entry", () => {
   const { brief } = londonBrief("wc")
-  const why = (key: string, entries = drafted()) => whyDrafted(entries.find((entry) => entry.id === `wc-${key}`)!, { entries, brief })
+  const why = (key: string, entries = drafted()) =>
+    whyDrafted(
+      entries.find((entry) => entry.id === `wc-${key}`)!,
+      { entries, brief }
+    )
 
   it("names the Decisive action a Clue is required for", () => {
     expect(why("c1")).toBe("Arrest Max Rober requires it.")
@@ -116,11 +151,15 @@ describe("why setup drafted an Entry", () => {
   })
 
   it("names the Arc that lacked an Exit condition in the Brief", () => {
-    expect(why("exit-2")).toBe("Arc 2, Midpoint, had no Exit condition in the Brief.")
+    expect(why("exit-2")).toBe(
+      "Arc 2, Midpoint, had no Exit condition in the Brief."
+    )
   })
 
   it("derives a Decisive action from the Ending", () => {
-    expect(why("arrest-max")).toBe("Derived from the Ending: The killer is caught and arrested.")
+    expect(why("arrest-max")).toBe(
+      "Derived from the Ending: The killer is caught and arrested."
+    )
   })
 
   it("ignores rejected Entries when explaining, and says nothing when nothing applies", () => {

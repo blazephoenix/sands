@@ -7,7 +7,14 @@
  * `SetupLiveRegion` mounted so every change is announced.
  */
 import * as React from "react"
-import { CircleCheckIcon, CircleDashedIcon, CircleXIcon, RotateCcwIcon, TriangleAlertIcon, XIcon } from "lucide-react"
+import {
+  CircleCheckIcon,
+  CircleDashedIcon,
+  CircleXIcon,
+  RotateCcwIcon,
+  TriangleAlertIcon,
+  XIcon,
+} from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -15,7 +22,12 @@ import { Spinner } from "@/components/ui/spinner"
 import { SETUP_STEPS, type SetupStep } from "@/domain/events"
 import { cn } from "@/lib/utils"
 
-import { failureTitle, stepTitle, type SetupRun, type StepState } from "./setup-progress"
+import {
+  failureTitle,
+  stepTitle,
+  type SetupRun,
+  type StepState,
+} from "./setup-progress"
 
 function formatElapsed(ms: number) {
   const seconds = Math.max(0, ms) / 1000
@@ -38,9 +50,16 @@ function useElapsed(start: number | null, running: boolean) {
 function StepIcon({ status }: { status: StepState["status"] }) {
   switch (status) {
     case "pending":
-      return <CircleDashedIcon className="size-4 text-muted-foreground" aria-hidden />
+      return (
+        <CircleDashedIcon
+          className="size-4 text-muted-foreground"
+          aria-hidden
+        />
+      )
     case "running":
-      return <Spinner className="size-4 motion-reduce:animate-none" aria-hidden />
+      return (
+        <Spinner className="size-4 motion-reduce:animate-none" aria-hidden />
+      )
     case "done":
       return <CircleCheckIcon className="size-4" aria-hidden />
     case "failed":
@@ -87,10 +106,20 @@ export function SetupPanel({
   }
 
   return (
-    <section aria-labelledby="setup-progress-title" className="flex flex-col gap-3">
+    <section
+      aria-labelledby="setup-progress-title"
+      className="flex flex-col gap-3"
+    >
       <div className="flex items-baseline justify-between gap-2">
-        <h2 id="setup-progress-title" className="font-heading text-sm font-semibold">
-          {run.phase === "succeeded" ? "Setup finished" : run.phase === "failed" ? "Setup stopped" : "Running setup"}
+        <h2
+          id="setup-progress-title"
+          className="font-heading text-sm font-semibold"
+        >
+          {run.phase === "succeeded"
+            ? "Setup finished"
+            : run.phase === "failed"
+              ? "Setup stopped"
+              : "Running setup"}
         </h2>
         <span className="text-xs text-muted-foreground tabular-nums">
           {formatElapsed(active ? total : run.lastAt)}
@@ -103,7 +132,11 @@ export function SetupPanel({
           const elapsed = elapsedOf(state)
           const attemptGaps = step === "solvability" ? run.gapsByAttempt : []
           return (
-            <li key={step} className="flex gap-2.5" aria-current={state.status === "running" ? "step" : undefined}>
+            <li
+              key={step}
+              className="flex gap-2.5"
+              aria-current={state.status === "running" ? "step" : undefined}
+            >
               <span className="flex h-5 shrink-0 items-center">
                 <StepIcon status={state.status} />
               </span>
@@ -117,19 +150,32 @@ export function SetupPanel({
                     )}
                   >
                     {stepTitle(step, state)}
-                    <span className="sr-only">, {STATUS_WORDS[state.status]}</span>
+                    <span className="sr-only">
+                      , {STATUS_WORDS[state.status]}
+                    </span>
                   </span>
                   <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                     {elapsed === null ? "" : formatElapsed(elapsed)}
                   </span>
                 </div>
-                {state.detail ? <span className="text-xs leading-relaxed text-muted-foreground">{state.detail}</span> : null}
+                {state.detail ? (
+                  <span className="text-xs leading-relaxed text-muted-foreground">
+                    {state.detail}
+                  </span>
+                ) : null}
                 {attemptGaps
                   .filter((entry) => entry.attempt < state.attempt)
                   .map((entry) => (
-                    <span key={entry.attempt} className="text-xs leading-relaxed text-muted-foreground">
-                      Attempt {entry.attempt} found {entry.gaps.length === 1 ? "1 gap" : `${entry.gaps.length} gaps`}; the Story logic call
-                      tried again with {entry.gaps.length === 1 ? "it" : "them"} as feedback.
+                    <span
+                      key={entry.attempt}
+                      className="text-xs leading-relaxed text-muted-foreground"
+                    >
+                      Attempt {entry.attempt} found{" "}
+                      {entry.gaps.length === 1
+                        ? "1 gap"
+                        : `${entry.gaps.length} gaps`}
+                      ; the Story logic call tried again with{" "}
+                      {entry.gaps.length === 1 ? "it" : "them"} as feedback.
                     </span>
                   ))}
               </div>
@@ -147,13 +193,25 @@ export function SetupPanel({
             {run.failure.gaps.length > 0 ? (
               <ul className="flex list-disc flex-col gap-1 ps-4">
                 {run.failure.gaps.map((gap) => (
-                  <li key={`${gap.code}-${gap.entryId ?? gap.arcIndex}`}>{gap.message}</li>
+                  <li key={`${gap.code}-${gap.entryId ?? gap.arcIndex}`}>
+                    {gap.message}
+                  </li>
                 ))}
               </ul>
             ) : null}
-            {run.failure.code === "conflict" ? null : <p>The World is still a draft, and nothing you wrote has changed.</p>}
+            {run.failure.code === "conflict" ? null : (
+              <p>
+                The World is still a draft, and nothing you wrote has changed.
+              </p>
+            )}
             <div className="flex flex-wrap gap-2 pt-1">
-              <Button ref={retryRef} size="sm" variant="outline" onClick={onRetry} disabled={!canRetry}>
+              <Button
+                ref={retryRef}
+                size="sm"
+                variant="outline"
+                onClick={onRetry}
+                disabled={!canRetry}
+              >
                 <RotateCcwIcon data-icon="inline-start" aria-hidden />
                 Retry setup
               </Button>

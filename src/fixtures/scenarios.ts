@@ -17,17 +17,20 @@
 export const SCENARIOS = {
   slow: {
     label: "Slow response",
-    description: "Every API response waits about 2.5 s, so loading states can be seen.",
+    description:
+      "Every API response waits about 2.5 s, so loading states can be seen.",
     routes: ["every route"],
   },
   "request-error": {
     label: "Request error",
-    description: "Every API route answers 500 with a stated cause, so error states and Retry can be tried.",
+    description:
+      "Every API route answers 500 with a stated cause, so error states and Retry can be tried.",
     routes: ["every route"],
   },
   empty: {
     label: "No Worlds",
-    description: "The Worlds list is empty, so the Worlds home shows its empty state.",
+    description:
+      "The Worlds list is empty, so the Worlds home shows its empty state.",
     routes: ["GET /api/worlds"],
   },
   "drafter-error": {
@@ -37,27 +40,32 @@ export const SCENARIOS = {
   },
   "solvability-failure": {
     label: "Solvability failure",
-    description: "Setup's solvability check fails on all three attempts and ends with the exact gaps.",
+    description:
+      "Setup's solvability check fails on all three attempts and ends with the exact gaps.",
     routes: ["POST /api/worlds/[id]/setup"],
   },
   "judge-outage": {
     label: "Judge outage",
-    description: "The next Turn fails while judging; nothing in the Session changes.",
+    description:
+      "The next Turn fails while judging; nothing in the Session changes.",
     routes: ["POST /api/sessions/[id]/turn"],
   },
   "second-round": {
     label: "Second Round",
-    description: "The next Turn's first Round rejects both Drafts; Round 2 passes.",
+    description:
+      "The next Turn's first Round rejects both Drafts; Round 2 passes.",
     routes: ["POST /api/sessions/[id]/turn"],
   },
   "flagged-turn": {
     label: "Flagged Turn",
-    description: "The next Turn fails three Rounds and ships its least-violating Draft, flagged.",
+    description:
+      "The next Turn fails three Rounds and ships its least-violating Draft, flagged.",
     routes: ["POST /api/sessions/[id]/turn"],
   },
   "background-pending": {
     label: "Background pending",
-    description: "The last Turn's background work is still running; the next Turn waits for it.",
+    description:
+      "The last Turn's background work is still running; the next Turn waits for it.",
     routes: ["POST /api/sessions/[id]/turn", "GET /api/sessions/[id]"],
   },
   "ending-win": {
@@ -75,7 +83,10 @@ export const SCENARIOS = {
     description: "The next Turn removes the Player character from the case.",
     routes: ["POST /api/sessions/[id]/turn"],
   },
-} as const satisfies Record<string, { label: string; description: string; routes: readonly string[] }>
+} as const satisfies Record<
+  string,
+  { label: string; description: string; routes: readonly string[] }
+>
 
 export type ScenarioId = keyof typeof SCENARIOS
 
@@ -91,7 +102,14 @@ export function isScenarioId(value: string): value is ScenarioId {
 /** Parses "slow,second-round" into known scenario ids, ignoring unknown ones. */
 export function parseScenarios(raw: string | null | undefined): ScenarioId[] {
   if (!raw) return []
-  return [...new Set(raw.split(",").map((part) => part.trim()).filter(isScenarioId))]
+  return [
+    ...new Set(
+      raw
+        .split(",")
+        .map((part) => part.trim())
+        .filter(isScenarioId)
+    ),
+  ]
 }
 
 /** Scenarios are a development aid; production ignores them. */

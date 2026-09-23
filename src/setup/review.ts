@@ -9,7 +9,13 @@
  *   proposed -> undecided   accepted, edited -> approved   rejected -> removed
  */
 import type { Brief } from "@/domain/brief"
-import { ENTRY_KINDS, isLiveEntry, type Entry, type EntryOfKind, type EntryStatus } from "@/domain/entry"
+import {
+  ENTRY_KINDS,
+  isLiveEntry,
+  type Entry,
+  type EntryOfKind,
+  type EntryStatus,
+} from "@/domain/entry"
 
 import { clueHandle } from "./solvability"
 
@@ -62,11 +68,18 @@ export type ReviewSections = {
 }
 
 export function reviewSections(entries: readonly Entry[]): ReviewSections {
-  const sections: ReviewSections = { needsALook: [], toReview: [], approved: [], removed: [], locked: [] }
+  const sections: ReviewSections = {
+    needsALook: [],
+    toReview: [],
+    approved: [],
+    removed: [],
+    locked: [],
+  }
   sections.locked = entries.filter((entry) => entry.status === "locked")
   for (const entry of reviewQueue(entries)) {
     const decision = reviewDecision(entry.status)
-    if (decision === "undecided") (isFlagged(entry) ? sections.needsALook : sections.toReview).push(entry)
+    if (decision === "undecided")
+      (isFlagged(entry) ? sections.needsALook : sections.toReview).push(entry)
     else if (decision === "approved") sections.approved.push(entry)
     else if (decision === "removed") sections.removed.push(entry)
   }
@@ -75,13 +88,30 @@ export function reviewSections(entries: readonly Entry[]): ReviewSections {
 
 /** The sidebar's rows, top to bottom. */
 export function sidebarOrder(sections: ReviewSections): Entry[] {
-  return [...sections.needsALook, ...sections.toReview, ...sections.approved, ...sections.removed]
+  return [
+    ...sections.needsALook,
+    ...sections.toReview,
+    ...sections.approved,
+    ...sections.removed,
+  ]
 }
 
-export type ReviewProgress = { total: number; reviewed: number; approved: number; removed: number; undecided: number }
+export type ReviewProgress = {
+  total: number
+  reviewed: number
+  approved: number
+  removed: number
+  undecided: number
+}
 
 export function reviewProgress(entries: readonly Entry[]): ReviewProgress {
-  const progress: ReviewProgress = { total: 0, reviewed: 0, approved: 0, removed: 0, undecided: 0 }
+  const progress: ReviewProgress = {
+    total: 0,
+    reviewed: 0,
+    approved: 0,
+    removed: 0,
+    undecided: 0,
+  }
   for (const entry of entries) {
     const decision = reviewDecision(entry.status)
     if (!decision) continue
@@ -93,15 +123,26 @@ export function reviewProgress(entries: readonly Entry[]): ReviewProgress {
 }
 
 /** The Entry to show after deciding `currentId`: the next undecided one in list order, wrapping; null when none is left. */
-export function nextUndecided(entries: readonly Entry[], currentId: string | null): string | null {
+export function nextUndecided(
+  entries: readonly Entry[],
+  currentId: string | null
+): string | null {
   const queue = reviewQueue(entries)
   const at = queue.findIndex((entry) => entry.id === currentId)
-  const rotated = at === -1 ? queue : [...queue.slice(at + 1), ...queue.slice(0, at)]
-  return rotated.find((entry) => entry.id !== currentId && reviewDecision(entry.status) === "undecided")?.id ?? null
+  const rotated =
+    at === -1 ? queue : [...queue.slice(at + 1), ...queue.slice(0, at)]
+  return (
+    rotated.find(
+      (entry) =>
+        entry.id !== currentId && reviewDecision(entry.status) === "undecided"
+    )?.id ?? null
+  )
 }
 
 function list(items: readonly string[]) {
-  return items.length <= 1 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`
+  return items.length <= 1
+    ? items.join("")
+    : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`
 }
 
 /**
@@ -111,17 +152,26 @@ function list(items: readonly string[]) {
  * Decisive action comes from. Rejected Entries count for nothing. Null when
  * nothing applies.
  */
-export function whyDrafted(entry: Entry, context: { entries: readonly Entry[]; brief: Brief | null }): string | null {
+export function whyDrafted(
+  entry: Entry,
+  context: { entries: readonly Entry[]; brief: Brief | null }
+): string | null {
   const live = context.entries.filter(isLiveEntry)
   const byId = new Map(context.entries.map((e) => [e.id, e]))
   const clues = live.filter((e): e is EntryOfKind<"clue"> => e.kind === "clue")
-  const actions = live.filter((e): e is EntryOfKind<"decisive_action"> => e.kind === "decisive_action")
-  const knowledge = live.filter((e): e is EntryOfKind<"knowledge"> => e.kind === "knowledge")
+  const actions = live.filter(
+    (e): e is EntryOfKind<"decisive_action"> => e.kind === "decisive_action"
+  )
+  const knowledge = live.filter(
+    (e): e is EntryOfKind<"knowledge"> => e.kind === "knowledge"
+  )
   const reasons: string[] = []
 
   switch (entry.kind) {
     case "clue": {
-      for (const action of actions.filter((a) => a.data.requires.includes(entry.id))) {
+      for (const action of actions.filter((a) =>
+        a.data.requires.includes(entry.id)
+      )) {
         const { requires, requiresCount } = action.data
         reasons.push(
           requiresCount !== null && requiresCount < requires.length
@@ -129,23 +179,40 @@ export function whyDrafted(entry: Entry, context: { entries: readonly Entry[]; b
             : `${action.name} requires it.`
         )
       }
-      if (entry.data.redHerring) reasons.push("A red herring, to mislead the Player.")
-      else if (reasons.length === 0 && entry.data.pointsToHidden) reasons.push("It points to the Hidden truth.")
+      if (entry.data.redHerring)
+        reasons.push("A red herring, to mislead the Player.")
+      else if (reasons.length === 0 && entry.data.pointsToHidden)
+        reasons.push("It points to the Hidden truth.")
       break
     }
     case "location": {
       if (entry.data.isStart) reasons.push("The start location.")
-      const here = clues.filter((clue) => clue.data.locationId === entry.id).map(clueHandle)
-      if (here.length > 0) reasons.push(`${list(here)} ${here.length === 1 ? "is" : "are"} found here.`)
+      const here = clues
+        .filter((clue) => clue.data.locationId === entry.id)
+        .map(clueHandle)
+      if (here.length > 0)
+        reasons.push(
+          `${list(here)} ${here.length === 1 ? "is" : "are"} found here.`
+        )
       break
     }
     case "character":
     case "npc": {
       const known = clues
-        .filter((clue) => clue.data.knownBy.includes(entry.id) || knowledge.some((k) => k.data.characterId === entry.id && k.data.clueId === clue.id))
+        .filter(
+          (clue) =>
+            clue.data.knownBy.includes(entry.id) ||
+            knowledge.some(
+              (k) =>
+                k.data.characterId === entry.id && k.data.clueId === clue.id
+            )
+        )
         .map(clueHandle)
       if (known.length > 0) reasons.push(`Knows ${list(known)}.`)
-      for (const action of actions.filter((a) => a.data.correctTargetId === entry.id)) reasons.push(`The target of ${action.name}.`)
+      for (const action of actions.filter(
+        (a) => a.data.correctTargetId === entry.id
+      ))
+        reasons.push(`The target of ${action.name}.`)
       break
     }
     case "knowledge": {
@@ -164,13 +231,20 @@ export function whyDrafted(entry: Entry, context: { entries: readonly Entry[]; b
       const arc = context.brief?.arcs[entry.data.arcIndex]
       if (arc) {
         const label = `Arc ${entry.data.arcIndex + 1}, ${arc.name}`
-        reasons.push(arc.exitConditions.length === 0 ? `${label}, had no Exit condition in the Brief.` : `Another way to finish ${label}.`)
+        reasons.push(
+          arc.exitConditions.length === 0
+            ? `${label}, had no Exit condition in the Brief.`
+            : `Another way to finish ${label}.`
+        )
       }
       break
     }
     case "decisive_action": {
       const ending = context.brief?.ending.condition.trim()
-      if (ending) reasons.push(`Derived from the Ending: ${ending}`.replace(/([^.])$/u, "$1."))
+      if (ending)
+        reasons.push(
+          `Derived from the Ending: ${ending}`.replace(/([^.])$/u, "$1.")
+        )
       break
     }
     default:

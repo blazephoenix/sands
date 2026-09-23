@@ -25,7 +25,10 @@ export function SolvabilityBanner({
       <Alert>
         <CircleCheckIcon aria-hidden />
         <AlertTitle>This World is solvable</AlertTitle>
-        <AlertDescription>Every Clue the Decisive actions need can be found, and every Arc has an Exit condition.</AlertDescription>
+        <AlertDescription>
+          Every Clue the Decisive actions need can be found, and every Arc has
+          an Exit condition.
+        </AlertDescription>
       </Alert>
     )
   }
@@ -36,7 +39,9 @@ export function SolvabilityBanner({
       <AlertDescription>
         <ul className="flex list-disc flex-col gap-1 pl-4">
           {solvability.gaps.map((gap) => (
-            <li key={`${gap.code}-${gap.entryId}-${gap.arcIndex}-${gap.message}`}>
+            <li
+              key={`${gap.code}-${gap.entryId}-${gap.arcIndex}-${gap.message}`}
+            >
               {gap.entryId && canSelect(gap.entryId) ? (
                 <button
                   type="button"

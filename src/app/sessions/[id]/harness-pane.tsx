@@ -22,13 +22,32 @@ import {
 import { formatProbability } from "@/components/codex/entry-badges"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import type { Entry } from "@/domain/entry"
-import { RULE_LABELS, turnLabel, type Classification, type Draft, type Outcome, type Round, type Turn, type TurnLog as TurnLogData } from "@/domain/session"
+import {
+  RULE_LABELS,
+  turnLabel,
+  type Classification,
+  type Draft,
+  type Outcome,
+  type Round,
+  type Turn,
+  type TurnLog as TurnLogData,
+} from "@/domain/session"
 import type { GetSessionResponse } from "@/domain/session-view"
 import { ENGINE_CONFIG, bandFor } from "@/engine/config"
 import { cn } from "@/lib/utils"
@@ -62,36 +81,67 @@ function signed(value: number) {
 
 /** A small uppercase section label, like the editor's kind labels. */
 function Label({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{children}</h3>
+  return (
+    <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+      {children}
+    </h3>
+  )
 }
 
 function P({ value }: { value: number }) {
-  return <span className="text-muted-foreground tabular-nums">p {formatProbability(value)}</span>
+  return (
+    <span className="text-muted-foreground tabular-nums">
+      p {formatProbability(value)}
+    </span>
+  )
 }
 
 // State summary
 
-function StateSummary({ data, turn, names }: { data: GetSessionResponse; turn: Turn; names: Names }) {
+function StateSummary({
+  data,
+  turn,
+  names,
+}: {
+  data: GetSessionResponse
+  turn: Turn
+  names: Names
+}) {
   const { state } = turn
   const arcs = data.world.brief?.arcs ?? []
   const arc = arcs[state.arcIndex]
-  const exits = data.entries.filter((entry) => entry.kind === "exit_condition" && entry.data.arcIndex === state.arcIndex && entry.status !== "rejected")
+  const exits = data.entries.filter(
+    (entry) =>
+      entry.kind === "exit_condition" &&
+      entry.data.arcIndex === state.arcIndex &&
+      entry.status !== "rejected"
+  )
   // The latest Arc check for each Exit condition, across the log.
   const checks = new Map<string, { met: boolean; probability: number }>()
-  for (const t of data.turns) for (const check of t.log.background?.arcCheck ?? []) checks.set(check.exitConditionId, check)
+  for (const t of data.turns)
+    for (const check of t.log.background?.arcCheck ?? [])
+      checks.set(check.exitConditionId, check)
   const band = bandFor(state.reputation)
   const [low, high] = ENGINE_CONFIG.reputationRange
-  const knowledge = Object.entries(state.knowledgeRevealed).filter(([, ids]) => ids.length > 0)
+  const knowledge = Object.entries(state.knowledgeRevealed).filter(
+    ([, ids]) => ids.length > 0
+  )
 
   return (
-    <section aria-label="State after the latest Turn" className="flex flex-col gap-5">
+    <section
+      aria-label="State after the latest Turn"
+      className="flex flex-col gap-5"
+    >
       <div className="flex flex-col gap-2">
         <Label>
-          Arc {state.arcIndex + 1} of {Math.max(arcs.length, state.arcIndex + 1)}
+          Arc {state.arcIndex + 1} of{" "}
+          {Math.max(arcs.length, state.arcIndex + 1)}
           {arc?.name ? ` · ${arc.name}` : ""}
         </Label>
         {exits.length === 0 ? (
-          <p className="text-sm text-muted-foreground">This Arc has no Exit conditions in the Codex.</p>
+          <p className="text-sm text-muted-foreground">
+            This Arc has no Exit conditions in the Codex.
+          </p>
         ) : (
           <ul className="flex flex-col gap-1.5">
             {exits.map((exit) => {
@@ -100,12 +150,28 @@ function StateSummary({ data, turn, names }: { data: GetSessionResponse; turn: T
               const Icon = met ? CircleCheckIcon : CircleIcon
               return (
                 <li key={exit.id} className="flex items-start gap-2 text-sm">
-                  <Icon aria-hidden className={cn("mt-0.5 size-4 shrink-0", !met && "text-muted-foreground")} />
+                  <Icon
+                    aria-hidden
+                    className={cn(
+                      "mt-0.5 size-4 shrink-0",
+                      !met && "text-muted-foreground"
+                    )}
+                  />
                   <span className="flex-1">
-                    {exit.kind === "exit_condition" ? exit.data.condition || exit.name : exit.name}
-                    <span className="sr-only">{met ? " (met)" : " (not met)"}</span>
+                    {exit.kind === "exit_condition"
+                      ? exit.data.condition || exit.name
+                      : exit.name}
+                    <span className="sr-only">
+                      {met ? " (met)" : " (not met)"}
+                    </span>
                   </span>
-                  <span className="shrink-0 text-xs">{check ? <P value={check.probability} /> : <span className="text-muted-foreground">not checked</span>}</span>
+                  <span className="shrink-0 text-xs">
+                    {check ? (
+                      <P value={check.probability} />
+                    ) : (
+                      <span className="text-muted-foreground">not checked</span>
+                    )}
+                  </span>
                 </li>
               )
             })}
@@ -118,13 +184,23 @@ function StateSummary({ data, turn, names }: { data: GetSessionResponse; turn: T
           <Label>Reputation</Label>
           <span className="flex items-center gap-2 text-sm tabular-nums">
             {state.reputation} / {high}
-            <Badge variant={band === "low" ? "destructive" : "secondary"}>{band} Band</Badge>
+            <Badge variant={band === "low" ? "destructive" : "secondary"}>
+              {band} Band
+            </Badge>
           </span>
         </div>
-        <Progress value={state.reputation} min={low} max={high} aria-label={`Reputation ${state.reputation} of ${high}, ${band} Band`} />
+        <Progress
+          value={state.reputation}
+          min={low}
+          max={high}
+          aria-label={`Reputation ${state.reputation} of ${high}, ${band} Band`}
+        />
         <p className="text-xs text-muted-foreground">
-          Off-script {state.offScriptCount} of {ENGINE_CONFIG.offScriptThreshold}
-          {state.warningsGiven.length > 0 ? ` · warned at ${state.warningsGiven.join(" and ")}` : ""}
+          Off-script {state.offScriptCount} of{" "}
+          {ENGINE_CONFIG.offScriptThreshold}
+          {state.warningsGiven.length > 0
+            ? ` · warned at ${state.warningsGiven.join(" and ")}`
+            : ""}
         </p>
       </div>
 
@@ -146,13 +222,17 @@ function StateSummary({ data, turn, names }: { data: GetSessionResponse; turn: T
       <div className="flex flex-col gap-2">
         <Label>Knowledge revealed</Label>
         {knowledge.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No character has revealed anything yet.</p>
+          <p className="text-sm text-muted-foreground">
+            No character has revealed anything yet.
+          </p>
         ) : (
           <dl className="flex flex-col gap-1.5 text-sm">
             {knowledge.map(([characterId, ids]) => (
               <div key={characterId} className="flex flex-col">
                 <dt className="font-medium">{names(characterId)}</dt>
-                <dd className="text-muted-foreground">{ids.map(names).join("; ")}</dd>
+                <dd className="text-muted-foreground">
+                  {ids.map(names).join("; ")}
+                </dd>
               </div>
             ))}
           </dl>
@@ -163,7 +243,10 @@ function StateSummary({ data, turn, names }: { data: GetSessionResponse; turn: T
         <Alert>
           <TriangleAlertIcon />
           <AlertTitle>Pacing nudge set</AlertTitle>
-          <AlertDescription>{state.pacingNudge.reason ?? "The next Directive asks the Writer to surface an opportunity."}</AlertDescription>
+          <AlertDescription>
+            {state.pacingNudge.reason ??
+              "The next Directive asks the Writer to surface an opportunity."}
+          </AlertDescription>
         </Alert>
       ) : (
         <p className="text-xs text-muted-foreground">No pacing nudge.</p>
@@ -176,12 +259,28 @@ function StateSummary({ data, turn, names }: { data: GetSessionResponse; turn: T
 
 function RuleRows({ draft }: { draft: Draft }) {
   return (
-    <ul className="grid grid-cols-[minmax(7rem,auto)_1fr_auto_3.5rem] items-center gap-x-3 gap-y-1 text-xs" aria-label="Rule results">
+    <ul
+      className="grid grid-cols-[minmax(7rem,auto)_1fr_auto_3.5rem] items-center gap-x-3 gap-y-1 text-xs"
+      aria-label="Rule results"
+    >
       {draft.rules.map((result) => (
         <li key={result.rule} className="contents">
-          <span className={cn(result.failed && "font-medium text-destructive")}>{RULE_LABELS[result.rule]}</span>
-          <Progress value={result.probability * 100} aria-label={`${RULE_LABELS[result.rule]} probability`} className="gap-0" />
-          <span className={cn("text-right tabular-nums", result.failed && "font-medium text-destructive")}>{formatProbability(result.probability)}</span>
+          <span className={cn(result.failed && "font-medium text-destructive")}>
+            {RULE_LABELS[result.rule]}
+          </span>
+          <Progress
+            value={result.probability * 100}
+            aria-label={`${RULE_LABELS[result.rule]} probability`}
+            className="gap-0"
+          />
+          <span
+            className={cn(
+              "text-right tabular-nums",
+              result.failed && "font-medium text-destructive"
+            )}
+          >
+            {formatProbability(result.probability)}
+          </span>
           <span className="flex justify-end">
             {result.failed ? (
               <Badge variant="destructive">fail</Badge>
@@ -197,20 +296,47 @@ function RuleRows({ draft }: { draft: Draft }) {
 
 function DraftBlock({ draft, index }: { draft: Draft; index: number }) {
   const letter = String.fromCharCode(65 + index)
-  const status = draft.shipped ? (draft.passed ? "shipped" : "shipped, failing") : draft.passed ? "passed, not shipped" : "rejected"
+  const status = draft.shipped
+    ? draft.passed
+      ? "shipped"
+      : "shipped, failing"
+    : draft.passed
+      ? "passed, not shipped"
+      : "rejected"
   return (
     <div className="flex flex-col gap-2 rounded-lg border p-3">
       <div className="flex items-center justify-between gap-2 text-xs">
         <span className="font-medium">Draft {letter}</span>
         <span className="flex items-center gap-2">
-          <span className="text-muted-foreground tabular-nums">highest {formatProbability(draft.highestViolation)}</span>
-          <Badge variant={draft.shipped ? "default" : draft.passed ? "secondary" : "destructive"}>
-            {draft.shipped ? <CheckIcon data-icon="inline-start" aria-hidden /> : null}
+          <span className="text-muted-foreground tabular-nums">
+            highest {formatProbability(draft.highestViolation)}
+          </span>
+          <Badge
+            variant={
+              draft.shipped
+                ? "default"
+                : draft.passed
+                  ? "secondary"
+                  : "destructive"
+            }
+          >
+            {draft.shipped ? (
+              <CheckIcon data-icon="inline-start" aria-hidden />
+            ) : null}
             {status}
           </Badge>
         </span>
       </div>
-      <p className={cn("text-sm leading-relaxed", !draft.passed && !draft.shipped && "text-muted-foreground line-through")}>{draft.text}</p>
+      <p
+        className={cn(
+          "text-sm leading-relaxed",
+          !draft.passed &&
+            !draft.shipped &&
+            "text-muted-foreground line-through"
+        )}
+      >
+        {draft.text}
+      </p>
       <RuleRows draft={draft} />
     </div>
   )
@@ -222,7 +348,9 @@ function RoundBlock({ round }: { round: Round }) {
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2 text-sm font-medium">
         Round {round.index}
-        <span className="text-xs font-normal text-muted-foreground">{passed ? "a Draft passed" : "every Draft failed"}</span>
+        <span className="text-xs font-normal text-muted-foreground">
+          {passed ? "a Draft passed" : "every Draft failed"}
+        </span>
       </div>
       {round.feedback.length > 0 ? (
         <div className="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -241,7 +369,15 @@ function RoundBlock({ round }: { round: Round }) {
   )
 }
 
-function Background({ turn, names, arcName }: { turn: Turn; names: Names; arcName: (index: number) => string }) {
+function Background({
+  turn,
+  names,
+  arcName,
+}: {
+  turn: Turn
+  names: Names
+  arcName: (index: number) => string
+}) {
   const results = turn.log.background
   if (turn.backgroundStatus === "pending" || !results) {
     return (
@@ -256,7 +392,10 @@ function Background({ turn, names, arcName }: { turn: Turn; names: Names; arcNam
       <Alert variant="destructive">
         <TriangleAlertIcon />
         <AlertTitle>Background work failed</AlertTitle>
-        <AlertDescription>{results.error ?? "No cause was recorded."} The Arc and pacing checks run again next Turn.</AlertDescription>
+        <AlertDescription>
+          {results.error ?? "No cause was recorded."} The Arc and pacing checks
+          run again next Turn.
+        </AlertDescription>
       </Alert>
     )
   }
@@ -264,20 +403,35 @@ function Background({ turn, names, arcName }: { turn: Turn; names: Names; arcNam
     <ul className="flex flex-col gap-1.5 text-sm">
       <li>
         New Entries:{" "}
-        {results.newEntryIds.length === 0 ? <span className="text-muted-foreground">none</span> : results.newEntryIds.map(names).join(", ")}
+        {results.newEntryIds.length === 0 ? (
+          <span className="text-muted-foreground">none</span>
+        ) : (
+          results.newEntryIds.map(names).join(", ")
+        )}
       </li>
       {results.arcCheck.map((check) => (
-        <li key={check.exitConditionId} className="flex items-start justify-between gap-2">
+        <li
+          key={check.exitConditionId}
+          className="flex items-start justify-between gap-2"
+        >
           <span>
-            Exit condition {names(check.exitConditionId)}: {check.met ? "met" : "not met"}
+            Exit condition {names(check.exitConditionId)}:{" "}
+            {check.met ? "met" : "not met"}
           </span>
           <P value={check.probability} />
         </li>
       ))}
-      {results.arcAdvancedTo !== null ? <li>Arc advanced to {arcName(results.arcAdvancedTo)}</li> : null}
+      {results.arcAdvancedTo !== null ? (
+        <li>Arc advanced to {arcName(results.arcAdvancedTo)}</li>
+      ) : null}
       {results.pacing ? (
         <li className="flex items-start justify-between gap-2">
-          <span>Pacing: {results.pacing.nudge ? `nudge set. ${results.pacing.reason ?? ""}` : "progress made, no nudge"}</span>
+          <span>
+            Pacing:{" "}
+            {results.pacing.nudge
+              ? `nudge set. ${results.pacing.reason ?? ""}`
+              : "progress made, no nudge"}
+          </span>
           <P value={results.pacing.probability} />
         </li>
       ) : null}
@@ -285,7 +439,11 @@ function Background({ turn, names, arcName }: { turn: Turn; names: Names; arcNam
   )
 }
 
-function ReadingSection({ reading }: { reading: NonNullable<TurnLogData["reading"]> }) {
+function ReadingSection({
+  reading,
+}: {
+  reading: NonNullable<TurnLogData["reading"]>
+}) {
   return (
     <div className="flex flex-col gap-1.5">
       <Label>Reading</Label>
@@ -300,8 +458,14 @@ function ReadingSection({ reading }: { reading: NonNullable<TurnLogData["reading
         </li>
         <li className="flex justify-between gap-2">
           <span>
-            Classification: {CLASSIFICATION_LABELS[reading.classification.value]}
-            {reading.classification.belowFloor ? <span className="text-muted-foreground"> (below the floor, treated as tangential)</span> : null}
+            Classification:{" "}
+            {CLASSIFICATION_LABELS[reading.classification.value]}
+            {reading.classification.belowFloor ? (
+              <span className="text-muted-foreground">
+                {" "}
+                (below the floor, treated as tangential)
+              </span>
+            ) : null}
           </span>
           <P value={reading.classification.probability} />
         </li>
@@ -310,15 +474,23 @@ function ReadingSection({ reading }: { reading: NonNullable<TurnLogData["reading
   )
 }
 
-function OutcomeSection({ outcome, directive }: { outcome: Outcome; directive: string }) {
+function OutcomeSection({
+  outcome,
+  directive,
+}: {
+  outcome: Outcome
+  directive: string
+}) {
   return (
     <div className="flex flex-col gap-1.5">
       <Label>Outcome</Label>
       <p className="text-sm">
-        <span className="font-medium">{OUTCOME_LABELS[outcome.kind]}.</span> {outcome.summary}
+        <span className="font-medium">{OUTCOME_LABELS[outcome.kind]}.</span>{" "}
+        {outcome.summary}
       </p>
       <p className="text-xs text-muted-foreground">
-        Reputation {signed(outcome.reputationDelta)} · off-script {signed(outcome.offScriptDelta)}
+        Reputation {signed(outcome.reputationDelta)} · off-script{" "}
+        {signed(outcome.offScriptDelta)}
         {outcome.deathRoll
           ? ` · death roll ${formatProbability(outcome.deathRoll.roll)} against odds ${formatProbability(outcome.deathRoll.odds)}, ${outcome.deathRoll.lethal ? "lethal" : "survived"}`
           : ""}
@@ -328,13 +500,26 @@ function OutcomeSection({ outcome, directive }: { outcome: Outcome; directive: s
   )
 }
 
-function TurnLog({ turn, names, arcName, defaultOpen }: { turn: Turn; names: Names; arcName: (index: number) => string; defaultOpen: boolean }) {
+function TurnLog({
+  turn,
+  names,
+  arcName,
+  defaultOpen,
+}: {
+  turn: Turn
+  names: Names
+  arcName: (index: number) => string
+  defaultOpen: boolean
+}) {
   const { log } = turn
   const { reading, outcome } = log
   return (
     <Collapsible defaultOpen={defaultOpen} className="group/turn flex flex-col">
       <CollapsibleTrigger className="flex w-full items-start gap-2 rounded-md px-1 py-2 text-left outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50">
-        <ChevronRightIcon aria-hidden className="mt-0.5 size-4 shrink-0 transition-transform duration-150 group-data-[open]/turn:rotate-90 motion-reduce:transition-none" />
+        <ChevronRightIcon
+          aria-hidden
+          className="mt-0.5 size-4 shrink-0 transition-transform duration-150 group-data-[open]/turn:rotate-90 motion-reduce:transition-none"
+        />
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
             {turnLabel(turn)}
@@ -344,8 +529,12 @@ function TurnLog({ turn, names, arcName, defaultOpen }: { turn: Turn; names: Nam
                 Flagged
               </Badge>
             ) : null}
-            {log.rounds.length > 1 ? <Badge variant="outline">{log.rounds.length} Rounds</Badge> : null}
-            {turn.state.ending !== "none" ? <Badge variant="secondary">Ending: {turn.state.ending}</Badge> : null}
+            {log.rounds.length > 1 ? (
+              <Badge variant="outline">{log.rounds.length} Rounds</Badge>
+            ) : null}
+            {turn.state.ending !== "none" ? (
+              <Badge variant="secondary">Ending: {turn.state.ending}</Badge>
+            ) : null}
             {turn.backgroundStatus === "pending" ? (
               <Badge variant="outline">
                 <CircleDashedIcon data-icon="inline-start" aria-hidden />
@@ -354,7 +543,9 @@ function TurnLog({ turn, names, arcName, defaultOpen }: { turn: Turn; names: Nam
             ) : null}
           </span>
           <span className="truncate text-xs text-muted-foreground">
-            {turn.playerInput === null ? "The first scene, before the Player acts" : `› ${turn.playerInput}`}
+            {turn.playerInput === null
+              ? "The first scene, before the Player acts"
+              : `› ${turn.playerInput}`}
           </span>
         </span>
       </CollapsibleTrigger>
@@ -368,7 +559,9 @@ function TurnLog({ turn, names, arcName, defaultOpen }: { turn: Turn; names: Nam
           <div className="flex flex-col gap-1.5">
             <Label>Directive</Label>
             <p className="text-sm">{log.directive}</p>
-            <p className="text-xs text-muted-foreground">No Player input, so nothing was read and no Outcome was resolved.</p>
+            <p className="text-xs text-muted-foreground">
+              No Player input, so nothing was read and no Outcome was resolved.
+            </p>
           </div>
         )}
 
@@ -382,14 +575,22 @@ function TurnLog({ turn, names, arcName, defaultOpen }: { turn: Turn; names: Nam
         <div className="flex flex-col gap-1.5">
           <Label>Discovery</Label>
           {log.discovery.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nothing was discoverable this Turn.</p>
+            <p className="text-sm text-muted-foreground">
+              Nothing was discoverable this Turn.
+            </p>
           ) : (
             <ul className="flex flex-col gap-1 text-sm">
               {log.discovery.map((item) => (
-                <li key={`${item.target.entryId}-${item.question}`} className="flex justify-between gap-2">
+                <li
+                  key={`${item.target.entryId}-${item.question}`}
+                  className="flex justify-between gap-2"
+                >
                   <span>
-                    {names(item.target.entryId)}: {item.revealed ? "revealed" : "not revealed"}
-                    <span className="block text-xs text-muted-foreground">{item.question}</span>
+                    {names(item.target.entryId)}:{" "}
+                    {item.revealed ? "revealed" : "not revealed"}
+                    <span className="block text-xs text-muted-foreground">
+                      {item.question}
+                    </span>
                   </span>
                   <P value={item.probability} />
                 </li>
@@ -404,9 +605,13 @@ function TurnLog({ turn, names, arcName, defaultOpen }: { turn: Turn; names: Nam
         </div>
 
         <p className="text-xs text-muted-foreground tabular-nums">
-          {(log.timings.totalMs / 1000).toFixed(1)} s to the Passage ({reading ? `reading ${log.timings.readingMs} ms, ` : ""}writing{" "}
-          {log.timings.writingMs} ms, judging {log.timings.judgingMs} ms){log.timings.backgroundMs !== null ? `, background ${log.timings.backgroundMs} ms` : ""} ·{" "}
-          {log.jevModelVersion}
+          {(log.timings.totalMs / 1000).toFixed(1)} s to the Passage (
+          {reading ? `reading ${log.timings.readingMs} ms, ` : ""}writing{" "}
+          {log.timings.writingMs} ms, judging {log.timings.judgingMs} ms)
+          {log.timings.backgroundMs !== null
+            ? `, background ${log.timings.backgroundMs} ms`
+            : ""}{" "}
+          · {log.jevModelVersion}
         </p>
       </CollapsibleContent>
     </Collapsible>
@@ -414,8 +619,15 @@ function TurnLog({ turn, names, arcName, defaultOpen }: { turn: Turn; names: Nam
 }
 
 export function HarnessPane({ data }: { data: GetSessionResponse }) {
-  const byId = React.useMemo(() => new Map<string, Entry>(data.entries.map((entry) => [entry.id, entry])), [data.entries])
-  const names: Names = React.useCallback((id: string) => byId.get(id)?.name ?? id, [byId])
+  const byId = React.useMemo(
+    () =>
+      new Map<string, Entry>(data.entries.map((entry) => [entry.id, entry])),
+    [data.entries]
+  )
+  const names: Names = React.useCallback(
+    (id: string) => byId.get(id)?.name ?? id,
+    [byId]
+  )
   const arcName = React.useCallback(
     (index: number) => {
       const name = data.world.brief?.arcs[index]?.name
@@ -434,7 +646,10 @@ export function HarnessPane({ data }: { data: GetSessionResponse }) {
             <FlaskConicalIcon />
           </EmptyMedia>
           <EmptyTitle>No Turns yet</EmptyTitle>
-          <EmptyDescription>The Opening is being written. Its Drafts and Rule results appear here once the Judge has passed it.</EmptyDescription>
+          <EmptyDescription>
+            The Opening is being written. Its Drafts and Rule results appear
+            here once the Judge has passed it.
+          </EmptyDescription>
         </EmptyHeader>
       </Empty>
     )
@@ -444,10 +659,19 @@ export function HarnessPane({ data }: { data: GetSessionResponse }) {
     <div className="flex flex-col gap-6 px-4 pb-8">
       <StateSummary data={data} turn={latest} names={names} />
       <Separator />
-      <section aria-label="Turn log, newest first" className="flex flex-col gap-1">
+      <section
+        aria-label="Turn log, newest first"
+        className="flex flex-col gap-1"
+      >
         <Label>Turn log</Label>
         {turns.map((turn) => (
-          <TurnLog key={turn.id} turn={turn} names={names} arcName={arcName} defaultOpen={turn.id === latest.id} />
+          <TurnLog
+            key={turn.id}
+            turn={turn}
+            names={names}
+            arcName={arcName}
+            defaultOpen={turn.id === latest.id}
+          />
         ))}
       </section>
     </div>

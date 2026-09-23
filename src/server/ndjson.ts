@@ -12,7 +12,11 @@
  * a broken connection. If the client disconnects, `signal` aborts.
  */
 export function ndjsonResponse<Event extends { type: string }>(
-  run: (emit: (event: Event) => void, elapsed: () => number, signal: AbortSignal) => Promise<void>,
+  run: (
+    emit: (event: Event) => void,
+    elapsed: () => number,
+    signal: AbortSignal
+  ) => Promise<void>,
   init: { request?: Request } = {}
 ): Response {
   const encoder = new TextEncoder()

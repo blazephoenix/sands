@@ -14,11 +14,25 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { FileQuestionIcon, LockIcon, PlayIcon, TriangleAlertIcon } from "lucide-react"
+import {
+  FileQuestionIcon,
+  LockIcon,
+  PlayIcon,
+  TriangleAlertIcon,
+} from "lucide-react"
 
-import { ShellActions, ShellBreadcrumbs, worldCrumbs } from "@/components/app-shell"
+import {
+  ShellActions,
+  ShellBreadcrumbs,
+  worldCrumbs,
+} from "@/components/app-shell"
 import { ShortcutKeys } from "@/components/shortcut-keys"
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,11 +44,22 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { SetupStatusBadge } from "@/components/worlds/setup-status-badge"
 import { setupReviewHref, withScenario } from "@/components/worlds/world-links"
 import { documentToBrief } from "@/brief/from-document"
@@ -42,18 +67,33 @@ import type { BriefBlockType } from "@/brief/fields"
 import type { SaveBriefRequest } from "@/domain/api"
 import type { BriefIssue, BriefWarning } from "@/domain/brief"
 import type { World } from "@/domain/world"
-import { BriefEditor, EditorSkeleton, type BriefEditorChange, type BriefEditorHandle } from "@/editor"
+import {
+  BriefEditor,
+  EditorSkeleton,
+  type BriefEditorChange,
+  type BriefEditorHandle,
+} from "@/editor"
 import { insertBriefSection } from "@/editor/commands"
 import { readFieldLine } from "@/editor/field-line"
 import type { SandsBlock } from "@/editor/schema-config"
 import { api, ApiError, isAbortError } from "@/lib/api-client"
 
 import { Autosave, type SaveStatus } from "./autosave"
-import { clearBriefBackup, readBriefBackup, writeBriefBackup } from "./brief-backup"
+import {
+  clearBriefBackup,
+  readBriefBackup,
+  writeBriefBackup,
+} from "./brief-backup"
 import { BriefChecks } from "./brief-checks"
 import { SaveIndicator } from "./save-indicator"
 import { SetupLiveRegion, SetupPanel } from "./setup-panel"
-import { failSetupRun, idleSetupRun, reduceSetupEvent, startingSetupRun, type SetupRun } from "./setup-progress"
+import {
+  failSetupRun,
+  idleSetupRun,
+  reduceSetupEvent,
+  startingSetupRun,
+  type SetupRun,
+} from "./setup-progress"
 import { WorldName } from "./world-name"
 
 export const RUN_SETUP_SHORTCUT = "Mod-Enter"
@@ -61,7 +101,10 @@ export const RUN_SETUP_SHORTCUT = "Mod-Enter"
 /** How long the finished stepper stays on screen before the setup review opens. */
 const SUCCESS_PAUSE_MS = 700
 
-type Load = { state: "loading" } | { state: "error"; error: ApiError } | { state: "ready"; world: World }
+type Load =
+  | { state: "loading" }
+  | { state: "error"; error: ApiError }
+  | { state: "ready"; world: World }
 
 export function BriefPage({ worldId }: { worldId: string }) {
   const [load, setLoad] = React.useState<Load>({ state: "loading" })
@@ -74,7 +117,17 @@ export function BriefPage({ worldId }: { worldId: string }) {
       .then(({ world }) => setLoad({ state: "ready", world }))
       .catch((error: unknown) => {
         if (isAbortError(error)) return
-        setLoad({ state: "error", error: error instanceof ApiError ? error : new ApiError(0, "internal", "The Brief did not load. Try again.") })
+        setLoad({
+          state: "error",
+          error:
+            error instanceof ApiError
+              ? error
+              : new ApiError(
+                  0,
+                  "internal",
+                  "The Brief did not load. Try again."
+                ),
+        })
       })
     return () => controller.abort()
   }, [worldId, attempt])
@@ -85,7 +138,9 @@ export function BriefPage({ worldId }: { worldId: string }) {
     if (load.error.status === 404) {
       return (
         <PageFrame>
-          <ShellBreadcrumbs items={[{ label: "Worlds", href: "/" }, { label: "Brief" }]} />
+          <ShellBreadcrumbs
+            items={[{ label: "Worlds", href: "/" }, { label: "Brief" }]}
+          />
           <Empty className="col-span-full flex-none border py-12">
             <EmptyHeader>
               <EmptyMedia variant="icon">
@@ -95,7 +150,10 @@ export function BriefPage({ worldId }: { worldId: string }) {
               <EmptyDescription>{load.error.message}</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <Button render={<Link href={withScenario("/")} />} nativeButton={false}>
+              <Button
+                render={<Link href={withScenario("/")} />}
+                nativeButton={false}
+              >
                 Go to your Worlds
               </Button>
             </EmptyContent>
@@ -105,7 +163,9 @@ export function BriefPage({ worldId }: { worldId: string }) {
     }
     return (
       <PageFrame>
-        <ShellBreadcrumbs items={[{ label: "Worlds", href: "/" }, { label: "Brief" }]} />
+        <ShellBreadcrumbs
+          items={[{ label: "Worlds", href: "/" }, { label: "Brief" }]}
+        />
         <Alert variant="destructive" className="col-span-full">
           <TriangleAlertIcon aria-hidden />
           <AlertTitle>The Brief did not load</AlertTitle>
@@ -141,8 +201,14 @@ function PageFrame({ children }: { children: React.ReactNode }) {
 function BriefPageSkeleton() {
   return (
     <PageFrame>
-      <ShellBreadcrumbs items={[{ label: "Worlds", href: "/" }, { label: "Brief" }]} />
-      <div className="flex min-w-0 flex-col gap-4" aria-busy="true" aria-label="Loading the Brief">
+      <ShellBreadcrumbs
+        items={[{ label: "Worlds", href: "/" }, { label: "Brief" }]}
+      />
+      <div
+        className="flex min-w-0 flex-col gap-4"
+        aria-busy="true"
+        aria-label="Loading the Brief"
+      >
         <div className="flex flex-col gap-2.5 sm:px-[54px]">
           <Skeleton className="h-9 w-72 max-w-full" />
           <Skeleton className="h-5 w-48" />
@@ -159,16 +225,34 @@ function BriefPageSkeleton() {
   )
 }
 
-type InitialContent = { name: string; briefDoc: unknown[]; restored: boolean; staleBackup: boolean }
+type InitialContent = {
+  name: string
+  briefDoc: unknown[]
+  restored: boolean
+  staleBackup: boolean
+}
 
 /** What the editor opens with: the server's Brief, or newer unsaved edits this browser kept. */
 function initialContent(world: World): InitialContent {
-  const backup = world.setupStatus === "draft" ? readBriefBackup(world.id) : null
-  const fromServer = { name: world.name, briefDoc: world.briefDoc, restored: false, staleBackup: backup !== null }
+  const backup =
+    world.setupStatus === "draft" ? readBriefBackup(world.id) : null
+  const fromServer = {
+    name: world.name,
+    briefDoc: world.briefDoc,
+    restored: false,
+    staleBackup: backup !== null,
+  }
   if (!backup || backup.at <= Date.parse(world.updatedAt)) return fromServer
-  const same = backup.name === world.name && JSON.stringify(backup.briefDoc) === JSON.stringify(world.briefDoc)
+  const same =
+    backup.name === world.name &&
+    JSON.stringify(backup.briefDoc) === JSON.stringify(world.briefDoc)
   if (same) return fromServer
-  return { name: backup.name, briefDoc: backup.briefDoc, restored: true, staleBackup: false }
+  return {
+    name: backup.name,
+    briefDoc: backup.briefDoc,
+    restored: true,
+    staleBackup: false,
+  }
 }
 
 /** The first `Label: value` line in the document: where a new Brief's cursor goes. */
@@ -194,7 +278,12 @@ class BriefDraft {
   private briefDocJson: string
   readonly autosave: Autosave<SaveBriefRequest>
 
-  constructor(worldId: string, initial: InitialContent, locked: boolean, onSaved: (world: World) => void) {
+  constructor(
+    worldId: string,
+    initial: InitialContent,
+    locked: boolean,
+    onSaved: (world: World) => void
+  ) {
     this.name = initial.name
     this.briefDoc = initial.briefDoc
     this.briefDocJson = JSON.stringify(initial.briefDoc)
@@ -203,7 +292,10 @@ class BriefDraft {
       snapshot: this.snapshot,
       save: async (body) => onSaved((await api.saveBrief(worldId, body)).world),
       isRetryable: (error) => !(error instanceof ApiError) || error.retryable,
-      messageOf: (error) => (error instanceof ApiError ? error.message : "The server did not save the Brief. Try again."),
+      messageOf: (error) =>
+        error instanceof ApiError
+          ? error.message
+          : "The server did not save the Brief. Try again.",
     })
   }
 
@@ -239,7 +331,10 @@ class BriefDraft {
   }
 
   /** The PUT body: the name always, the document while the Brief is not locked. */
-  snapshot = (): SaveBriefRequest => ({ name: this.name, briefDoc: this.locked ? undefined : this.briefDoc })
+  snapshot = (): SaveBriefRequest => ({
+    name: this.name,
+    briefDoc: this.locked ? undefined : this.briefDoc,
+  })
 }
 
 function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
@@ -250,12 +345,16 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
 
   const [initial] = React.useState(() => initialContent(initialWorld))
   const [name, setName] = React.useState(initial.name)
-  const [conversion, setConversion] = React.useState(() => documentToBrief(initial.briefDoc as SandsBlock[]))
+  const [conversion, setConversion] = React.useState(() =>
+    documentToBrief(initial.briefDoc as SandsBlock[])
+  )
   const [editingName, setEditingName] = React.useState(false)
   const [confirmKey, setConfirmKey] = React.useState(0)
   const [saveAnnouncement, setSaveAnnouncement] = React.useState("")
   const [run, setRun] = React.useState<SetupRun>(idleSetupRun)
-  const [streamStartedAt, setStreamStartedAt] = React.useState<number | null>(null)
+  const [streamStartedAt, setStreamStartedAt] = React.useState<number | null>(
+    null
+  )
   const [leaveTo, setLeaveTo] = React.useState<LeaveRequest | null>(null)
 
   const editorRef = React.useRef<BriefEditorHandle>(null)
@@ -267,14 +366,30 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
   // One draft and autosave per page.
   const [draft] = React.useState(
     () =>
-      new BriefDraft(worldId, initial, initialWorld.setupStatus !== "draft", (saved) =>
-        setWorld((current) => ({ ...current, updatedAt: saved.updatedAt, brief: saved.brief, setupStatus: saved.setupStatus }))
+      new BriefDraft(
+        worldId,
+        initial,
+        initialWorld.setupStatus !== "draft",
+        (saved) =>
+          setWorld((current) => ({
+            ...current,
+            updatedAt: saved.updatedAt,
+            brief: saved.brief,
+            setupStatus: saved.setupStatus,
+          }))
       )
   )
   const { autosave } = draft
-  const status = React.useSyncExternalStore(autosave.subscribe, autosave.getStatus, autosave.getStatus)
+  const status = React.useSyncExternalStore(
+    autosave.subscribe,
+    autosave.getStatus,
+    autosave.getStatus
+  )
 
-  const busy = run.phase === "starting" || run.phase === "running" || run.phase === "succeeded"
+  const busy =
+    run.phase === "starting" ||
+    run.phase === "running" ||
+    run.phase === "succeeded"
   const problems = conversion.issues.length
   const canRun = !locked && problems === 0 && !busy
   const disabledReason = busy
@@ -293,7 +408,11 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
     if (backupTimer.current !== null) window.clearTimeout(backupTimer.current)
     backupTimer.current = null
     if (draft.locked) return
-    writeBriefBackup(worldId, { name: draft.name, briefDoc: draft.briefDoc, at: Date.now() })
+    writeBriefBackup(worldId, {
+      name: draft.name,
+      briefDoc: draft.briefDoc,
+      at: Date.now(),
+    })
   }, [draft, worldId])
 
   const recordChange = React.useCallback(() => {
@@ -307,7 +426,8 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
     () =>
       autosave.subscribe(() => {
         if (autosave.getStatus().kind !== "saved" || autosave.dirty) return
-        if (backupTimer.current !== null) window.clearTimeout(backupTimer.current)
+        if (backupTimer.current !== null)
+          window.clearTimeout(backupTimer.current)
         backupTimer.current = null
         clearBriefBackup(worldId)
       }),
@@ -322,7 +442,8 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
       autosave.change()
       toast.add({
         title: "Unsaved edits restored",
-        description: "This browser kept edits the server did not have. They are back in the Brief and being saved now.",
+        description:
+          "This browser kept edits the server did not have. They are back in the Brief and being saved now.",
       })
     } else if (initial.staleBackup) {
       clearBriefBackup(worldId)
@@ -335,9 +456,11 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
     const saveOnLeave = () => {
       if (!autosave.dirty) return
       writeBackupNow()
-      api.saveBrief(worldId, draft.snapshot(), { keepalive: true }).catch(() => {
-        // The browser copy above keeps the edits; the Brief offers them back next time.
-      })
+      api
+        .saveBrief(worldId, draft.snapshot(), { keepalive: true })
+        .catch(() => {
+          // The browser copy above keeps the edits; the Brief offers them back next time.
+        })
     }
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!autosave.dirty && !autosave.saving && !busyRef.current) return
@@ -360,11 +483,29 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
   // In-app links (breadcrumbs, the app name) wait for the save, or ask first.
   React.useEffect(() => {
     const onClick = (event: MouseEvent) => {
-      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-      const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null
-      if (!(anchor instanceof HTMLAnchorElement) || (anchor.target && anchor.target !== "_self") || anchor.hasAttribute("download")) return
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      )
+        return
+      const anchor =
+        event.target instanceof Element ? event.target.closest("a[href]") : null
+      if (
+        !(anchor instanceof HTMLAnchorElement) ||
+        (anchor.target && anchor.target !== "_self") ||
+        anchor.hasAttribute("download")
+      )
+        return
       const url = new URL(anchor.href, window.location.href)
-      if (url.origin !== window.location.origin || url.pathname === window.location.pathname) return
+      if (
+        url.origin !== window.location.origin ||
+        url.pathname === window.location.pathname
+      )
+        return
       if (!busyRef.current && !autosave.dirty && !autosave.saving) return
       event.preventDefault()
       event.stopPropagation()
@@ -373,7 +514,11 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
         setLeaveTo({ href, reason: "setup" })
         return
       }
-      void autosave.flush().then((saved) => (saved ? router.push(href) : setLeaveTo({ href, reason: "unsaved" })))
+      void autosave
+        .flush()
+        .then((saved) =>
+          saved ? router.push(href) : setLeaveTo({ href, reason: "unsaved" })
+        )
     }
     document.addEventListener("click", onClick, true)
     return () => document.removeEventListener("click", onClick, true)
@@ -425,7 +570,8 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
     )
   }
 
-  const focusIssue = (item: BriefIssue | BriefWarning) => editorRef.current?.focusIssue(item)
+  const focusIssue = (item: BriefIssue | BriefWarning) =>
+    editorRef.current?.focusIssue(item)
 
   const addSection = (type: BriefBlockType) => {
     const editor = editorRef.current?.editor()
@@ -434,7 +580,11 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
     if (last) editor.setTextCursorPosition(last, "end")
     const inserted = insertBriefSection(editor, type)
     // With no Character at all, the one added is the Player character.
-    if (type === "character" && conversion.draft.characters.length === 0 && inserted[0]) {
+    if (
+      type === "character" &&
+      conversion.draft.characters.length === 0 &&
+      inserted[0]
+    ) {
       editor.updateBlock(inserted[0], { props: { isPlayer: true } } as never)
     }
     editor.focus()
@@ -442,7 +592,11 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
 
   const runSetup = async () => {
     if (!canRun) {
-      if (disabledReason && !locked) toast.add({ title: "Setup cannot run yet", description: disabledReason })
+      if (disabledReason && !locked)
+        toast.add({
+          title: "Setup cannot run yet",
+          description: disabledReason,
+        })
       return
     }
     setRun(startingSetupRun())
@@ -454,7 +608,8 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
           code: "request",
           step: null,
           gaps: [],
-          message: `The Brief could not be saved, so setup did not start. ${statusMessage(autosave.getStatus())}`.trim(),
+          message:
+            `The Brief could not be saved, so setup did not start. ${statusMessage(autosave.getStatus())}`.trim(),
         })
       )
       return
@@ -462,7 +617,9 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
     const controller = new AbortController()
     setupAbort.current = controller
     try {
-      for await (const event of api.streamSetup(worldId, { signal: controller.signal })) {
+      for await (const event of api.streamSetup(worldId, {
+        signal: controller.signal,
+      })) {
         // Anchor the ticking clock to the server's stream clock, so a running step never overshoots its final time.
         const receivedAt = Date.now()
         setStreamStartedAt((start) => start ?? receivedAt - event.at)
@@ -471,7 +628,10 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
           draft.setLocked(true)
           setWorld(event.world)
           clearBriefBackup(worldId)
-          window.setTimeout(() => router.push(withScenario(setupReviewHref(worldId))), SUCCESS_PAUSE_MS)
+          window.setTimeout(
+            () => router.push(withScenario(setupReviewHref(worldId))),
+            SUCCESS_PAUSE_MS
+          )
         }
       }
     } catch (error) {
@@ -482,7 +642,8 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
           code: apiError?.code === "conflict" ? "conflict" : "request",
           step: null,
           gaps: [],
-          message: apiError?.message ?? "Setup stopped unexpectedly. Try again.",
+          message:
+            apiError?.message ?? "Setup stopped unexpectedly. Try again.",
         })
       )
     } finally {
@@ -491,22 +652,45 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
   }
 
   // Page shortcuts: Cmd/Ctrl+S saves, Cmd/Ctrl+Enter runs setup, F2 renames. They work inside the editor too.
-  const actions = React.useRef({ saveNow, runSetup, startRename: () => setEditingName(true) })
+  const actions = React.useRef({
+    saveNow,
+    runSetup,
+    startRename: () => setEditingName(true),
+  })
   React.useEffect(() => {
-    actions.current = { saveNow, runSetup, startRename: () => setEditingName(true) }
+    actions.current = {
+      saveNow,
+      runSetup,
+      startRename: () => setEditingName(true),
+    }
   })
   const dialogOpen = leaveTo !== null
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (dialogOpen || event.repeat) return
       const mod = event.metaKey || event.ctrlKey
-      if (mod && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "s") {
+      if (
+        mod &&
+        !event.shiftKey &&
+        !event.altKey &&
+        event.key.toLowerCase() === "s"
+      ) {
         event.preventDefault()
         void actions.current.saveNow()
-      } else if (mod && !event.shiftKey && !event.altKey && event.key === "Enter") {
+      } else if (
+        mod &&
+        !event.shiftKey &&
+        !event.altKey &&
+        event.key === "Enter"
+      ) {
         event.preventDefault()
         void actions.current.runSetup()
-      } else if (!mod && !event.shiftKey && !event.altKey && event.key === "F2") {
+      } else if (
+        !mod &&
+        !event.shiftKey &&
+        !event.altKey &&
+        event.key === "F2"
+      ) {
         event.preventDefault()
         actions.current.startRename()
       }
@@ -519,34 +703,63 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
 
   return (
     <PageFrame>
-      <ShellBreadcrumbs items={worldCrumbs({ id: worldId, name, setupStatus: world.setupStatus }, "Brief")} />
+      <ShellBreadcrumbs
+        items={worldCrumbs(
+          { id: worldId, name, setupStatus: world.setupStatus },
+          "Brief"
+        )}
+      />
       <ShellActions>
-        <SaveIndicator status={status} onSaveNow={() => void saveNow()} confirmKey={confirmKey} />
+        <SaveIndicator
+          status={status}
+          onSaveNow={() => void saveNow()}
+          confirmKey={confirmKey}
+        />
         {locked ? (
           world.setupStatus === "drafting" ? null : (
-            <Button render={<Link href={withScenario(setupReviewHref(worldId))} />} nativeButton={false}>
+            <Button
+              render={<Link href={withScenario(setupReviewHref(worldId))} />}
+              nativeButton={false}
+            >
               Open setup review
             </Button>
           )
         ) : (
-          <RunSetupButton busy={busy} canRun={canRun} disabledReason={disabledReason} onRun={() => void runSetup()} />
+          <RunSetupButton
+            busy={busy}
+            canRun={canRun}
+            disabledReason={disabledReason}
+            onRun={() => void runSetup()}
+          />
         )}
       </ShellActions>
 
       <div className="flex min-w-0 flex-col gap-4">
         <div className="flex flex-col gap-3 sm:px-[54px]">
           <header className="flex flex-col gap-1.5">
-            <WorldName name={name} onRename={rename} editing={editingName} onEditingChange={setEditingName} />
+            <WorldName
+              name={name}
+              onRename={rename}
+              editing={editingName}
+              onEditingChange={setEditingName}
+            />
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
               <SetupStatusBadge status={world.setupStatus} />
               <span>
-                {locked ? "The Brief is read-only." : "Type / to add a Setting, Character, Arc, Ending, Location or Voice."}
+                {locked
+                  ? "The Brief is read-only."
+                  : "Type / to add a Setting, Character, Arc, Ending, Location or Voice."}
               </span>
             </div>
           </header>
           {showLockedNotice ? <LockedNotice world={world} /> : null}
         </div>
-        <BriefEditor ref={editorRef} initialDocument={initial.briefDoc as SandsBlock[]} readOnly={locked || busy} onChange={onEditorChange} />
+        <BriefEditor
+          ref={editorRef}
+          initialDocument={initial.briefDoc as SandsBlock[]}
+          readOnly={locked || busy}
+          onChange={onEditorChange}
+        />
       </div>
 
       <aside
@@ -560,18 +773,33 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
           onRetry={() => void runSetup()}
           onDismiss={() => setRun(idleSetupRun())}
         />
-        {locked ? null : <BriefChecks conversion={conversion} onFocus={focusIssue} onAddSection={addSection} />}
+        {locked ? null : (
+          <BriefChecks
+            conversion={conversion}
+            onFocus={focusIssue}
+            onAddSection={addSection}
+          />
+        )}
       </aside>
 
       <SetupLiveRegion text={run.announcement} />
       <div className="sr-only" aria-live="polite" aria-atomic="true">
-        {status.kind === "error" ? `Not saved. ${status.message}` : saveAnnouncement}
+        {status.kind === "error"
+          ? `Not saved. ${status.message}`
+          : saveAnnouncement}
       </div>
 
-      <AlertDialog open={dialogOpen} onOpenChange={(open) => (open ? null : setLeaveTo(null))}>
+      <AlertDialog
+        open={dialogOpen}
+        onOpenChange={(open) => (open ? null : setLeaveTo(null))}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{leaveTo?.reason === "setup" ? "Stop setup and leave?" : "Leave before your edits are saved?"}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {leaveTo?.reason === "setup"
+                ? "Stop setup and leave?"
+                : "Leave before your edits are saved?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {leaveTo?.reason === "setup"
                 ? "Setup is still running. Leaving stops it; the World stays a draft and your Brief is kept."
@@ -622,12 +850,23 @@ function RunSetupButton({
           />
         }
       >
-        {busy ? <Spinner data-icon="inline-start" className="motion-reduce:animate-none" aria-hidden /> : <PlayIcon data-icon="inline-start" aria-hidden />}
+        {busy ? (
+          <Spinner
+            data-icon="inline-start"
+            className="motion-reduce:animate-none"
+            aria-hidden
+          />
+        ) : (
+          <PlayIcon data-icon="inline-start" aria-hidden />
+        )}
         {busy ? "Running setup…" : "Run setup"}
       </TooltipTrigger>
       <TooltipContent className="max-w-xs">
         <span className="flex flex-col gap-1">
-          <span>{disabledReason ?? "Draft the World from this Brief. Takes about a minute."}</span>
+          <span>
+            {disabledReason ??
+              "Draft the World from this Brief. Takes about a minute."}
+          </span>
           <span className="flex items-center gap-1.5">
             Run setup
             <ShortcutKeys shortcut={RUN_SETUP_SHORTCUT} />
@@ -650,7 +889,8 @@ function LockedNotice({ world }: { world: World }) {
         <Spinner className="motion-reduce:animate-none" aria-hidden />
         <AlertTitle>Setup is running</AlertTitle>
         <AlertDescription>
-          Setup started for this World elsewhere, so the Brief is locked until it finishes or fails. Reload to see where it is.
+          Setup started for this World elsewhere, so the Brief is locked until
+          it finishes or fails. Reload to see where it is.
         </AlertDescription>
       </Alert>
     )
@@ -660,7 +900,8 @@ function LockedNotice({ world }: { world: World }) {
       <LockIcon aria-hidden />
       <AlertTitle>The Brief is locked</AlertTitle>
       <AlertDescription>
-        Setup has run, so the Brief can no longer change. Review what setup drafted from it in the setup review.
+        Setup has run, so the Brief can no longer change. Review what setup
+        drafted from it in the setup review.
       </AlertDescription>
     </Alert>
   )

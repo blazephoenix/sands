@@ -10,15 +10,33 @@ import * as React from "react"
 import { FilterXIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "@/components/ui/toast"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { PatchEntryRequest } from "@/domain/api"
-import { entryContentOf, type Entry, type EntryContent, type EntrySource, type EntryStatus } from "@/domain/entry"
+import {
+  entryContentOf,
+  type Entry,
+  type EntryContent,
+  type EntrySource,
+  type EntryStatus,
+} from "@/domain/entry"
 import type { GetSessionResponse } from "@/domain/session-view"
-import { EntryEditor, type BlockAction, type EntryBlockConversion, type EntryBlockInfo, type EntryEditorHandle } from "@/editor"
+import {
+  EntryEditor,
+  type BlockAction,
+  type EntryBlockConversion,
+  type EntryBlockInfo,
+  type EntryEditorHandle,
+} from "@/editor"
 import { api, ApiError } from "@/lib/api-client"
 
 import { mergeEntries } from "./use-session"
@@ -45,11 +63,19 @@ const SAVE_DELAY_MS = 700
 
 /** A play Entry the Author has not seen, or first saw since this pane opened, still shows its marker. */
 function isNew(entry: Entry, openedAt: string) {
-  return entry.source === "play" && (entry.seenAt === null || entry.seenAt >= openedAt)
+  return (
+    entry.source === "play" &&
+    (entry.seenAt === null || entry.seenAt >= openedAt)
+  )
 }
 
 export function unseenPlayEntries(entries: readonly Entry[]) {
-  return entries.filter((entry) => entry.source === "play" && entry.seenAt === null && entry.status !== "rejected")
+  return entries.filter(
+    (entry) =>
+      entry.source === "play" &&
+      entry.seenAt === null &&
+      entry.status !== "rejected"
+  )
 }
 
 /** Compares two Entry contents regardless of key order. */
@@ -58,13 +84,19 @@ function sameContent(a: EntryContent, b: EntryContent) {
     Array.isArray(value)
       ? value.map(canonical)
       : value && typeof value === "object"
-        ? Object.fromEntries(Object.entries(value).sort(([x], [y]) => x.localeCompare(y)).map(([k, v]) => [k, canonical(v)]))
+        ? Object.fromEntries(
+            Object.entries(value)
+              .sort(([x], [y]) => x.localeCompare(y))
+              .map(([k, v]) => [k, canonical(v)])
+          )
         : value
   return JSON.stringify(canonical(a)) === JSON.stringify(canonical(b))
 }
 
 function message(error: unknown) {
-  return error instanceof ApiError ? error.message : "Something went wrong. Try again."
+  return error instanceof ApiError
+    ? error.message
+    : "Something went wrong. Try again."
 }
 
 export function CodexPane({
@@ -84,15 +116,23 @@ export function CodexPane({
   const editorRef = React.useRef<EntryEditorHandle>(null)
 
   const entries = data.entries
-  const byId = React.useMemo(() => new Map(entries.map((entry) => [entry.id, entry])), [entries])
+  const byId = React.useMemo(
+    () => new Map(entries.map((entry) => [entry.id, entry])),
+    [entries]
+  )
   const visible = React.useMemo(
     () =>
       entries.filter(
-        (entry) => sources.includes(entry.source) && (entry.status === "rejected" ? showRemoved : statuses.includes(entry.status))
+        (entry) =>
+          sources.includes(entry.source) &&
+          (entry.status === "rejected"
+            ? showRemoved
+            : statuses.includes(entry.status))
       ),
     [entries, sources, statuses, showRemoved]
   )
-  const filtered = sources.length < ALL_SOURCES.length || statuses.length < ALL_STATUSES.length
+  const filtered =
+    sources.length < ALL_SOURCES.length || statuses.length < ALL_STATUSES.length
 
   // The editor renders its Entries at mount: remount it when the filters change or play invents a new Entry.
   const playIds = entries
@@ -103,16 +143,25 @@ export function CodexPane({
 
   // Which Entries the editor shows is fixed when it mounts, so an Entry removed or re-statused
   // in place stays in view (with Undo) instead of vanishing under the cursor.
-  const [shown, setShown] = React.useState(() => ({ key: editorKey, ids: new Set(visible.map((entry) => entry.id)) }))
-  if (shown.key !== editorKey) setShown({ key: editorKey, ids: new Set(visible.map((entry) => entry.id)) })
+  const [shown, setShown] = React.useState(() => ({
+    key: editorKey,
+    ids: new Set(visible.map((entry) => entry.id)),
+  }))
+  if (shown.key !== editorKey)
+    setShown({ key: editorKey, ids: new Set(visible.map((entry) => entry.id)) })
   const [added, setAdded] = React.useState<ReadonlySet<string>>(new Set())
   const editorEntries = React.useMemo(
-    () => entries.filter((entry) => shown.ids.has(entry.id) || added.has(entry.id)),
+    () =>
+      entries.filter((entry) => shown.ids.has(entry.id) || added.has(entry.id)),
     [entries, shown, added]
   )
 
   const setEntry = React.useCallback(
-    (entry: Entry) => update((current) => ({ ...current, entries: mergeEntries(current.entries, [entry]) })),
+    (entry: Entry) =>
+      update((current) => ({
+        ...current,
+        entries: mergeEntries(current.entries, [entry]),
+      })),
     [update]
   )
 
@@ -120,7 +169,12 @@ export function CodexPane({
   const marking = React.useRef(new Set<string>())
   React.useEffect(() => {
     for (const entry of editorEntries) {
-      if (entry.source !== "play" || entry.seenAt !== null || marking.current.has(entry.id)) continue
+      if (
+        entry.source !== "play" ||
+        entry.seenAt !== null ||
+        marking.current.has(entry.id)
+      )
+        continue
       marking.current.add(entry.id)
       api
         .patchEntry(entry.id, { action: "mark-seen" })
@@ -132,14 +186,22 @@ export function CodexPane({
   const entryLabelNote = React.useCallback(
     (info: EntryBlockInfo) => {
       const entry = byId.get(info.entryId)
-      return entry && isNew(entry, openedAt) && entry.sourceTurn !== null ? `new, Turn ${entry.sourceTurn + 1}` : null
+      return entry && isNew(entry, openedAt) && entry.sourceTurn !== null
+        ? `new, Turn ${entry.sourceTurn + 1}`
+        : null
     },
     [byId, openedAt]
   )
 
   // Status changes: optimistic, with Undo; a failure rolls back and says why.
   const changeStatus = React.useCallback(
-    (info: EntryBlockInfo, request: PatchEntryRequest, next: EntryStatus, verb: string, undo: PatchEntryRequest | null) => {
+    (
+      info: EntryBlockInfo,
+      request: PatchEntryRequest,
+      next: EntryStatus,
+      verb: string,
+      undo: PatchEntryRequest | null
+    ) => {
       const entry = byId.get(info.entryId)
       if (!entry) return
       const name = info.name || entry.name || "Entry"
@@ -157,16 +219,30 @@ export function CodexPane({
               ? {
                   children: "Undo",
                   onClick: () => {
-                    setEntry(saved.status === entry.status ? saved : ({ ...saved, status: entry.status } as Entry))
+                    setEntry(
+                      saved.status === entry.status
+                        ? saved
+                        : ({ ...saved, status: entry.status } as Entry)
+                    )
                     api
                       .patchEntry(entry.id, undo)
                       .then(({ entry: restored }) => {
                         setEntry(restored)
-                        toast.add({ id: toastId, title: `${name} is back as it was`, description: "It applies from the next Turn.", actionProps: undefined })
+                        toast.add({
+                          id: toastId,
+                          title: `${name} is back as it was`,
+                          description: "It applies from the next Turn.",
+                          actionProps: undefined,
+                        })
                       })
                       .catch((error: unknown) => {
                         setEntry(saved)
-                        toast.add({ id: toastId, type: "error", title: "Undo did not go through", description: message(error) })
+                        toast.add({
+                          id: toastId,
+                          type: "error",
+                          title: "Undo did not go through",
+                          description: message(error),
+                        })
                       })
                   },
                 }
@@ -175,7 +251,12 @@ export function CodexPane({
         })
         .catch((error: unknown) => {
           setEntry(entry)
-          toast.add({ id: toastId, type: "error", title: `${name} was not ${verb}`, description: message(error) })
+          toast.add({
+            id: toastId,
+            type: "error",
+            title: `${name} was not ${verb}`,
+            description: message(error),
+          })
         })
     },
     [byId, setEntry]
@@ -185,25 +266,65 @@ export function CodexPane({
     (info: EntryBlockInfo): BlockAction[] => {
       if (!info.entryId || info.status === "locked") return []
       const previous = info.status
-      const undoTo: PatchEntryRequest = previous === "rejected" ? { action: "reject" } : { action: "restore", status: previous }
+      const undoTo: PatchEntryRequest =
+        previous === "rejected"
+          ? { action: "reject" }
+          : { action: "restore", status: previous }
       if (info.status === "rejected") {
-        return [{ id: "restore", label: "Restore", run: () => changeStatus(info, { action: "restore", status: "proposed" }, "proposed", "restored", undoTo) }]
+        return [
+          {
+            id: "restore",
+            label: "Restore",
+            run: () =>
+              changeStatus(
+                info,
+                { action: "restore", status: "proposed" },
+                "proposed",
+                "restored",
+                undoTo
+              ),
+          },
+        ]
       }
       return [
         {
           id: "approve",
           label: "Approve",
           disabled: info.status === "accepted",
-          run: () => changeStatus(info, { action: "accept" }, "accepted", "approved", undoTo),
+          run: () =>
+            changeStatus(
+              info,
+              { action: "accept" },
+              "accepted",
+              "approved",
+              undoTo
+            ),
         },
-        { id: "remove", label: "Remove", destructive: true, run: () => changeStatus(info, { action: "reject" }, "rejected", "removed", undoTo) },
+        {
+          id: "remove",
+          label: "Remove",
+          destructive: true,
+          run: () =>
+            changeStatus(
+              info,
+              { action: "reject" },
+              "rejected",
+              "removed",
+              undoTo
+            ),
+        },
       ]
     },
     [changeStatus]
   )
 
   // Edits: saved per Entry once typing pauses. The page keeps the edited copy, so nothing typed is lost on failure.
-  const pending = React.useRef(new Map<string, { content: EntryContent; timer: ReturnType<typeof setTimeout> | null }>())
+  const pending = React.useRef(
+    new Map<
+      string,
+      { content: EntryContent; timer: ReturnType<typeof setTimeout> | null }
+    >()
+  )
   const creating = React.useRef(new Set<string>())
 
   const retry = React.useRef<(id: string) => void>(() => {})
@@ -223,7 +344,11 @@ export function CodexPane({
             localEntries.current.delete(id)
             setEntry(entry)
           }
-          toast.add({ id: toastId, title: `${entry.name || "Entry"} saved`, description: "It applies from the next Turn." })
+          toast.add({
+            id: toastId,
+            title: `${entry.name || "Entry"} saved`,
+            description: "It applies from the next Turn.",
+          })
         })
         .catch((error: unknown) => {
           toast.add({
@@ -232,7 +357,10 @@ export function CodexPane({
             timeout: 0,
             title: `${content.name || "The Entry"} was not saved`,
             description: `${message(error)} Your edit is still here.`,
-            actionProps: { children: "Try again", onClick: () => retry.current(id) },
+            actionProps: {
+              children: "Try again",
+              onClick: () => retry.current(id),
+            },
           })
         })
     },
@@ -252,16 +380,27 @@ export function CodexPane({
         if (creating.current.has(change.blockId)) return
         creating.current.add(change.blockId)
         api
-          .createEntry({ worldId: data.world.id, sessionId: data.session.id, content })
+          .createEntry({
+            worldId: data.world.id,
+            sessionId: data.session.id,
+            content,
+          })
           .then(({ entry }) => {
             editorRef.current?.assignEntryId(change.blockId, entry.id)
             setAdded((ids) => new Set([...ids, entry.id]))
             setEntry(entry)
-            toast.add({ title: `${entry.name || "Entry"} added`, description: "It applies from the next Turn." })
+            toast.add({
+              title: `${entry.name || "Entry"} added`,
+              description: "It applies from the next Turn.",
+            })
           })
           .catch((error: unknown) => {
             creating.current.delete(change.blockId)
-            toast.add({ type: "error", title: "The new Entry was not added", description: `${message(error)} Edit it again to retry.` })
+            toast.add({
+              type: "error",
+              title: "The new Entry was not added",
+              description: `${message(error)} Edit it again to retry.`,
+            })
           })
         return
       }
@@ -270,12 +409,23 @@ export function CodexPane({
       const entry = byId.get(id)
       if (!entry || entry.status === "locked") return
       // BlockNote rewrites a loaded document (key order, default props) and reports it; only real edits save.
-      if (!pending.current.has(id) && sameContent(content, entryContentOf(entry))) return
+      if (
+        !pending.current.has(id) &&
+        sameContent(content, entryContentOf(entry))
+      )
+        return
       localEntries.current.add(id)
-      setEntry({ ...entry, ...content, status: entry.status === "rejected" ? entry.status : "edited" } as Entry)
+      setEntry({
+        ...entry,
+        ...content,
+        status: entry.status === "rejected" ? entry.status : "edited",
+      } as Entry)
       const item = pending.current.get(id)
       if (item?.timer) clearTimeout(item.timer)
-      pending.current.set(id, { content, timer: setTimeout(() => save(id), SAVE_DELAY_MS) })
+      pending.current.set(id, {
+        content,
+        timer: setTimeout(() => save(id), SAVE_DELAY_MS),
+      })
     },
     [byId, data.session.id, data.world.id, localEntries, save, setEntry]
   )
@@ -297,7 +447,8 @@ export function CodexPane({
     setSources(ALL_SOURCES)
     setStatuses(ALL_STATUSES)
   }
-  const count = (predicate: (entry: Entry) => boolean) => entries.filter(predicate).length
+  const count = (predicate: (entry: Entry) => boolean) =>
+    entries.filter(predicate).length
   const removedCount = count((entry) => entry.status === "rejected")
 
   return (
@@ -316,7 +467,9 @@ export function CodexPane({
             {SOURCES.map((source) => (
               <ToggleGroupItem key={source.value} value={source.value}>
                 {source.label}
-                <span className="text-muted-foreground tabular-nums">{count((entry) => entry.source === source.value)}</span>
+                <span className="text-muted-foreground tabular-nums">
+                  {count((entry) => entry.source === source.value)}
+                </span>
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
@@ -337,9 +490,16 @@ export function CodexPane({
           </ToggleGroup>
         </div>
         <Field orientation="horizontal" className="w-auto">
-          <Switch id="codex-show-removed" checked={showRemoved} onCheckedChange={setShowRemoved} />
+          <Switch
+            id="codex-show-removed"
+            checked={showRemoved}
+            onCheckedChange={setShowRemoved}
+          />
           <FieldLabel htmlFor="codex-show-removed" className="font-normal">
-            Show removed Entries <span className="text-muted-foreground tabular-nums">({removedCount})</span>
+            Show removed Entries{" "}
+            <span className="text-muted-foreground tabular-nums">
+              ({removedCount})
+            </span>
           </FieldLabel>
         </Field>
       </div>
@@ -349,10 +509,17 @@ export function CodexPane({
           <Empty className="py-12">
             <EmptyHeader>
               <EmptyTitle>No Entries match these filters</EmptyTitle>
-              <EmptyDescription>Turn a source or status back on to see its Entries.</EmptyDescription>
+              <EmptyDescription>
+                Turn a source or status back on to see its Entries.
+              </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <Button variant="outline" size="sm" onClick={reset} disabled={!filtered}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={reset}
+                disabled={!filtered}
+              >
                 <FilterXIcon data-icon="inline-start" />
                 Show every Entry
               </Button>

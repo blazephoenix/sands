@@ -23,7 +23,11 @@ export function sequentialIds(prefix: string): IdFactory {
   return () => `${prefix}-${++n}`
 }
 
-const proseProps = { backgroundColor: "default", textColor: "default", textAlignment: "left" } as const
+const proseProps = {
+  backgroundColor: "default",
+  textColor: "default",
+  textAlignment: "left",
+} as const
 
 function text(value: string, styles: Record<string, boolean> = {}) {
   return value ? [{ type: "text" as const, text: value, styles }] : []
@@ -36,8 +40,11 @@ export function sectionHeading(
   options: { name?: string; isPlayer?: boolean; hiddenName?: boolean } = {}
 ): SandsBlock {
   const spec = BRIEF_BLOCKS[type]
-  const content = spec.named ? text(options.name ?? "", options.hiddenName ? { hidden: true } : {}) : undefined
-  const props = type === "character" ? { isPlayer: options.isPlayer ?? false } : {}
+  const content = spec.named
+    ? text(options.name ?? "", options.hiddenName ? { hidden: true } : {})
+    : undefined
+  const props =
+    type === "character" ? { isPlayer: options.isPlayer ?? false } : {}
   return { id, type, props, content, children: [] } as SandsBlock
 }
 
@@ -60,7 +67,8 @@ export function briefSection(
 ): SandsBlock[] {
   const spec = BRIEF_BLOCKS[type]
   const hidden = new Set(options.hiddenFields ?? [])
-  const styles = (key: string): Record<string, boolean> => (hidden.has(key) ? { hidden: true } : {})
+  const styles = (key: string): Record<string, boolean> =>
+    hidden.has(key) ? { hidden: true } : {}
   const blocks: SandsBlock[] = [
     sectionHeading(type, options.blockId ?? options.ids(), {
       name: typeof values.name === "string" ? values.name : "",
@@ -70,36 +78,76 @@ export function briefSection(
   ]
   for (const field of spec.fields) {
     const raw = values[field.key]
-    const items = Array.isArray(raw) ? raw.filter((item): item is string => typeof item === "string") : null
+    const items = Array.isArray(raw)
+      ? raw.filter((item): item is string => typeof item === "string")
+      : null
     if (items && field.list === "lines") {
       for (const item of items.length > 0 ? items : [""]) {
-        blocks.push(fieldParagraph(options.ids(), field.label, item, styles(field.key)))
+        blocks.push(
+          fieldParagraph(options.ids(), field.label, item, styles(field.key))
+        )
       }
       continue
     }
     const value = items ? items.join(", ") : typeof raw === "string" ? raw : ""
-    blocks.push(fieldParagraph(options.ids(), field.label, value, styles(field.key)))
+    blocks.push(
+      fieldParagraph(options.ids(), field.label, value, styles(field.key))
+    )
   }
   for (const fact of options.keyFacts ?? []) {
-    blocks.push(fieldParagraph(options.ids(), fact.label, fact.text, fact.hidden ? { hidden: true } : {}))
+    blocks.push(
+      fieldParagraph(
+        options.ids(),
+        fact.label,
+        fact.text,
+        fact.hidden ? { hidden: true } : {}
+      )
+    )
   }
   return blocks
 }
 
-export function headingBlock(id: string, value: string, level: 1 | 2 | 3 = 2): SandsBlock {
-  return { id, type: "heading", props: { ...proseProps, level, isToggleable: false }, content: text(value), children: [] }
+export function headingBlock(
+  id: string,
+  value: string,
+  level: 1 | 2 | 3 = 2
+): SandsBlock {
+  return {
+    id,
+    type: "heading",
+    props: { ...proseProps, level, isToggleable: false },
+    content: text(value),
+    children: [],
+  }
 }
 
 export function paragraphBlock(id: string, value: string): SandsBlock {
-  return { id, type: "paragraph", props: { ...proseProps }, content: text(value), children: [] }
+  return {
+    id,
+    type: "paragraph",
+    props: { ...proseProps },
+    content: text(value),
+    children: [],
+  }
 }
 
-export function briefToDocument(brief: Brief | BriefDraft, options: { ids?: IdFactory; keepBlockIds?: boolean } = {}): SandsBlock[] {
+export function briefToDocument(
+  brief: Brief | BriefDraft,
+  options: { ids?: IdFactory; keepBlockIds?: boolean } = {}
+): SandsBlock[] {
   const ids = options.ids ?? randomId
   const keep = options.keepBlockIds ?? true
   const endings = "ending" in brief ? [brief.ending] : brief.endings
   const doc: SandsBlock[] = []
-  const add = (type: BriefBlockType, item: { blockId: string; hiddenFields: string[]; keyFacts: KeyFact[] } & SectionValues, isPlayer?: boolean) =>
+  const add = (
+    type: BriefBlockType,
+    item: {
+      blockId: string
+      hiddenFields: string[]
+      keyFacts: KeyFact[]
+    } & SectionValues,
+    isPlayer?: boolean
+  ) =>
     doc.push(
       ...briefSection(type, item, {
         ids,
@@ -117,8 +165,12 @@ export function briefToDocument(brief: Brief | BriefDraft, options: { ids?: IdFa
   for (const item of endings) add("ending", item)
   for (const item of brief.voices) add("voice", item)
   for (const section of brief.prose) {
-    if (section.heading !== null) doc.push(headingBlock((keep && section.headingBlockId) || ids(), section.heading))
-    for (const paragraph of section.paragraphs) doc.push(paragraphBlock(ids(), paragraph))
+    if (section.heading !== null)
+      doc.push(
+        headingBlock((keep && section.headingBlockId) || ids(), section.heading)
+      )
+    for (const paragraph of section.paragraphs)
+      doc.push(paragraphBlock(ids(), paragraph))
   }
   return doc
 }

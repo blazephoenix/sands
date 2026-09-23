@@ -17,7 +17,9 @@ const LABEL = /^\s*([A-Za-z][A-Za-z0-9 '’()&/-]{0,39})\s*$/u
  * the first non-text node. Returns the label and where the value starts, or
  * null when the text is not `Label: ...` (including URLs like `https://`).
  */
-export function splitLabel(text: string): { label: string; valueStart: number } | null {
+export function splitLabel(
+  text: string
+): { label: string; valueStart: number } | null {
   const colon = text.indexOf(":")
   if (colon === -1 || text.startsWith("//", colon + 1)) return null
   const match = LABEL.exec(text.slice(0, colon))
@@ -38,12 +40,17 @@ export type FieldLine = {
 type InlineNode = SandsInline | { type: string; [key: string]: unknown }
 
 /** True when the value carries the Hidden style on any visible text. */
-export function hasHiddenStyle(content: readonly InlineNode[] | undefined): boolean {
+export function hasHiddenStyle(
+  content: readonly InlineNode[] | undefined
+): boolean {
   for (const node of content ?? []) {
     if (node.type === "text") {
       const text = node as { text: string; styles?: Record<string, unknown> }
       if (text.styles?.hidden && text.text.trim()) return true
-    } else if (node.type === "link" && hasHiddenStyle((node as { content: InlineNode[] }).content)) {
+    } else if (
+      node.type === "link" &&
+      hasHiddenStyle((node as { content: InlineNode[] }).content)
+    ) {
       return true
     }
   }
@@ -68,7 +75,10 @@ export function readFieldLine(block: SandsBlock): FieldLine | null {
     const split = splitLabel(labelText + node.text)
     if (!split) return null
     const rest = node.text.slice(colon + 1)
-    const value = trimLeadingSpace([...(rest ? [{ ...node, text: rest }] : []), ...content.slice(index + 1)])
+    const value = trimLeadingSpace([
+      ...(rest ? [{ ...node, text: rest }] : []),
+      ...content.slice(index + 1),
+    ])
     return {
       label: split.label,
       value,
@@ -105,7 +115,11 @@ export function editDistance(a: string, b: string): number {
   for (let i = 1; i <= a.length; i++) {
     const current = [i]
     for (let j = 1; j <= b.length; j++) {
-      current[j] = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1))
+      current[j] = Math.min(
+        previous[j] + 1,
+        current[j - 1] + 1,
+        previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+      )
     }
     previous = current
   }
@@ -125,17 +139,29 @@ export type LabelMatch<S extends LabelSpec> =
  * that short custom labels like "Aim" are not taken for "Age") is a probable
  * typo; the field still counts as custom.
  */
-export function matchLabel<S extends LabelSpec>(label: string, specs: readonly S[]): LabelMatch<S> {
+export function matchLabel<S extends LabelSpec>(
+  label: string,
+  specs: readonly S[]
+): LabelMatch<S> {
   const wanted = normaliseLabel(label)
   for (const spec of specs) {
-    if ([spec.label, ...(spec.aliases ?? [])].some((known) => normaliseLabel(known) === wanted)) return { kind: "known", spec }
+    if (
+      [spec.label, ...(spec.aliases ?? [])].some(
+        (known) => normaliseLabel(known) === wanted
+      )
+    )
+      return { kind: "known", spec }
   }
   let best: { spec: S; distance: number } | null = null
   for (const spec of specs) {
     for (const known of [spec.label, ...(spec.aliases ?? [])]) {
       const target = normaliseLabel(known)
       const distance = editDistance(wanted, target)
-      if (distance <= 2 && distance <= Math.ceil(target.length / 3) && (!best || distance < best.distance)) {
+      if (
+        distance <= 2 &&
+        distance <= Math.ceil(target.length / 3) &&
+        (!best || distance < best.distance)
+      ) {
         best = { spec, distance }
       }
     }
@@ -216,7 +242,11 @@ export function fieldParagraph(
   return {
     id,
     type: "paragraph",
-    props: { backgroundColor: "default", textColor: "default", textAlignment: "left" },
+    props: {
+      backgroundColor: "default",
+      textColor: "default",
+      textAlignment: "left",
+    },
     content: [
       { type: "text", text: `${label}:`, styles: { bold: true } },
       { type: "text", text: " ", styles: {} },

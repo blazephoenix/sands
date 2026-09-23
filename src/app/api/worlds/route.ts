@@ -25,5 +25,8 @@ export const POST = handle(async (request: Request) => {
   const blocked = await scenarioGate(request)
   if (blocked) return blocked
   const body = await readJson(request, createWorldRequestSchema)
-  return Response.json({ world: createWorld(body) } satisfies CreateWorldResponse, { status: 201 })
+  return Response.json(
+    { world: createWorld(body) } satisfies CreateWorldResponse,
+    { status: 201 }
+  )
 })

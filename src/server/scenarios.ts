@@ -16,7 +16,9 @@ import { apiError } from "./http"
 export function getScenarios(request: Request): Set<ScenarioId> {
   if (!scenariosEnabled()) return new Set()
   const fromHeader = parseScenarios(request.headers.get(SCENARIO_HEADER))
-  const fromQuery = parseScenarios(new URL(request.url).searchParams.get(SCENARIO_QUERY))
+  const fromQuery = parseScenarios(
+    new URL(request.url).searchParams.get(SCENARIO_QUERY)
+  )
   return new Set([...fromHeader, ...fromQuery])
 }
 
@@ -24,7 +26,8 @@ export function hasScenario(request: Request, id: ScenarioId) {
   return getScenarios(request).has(id)
 }
 
-export const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+export const sleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 /**
  * Applies the scenarios every route honours. Call first in a handler:

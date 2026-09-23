@@ -24,7 +24,11 @@ export function SetupStatusBadge({ status }: { status: SetupStatus }) {
     case "drafting":
       return (
         <Badge variant="secondary">
-          <Spinner data-icon="inline-start" className="motion-reduce:animate-none" aria-hidden />
+          <Spinner
+            data-icon="inline-start"
+            className="motion-reduce:animate-none"
+            aria-hidden
+          />
           {SETUP_STATUS_LABELS.drafting}
         </Badge>
       )

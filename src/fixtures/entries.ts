@@ -12,7 +12,11 @@
  * (spec §7.2, §8 step 4) and stores the result on the World, so
  * `GET /api/worlds/[id]` returns it and Start follows it.
  */
-import type { CreateEntryRequest, PatchEntryRequest, PatchEntryResponse } from "@/domain/api"
+import type {
+  CreateEntryRequest,
+  PatchEntryRequest,
+  PatchEntryResponse,
+} from "@/domain/api"
 import type { SolvabilityResult } from "@/domain/world"
 import { checkSolvability } from "@/setup/solvability"
 import {
@@ -52,7 +56,13 @@ type Spec<K extends EntryKind> = {
  * references in `data` use keys, resolved per World by `londonEntries`.
  */
 function londonSpecs(): Spec<EntryKind>[] {
-  const person = (role: string, age: string, personality: string, backstory: string, extra: Partial<EntryData<"character">> = {}) => ({
+  const person = (
+    role: string,
+    age: string,
+    personality: string,
+    backstory: string,
+    extra: Partial<EntryData<"character">> = {}
+  ) => ({
     role,
     age,
     personality,
@@ -69,8 +79,15 @@ function londonSpecs(): Spec<EntryKind>[] {
       kind: "character",
       key: "jacob",
       name: "Jacob Flannery",
-      description: "A weary American detective called over for the merchant killings.",
-      data: person("Detective, called over from New York", "38", "Weary and sharp-eyed. Drinks more than he admits.", "Sent for after three merchants died in as many weeks.", { isPlayer: true, aliases: ["The American", "Flannery"] }),
+      description:
+        "A weary American detective called over for the merchant killings.",
+      data: person(
+        "Detective, called over from New York",
+        "38",
+        "Weary and sharp-eyed. Drinks more than he admits.",
+        "Sent for after three merchants died in as many weeks.",
+        { isPlayer: true, aliases: ["The American", "Flannery"] }
+      ),
       source: "author",
       status: "locked",
     },
@@ -79,7 +96,13 @@ function londonSpecs(): Spec<EntryKind>[] {
       key: "geoffrey",
       name: "Geoffrey James",
       description: "Captain at Scotland Yard, proud and impatient.",
-      data: person("Police captain", "54", "Gruff, proud of the Yard, protective of his men.", "Twenty-six years on the force.", { aliases: ["Captain James"] }),
+      data: person(
+        "Police captain",
+        "54",
+        "Gruff, proud of the Yard, protective of his men.",
+        "Twenty-six years on the force.",
+        { aliases: ["Captain James"] }
+      ),
       source: "author",
       status: "locked",
     },
@@ -88,7 +111,12 @@ function londonSpecs(): Spec<EntryKind>[] {
       key: "amanda",
       name: "Amanda Hopkins",
       description: "Second in command; keeps the case files.",
-      data: person("Second in command", "41", "Precise, dry-humoured, trusts evidence over rank.", "Suspects the victims were connected by trade."),
+      data: person(
+        "Second in command",
+        "41",
+        "Precise, dry-humoured, trusts evidence over rank.",
+        "Suspects the victims were connected by trade."
+      ),
       source: "author",
       status: "locked",
     },
@@ -112,7 +140,8 @@ function londonSpecs(): Spec<EntryKind>[] {
       kind: "location",
       key: "yard",
       name: "Scotland Yard",
-      description: "Great Scotland Yard, Whitehall. Gaslit corridors and damp coats.",
+      description:
+        "Great Scotland Yard, Whitehall. Gaslit corridors and damp coats.",
       data: { connections: ["whitechapel"], isStart: true },
       source: "author",
       status: "locked",
@@ -122,7 +151,10 @@ function londonSpecs(): Spec<EntryKind>[] {
       key: "exit-1",
       name: "Case file read",
       description: "From the Brief's first Arc.",
-      data: { arcIndex: 0, condition: "Jacob has read the case file and met Captain James." },
+      data: {
+        arcIndex: 0,
+        condition: "Jacob has read the case file and met Captain James.",
+      },
       source: "author",
       status: "locked",
     },
@@ -132,7 +164,8 @@ function londonSpecs(): Spec<EntryKind>[] {
       kind: "location",
       key: "whitechapel",
       name: "Whitechapel High Street",
-      description: "Market stalls, costermongers and the draper's shop where Whitlock died.",
+      description:
+        "Market stalls, costermongers and the draper's shop where Whitlock died.",
       data: { connections: ["yard", "spitalfields", "docks"], isStart: false },
       source: "setup",
       status: { review: "proposed", ready: "accepted" },
@@ -141,7 +174,8 @@ function londonSpecs(): Spec<EntryKind>[] {
       kind: "location",
       key: "spitalfields",
       name: "Spitalfields Market",
-      description: "The covered market, busy before dawn. Carrow's warehouse stands on its edge.",
+      description:
+        "The covered market, busy before dawn. Carrow's warehouse stands on its edge.",
       data: { connections: ["whitechapel"], isStart: false },
       source: "setup",
       status: { review: "proposed", ready: "accepted" },
@@ -150,7 +184,8 @@ function londonSpecs(): Spec<EntryKind>[] {
       kind: "location",
       key: "docks",
       name: "St Katharine Docks",
-      description: "Warehouses of wool, tea and ivory beside the Tower. Pembury's chandlery faces the quay.",
+      description:
+        "Warehouses of wool, tea and ivory beside the Tower. Pembury's chandlery faces the quay.",
       data: { connections: ["whitechapel", "tower-bridge"], isStart: false },
       source: "setup",
       status: { review: "proposed", ready: "edited" },
@@ -176,8 +211,15 @@ function londonSpecs(): Spec<EntryKind>[] {
       kind: "npc",
       key: "nell",
       name: "Nell Garvey",
-      description: "A flower seller outside Spitalfields Market who sees everything at dawn.",
-      data: person("Flower seller, witness", "24", "Quick to laugh, slow to trust the police.", "Sells violets outside the market every morning.", { aliases: ["Nell"] }),
+      description:
+        "A flower seller outside Spitalfields Market who sees everything at dawn.",
+      data: person(
+        "Flower seller, witness",
+        "24",
+        "Quick to laugh, slow to trust the police.",
+        "Sells violets outside the market every morning.",
+        { aliases: ["Nell"] }
+      ),
       source: "setup",
       status: { review: "proposed", ready: "accepted" },
     },
@@ -186,7 +228,12 @@ function londonSpecs(): Spec<EntryKind>[] {
       key: "pryce",
       name: "Dr. Henry Pryce",
       description: "The police surgeon who examined all three bodies.",
-      data: person("Police surgeon", "58", "Dry, exact, fond of the American's bluntness.", "Has examined the dead for the Yard for twenty years."),
+      data: person(
+        "Police surgeon",
+        "58",
+        "Dry, exact, fond of the American's bluntness.",
+        "Has examined the dead for the Yard for twenty years."
+      ),
       source: "setup",
       status: { review: "accepted", ready: "accepted" },
     },
@@ -194,8 +241,14 @@ function londonSpecs(): Spec<EntryKind>[] {
       kind: "npc",
       key: "josiah",
       name: "Josiah Rober",
-      description: "A wool merchant with a warehouse at St Katharine Docks. Max's father.",
-      data: person("Wool merchant", "56", "Proud, hard, ashamed of nothing.", "Disowned his son six years ago and never speaks of him."),
+      description:
+        "A wool merchant with a warehouse at St Katharine Docks. Max's father.",
+      data: person(
+        "Wool merchant",
+        "56",
+        "Proud, hard, ashamed of nothing.",
+        "Disowned his son six years ago and never speaks of him."
+      ),
       source: "setup",
       status: { review: "proposed", ready: "proposed" },
     },
@@ -204,7 +257,12 @@ function londonSpecs(): Spec<EntryKind>[] {
       key: "finch",
       name: "Walter Finch",
       description: "Max's fellow clerk, who covers for his absences.",
-      data: person("Shipping clerk", "23", "Nervous and loyal.", "Shares a desk with Max and suspects nothing."),
+      data: person(
+        "Shipping clerk",
+        "23",
+        "Nervous and loyal.",
+        "Shares a desk with Max and suspects nothing."
+      ),
       source: "setup",
       status: { review: "proposed", ready: "accepted" },
       jevFlags: [
@@ -220,8 +278,14 @@ function londonSpecs(): Spec<EntryKind>[] {
       kind: "npc",
       key: "abberline",
       name: "Inspector Frederick Abberline",
-      description: "A Metropolitan Police inspector leading the Whitechapel inquiries.",
-      data: person("Inspector", "45", "Methodical.", "Leads the Whitechapel inquiries."),
+      description:
+        "A Metropolitan Police inspector leading the Whitechapel inquiries.",
+      data: person(
+        "Inspector",
+        "45",
+        "Methodical.",
+        "Leads the Whitechapel inquiries."
+      ),
       source: "setup",
       status: "rejected",
       jevFlags: [
@@ -237,7 +301,8 @@ function londonSpecs(): Spec<EntryKind>[] {
       kind: "faction",
       key: "traders",
       name: "The Eastcheap Traders' Association",
-      description: "Merchants who lend to one another. All three victims were members; so is Josiah Rober.",
+      description:
+        "Merchants who lend to one another. All three victims were members; so is Josiah Rober.",
       data: {},
       source: "setup",
       status: { review: "proposed", ready: "accepted" },
@@ -258,7 +323,14 @@ function londonSpecs(): Spec<EntryKind>[] {
       key: "c1",
       name: "C1 — Matching knife wounds",
       description: "Dr. Pryce's notes on the three bodies.",
-      data: { locationId: null, knownBy: ["pryce"], reveals: "All three were killed with the same short, hooked blade, by a right-handed man of middling height.", pointsToHidden: true, redHerring: false },
+      data: {
+        locationId: null,
+        knownBy: ["pryce"],
+        reveals:
+          "All three were killed with the same short, hooked blade, by a right-handed man of middling height.",
+        pointsToHidden: true,
+        redHerring: false,
+      },
       source: "setup",
       status: { review: "proposed", ready: "accepted" },
     },
@@ -267,7 +339,14 @@ function londonSpecs(): Spec<EntryKind>[] {
       key: "c2",
       name: "C2 — A torn ledger page",
       description: "Caught on a nail near Pembury's chandlery.",
-      data: { locationId: "docks", knownBy: [], reveals: "A page from the Rober & Sons ledger listing all three victims as creditors.", pointsToHidden: true, redHerring: false },
+      data: {
+        locationId: "docks",
+        knownBy: [],
+        reveals:
+          "A page from the Rober & Sons ledger listing all three victims as creditors.",
+        pointsToHidden: true,
+        redHerring: false,
+      },
       source: "setup",
       status: { review: "proposed", ready: "accepted" },
     },
@@ -276,7 +355,14 @@ function londonSpecs(): Spec<EntryKind>[] {
       key: "c3",
       name: "C3 — The young clerk at dawn",
       description: "What Nell saw the morning Carrow died.",
-      data: { locationId: null, knownBy: ["nell"], reveals: "A young man in a clerk's coat left Carrow's warehouse just before dawn.", pointsToHidden: true, redHerring: false },
+      data: {
+        locationId: null,
+        knownBy: ["nell"],
+        reveals:
+          "A young man in a clerk's coat left Carrow's warehouse just before dawn.",
+        pointsToHidden: true,
+        redHerring: false,
+      },
       source: "setup",
       status: { review: "proposed", ready: "accepted" },
     },
@@ -285,7 +371,14 @@ function londonSpecs(): Spec<EntryKind>[] {
       key: "c4",
       name: "C4 — A cufflink engraved J.R.",
       description: "Found in the straw behind Carrow's warehouse.",
-      data: { locationId: "spitalfields", knownBy: [], reveals: "A silver cufflink engraved J.R.: Josiah Rober's, pawned by his son last winter.", pointsToHidden: true, redHerring: false },
+      data: {
+        locationId: "spitalfields",
+        knownBy: [],
+        reveals:
+          "A silver cufflink engraved J.R.: Josiah Rober's, pawned by his son last winter.",
+        pointsToHidden: true,
+        redHerring: false,
+      },
       source: "setup",
       status: { review: "proposed", ready: "edited" },
     },
@@ -294,7 +387,14 @@ function londonSpecs(): Spec<EntryKind>[] {
       key: "c5",
       name: "C5 — An Irish docker's cap",
       description: "A red herring the constables love.",
-      data: { locationId: "whitechapel", knownBy: [], reveals: "A docker's cap near Whitlock's shop. It belongs to a man who was in a cell that night.", pointsToHidden: false, redHerring: true },
+      data: {
+        locationId: "whitechapel",
+        knownBy: [],
+        reveals:
+          "A docker's cap near Whitlock's shop. It belongs to a man who was in a cell that night.",
+        pointsToHidden: false,
+        redHerring: true,
+      },
       source: "setup",
       status: { review: "proposed", ready: "accepted" },
     },
@@ -303,7 +403,12 @@ function londonSpecs(): Spec<EntryKind>[] {
       key: "k-nell",
       name: "Nell saw the clerk",
       description: "She will talk to a policeman who treats her fairly.",
-      data: { characterId: "nell", fact: "She saw a young clerk leave Carrow's warehouse at dawn.", minBand: "normal", clueId: "c3" },
+      data: {
+        characterId: "nell",
+        fact: "She saw a young clerk leave Carrow's warehouse at dawn.",
+        minBand: "normal",
+        clueId: "c3",
+      },
       source: "setup",
       status: { review: "proposed", ready: "accepted" },
     },
@@ -312,7 +417,12 @@ function londonSpecs(): Spec<EntryKind>[] {
       key: "k-pryce",
       name: "Pryce on the wounds",
       description: "He tells anyone from the Yard.",
-      data: { characterId: "pryce", fact: "The same blade killed all three men.", minBand: "low", clueId: "c1" },
+      data: {
+        characterId: "pryce",
+        fact: "The same blade killed all three men.",
+        minBand: "low",
+        clueId: "c1",
+      },
       source: "setup",
       status: { review: "proposed", ready: "accepted" },
     },
@@ -321,7 +431,12 @@ function londonSpecs(): Spec<EntryKind>[] {
       key: "k-amanda",
       name: "Amanda on the victims' trade",
       description: "From her case files.",
-      data: { characterId: "amanda", fact: "All three victims lent money to Rober & Sons.", minBand: "low", clueId: null },
+      data: {
+        characterId: "amanda",
+        fact: "All three victims lent money to Rober & Sons.",
+        minBand: "low",
+        clueId: null,
+      },
       source: "setup",
       status: { review: "proposed", ready: "accepted" },
     },
@@ -330,7 +445,12 @@ function londonSpecs(): Spec<EntryKind>[] {
       key: "k-josiah",
       name: "Josiah disowned his son",
       description: "He admits it only to someone he respects.",
-      data: { characterId: "josiah", fact: "He threw his son Max out six years ago.", minBand: "high", clueId: null },
+      data: {
+        characterId: "josiah",
+        fact: "He threw his son Max out six years ago.",
+        minBand: "high",
+        clueId: null,
+      },
       source: "setup",
       status: { review: "proposed", ready: "proposed" },
     },
@@ -339,7 +459,11 @@ function londonSpecs(): Spec<EntryKind>[] {
       key: "exit-2",
       name: "Victims' trade learned",
       description: "Drafted for the Midpoint Arc.",
-      data: { arcIndex: 1, condition: "Jacob has learned the victims' shared trade and visited at least one crime scene." },
+      data: {
+        arcIndex: 1,
+        condition:
+          "Jacob has learned the victims' shared trade and visited at least one crime scene.",
+      },
       source: "setup",
       status: { review: "proposed", ready: "accepted" },
     },
@@ -359,7 +483,8 @@ function londonSpecs(): Spec<EntryKind>[] {
       kind: "decisive_action",
       key: "arrest-max",
       name: "Arrest Max Rober",
-      description: "Arresting the killer wins; arresting anyone else, or too early, costs Reputation.",
+      description:
+        "Arresting the killer wins; arresting anyone else, or too early, costs Reputation.",
       data: {
         verb: "arrest",
         correctTargetId: "max",
@@ -376,19 +501,36 @@ function londonSpecs(): Spec<EntryKind>[] {
   ] as Spec<EntryKind>[]
 }
 
-const REF_FIELDS = ["connections", "locationId", "knownBy", "characterId", "clueId", "correctTargetId", "requires"]
+const REF_FIELDS = [
+  "connections",
+  "locationId",
+  "knownBy",
+  "characterId",
+  "clueId",
+  "correctTargetId",
+  "requires",
+]
 
 /** The London Codex for one World: `prefix-key` ids, references resolved. */
-export function londonEntries(worldId: string, prefix: string, variant: Variant): Entry[] {
+export function londonEntries(
+  worldId: string,
+  prefix: string,
+  variant: Variant
+): Entry[] {
   const id = (key: string) => `${prefix}-${key}`
   return londonSpecs().map((spec, index) => {
-    const data: Record<string, unknown> = { ...spec.data, ...spec.editedData?.[variant] }
+    const data: Record<string, unknown> = {
+      ...spec.data,
+      ...spec.editedData?.[variant],
+    }
     for (const field of REF_FIELDS) {
       const value = data[field]
-      if (Array.isArray(value)) data[field] = value.map((key: string) => id(key))
+      if (Array.isArray(value))
+        data[field] = value.map((key: string) => id(key))
       else if (typeof value === "string") data[field] = id(value)
     }
-    const status = typeof spec.status === "string" ? spec.status : spec.status[variant]
+    const status =
+      typeof spec.status === "string" ? spec.status : spec.status[variant]
     const created = fixtureTime(variant === "ready" ? 30 + index : 1470 + index)
     return {
       id: id(spec.key),
@@ -406,7 +548,10 @@ export function londonEntries(worldId: string, prefix: string, variant: Variant)
       jevFlags: spec.jevFlags ?? [],
       seenAt: null,
       createdAt: created,
-      updatedAt: status === "proposed" || status === "locked" ? created : fixtureTime(variant === "ready" ? 90 : 1500),
+      updatedAt:
+        status === "proposed" || status === "locked"
+          ? created
+          : fixtureTime(variant === "ready" ? 90 : 1500),
     } as Entry
   })
 }
@@ -423,12 +568,18 @@ export function seedEntries(): Entry[] {
 
 export function getEntry(id: string): Entry {
   const entry = getStore().entries.get(id)
-  if (!entry) throw new StoreError("not_found", `There is no Entry "${id}". Reload to see the current Codex.`)
+  if (!entry)
+    throw new StoreError(
+      "not_found",
+      `There is no Entry "${id}". Reload to see the current Codex.`
+    )
   return entry
 }
 
 export function listSessionEntries(sessionId: string): Entry[] {
-  return [...getStore().entries.values()].filter((entry) => entry.sessionId === sessionId)
+  return [...getStore().entries.values()].filter(
+    (entry) => entry.sessionId === sessionId
+  )
 }
 
 export function saveEntry(entry: Entry): Entry {
@@ -445,9 +596,19 @@ export function saveEntry(entry: Entry): Entry {
  */
 export function recheckSolvability(worldId: string): SolvabilityResult | null {
   const world = getWorld(worldId)
-  if (!world.brief || (world.setupStatus !== "review" && world.setupStatus !== "ready")) return world.solvability
+  if (
+    !world.brief ||
+    (world.setupStatus !== "review" && world.setupStatus !== "ready")
+  )
+    return world.solvability
   const checkedAt = nowIso()
-  const solvability: SolvabilityResult = { ...checkSolvability({ arcs: world.brief.arcs, entries: listWorldEntries(world.id) }), checkedAt }
+  const solvability: SolvabilityResult = {
+    ...checkSolvability({
+      arcs: world.brief.arcs,
+      entries: listWorldEntries(world.id),
+    }),
+    checkedAt,
+  }
   saveWorld({ ...world, solvability, updatedAt: checkedAt })
   return solvability
 }
@@ -461,10 +622,16 @@ export function recheckSolvability(worldId: string): SolvabilityResult | null {
  * reads, so it returns the stored result); for a Session copy, null, since
  * Session edits take effect from the next Turn.
  */
-export function patchEntry(id: string, request: PatchEntryRequest): PatchEntryResponse {
+export function patchEntry(
+  id: string,
+  request: PatchEntryRequest
+): PatchEntryResponse {
   const entry = getEntry(id)
   if (entry.status === "locked") {
-    throw new StoreError("conflict", `${entry.name || "This Entry"} comes from the Brief and is locked. Change it in the Brief instead.`)
+    throw new StoreError(
+      "conflict",
+      `${entry.name || "This Entry"} comes from the Brief and is locked. Change it in the Brief instead.`
+    )
   }
   const updatedAt = nowIso()
   let next: Entry
@@ -480,9 +647,17 @@ export function patchEntry(id: string, request: PatchEntryRequest): PatchEntryRe
       break
     case "edit": {
       if (request.content.kind !== entry.kind) {
-        throw new StoreError("invalid", `This Entry is a ${entry.kind.replaceAll("_", " ")}, not a ${request.content.kind.replaceAll("_", " ")}.`)
+        throw new StoreError(
+          "invalid",
+          `This Entry is a ${entry.kind.replaceAll("_", " ")}, not a ${request.content.kind.replaceAll("_", " ")}.`
+        )
       }
-      next = { ...entry, ...request.content, status: "edited", updatedAt } as Entry
+      next = {
+        ...entry,
+        ...request.content,
+        status: "edited",
+        updatedAt,
+      } as Entry
       break
     }
     case "mark-seen":
@@ -491,7 +666,10 @@ export function patchEntry(id: string, request: PatchEntryRequest): PatchEntryRe
   }
   const saved = saveEntry(next)
   if (saved.sessionId !== null) return { entry: saved, solvability: null }
-  const solvability = request.action === "mark-seen" ? getWorld(saved.worldId).solvability : recheckSolvability(saved.worldId)
+  const solvability =
+    request.action === "mark-seen"
+      ? getWorld(saved.worldId).solvability
+      : recheckSolvability(saved.worldId)
   return { entry: saved, solvability }
 }
 
@@ -501,7 +679,10 @@ export function createEntry(request: CreateEntryRequest): PatchEntryResponse {
   if (request.sessionId !== null) {
     const session = getStore().sessions.get(request.sessionId)
     if (!session || session.worldId !== world.id) {
-      throw new StoreError("not_found", `There is no Session "${request.sessionId}" in this World.`)
+      throw new StoreError(
+        "not_found",
+        `There is no Session "${request.sessionId}" in this World.`
+      )
     }
   }
   const content = entryContentSchema.parse(request.content)
@@ -520,5 +701,8 @@ export function createEntry(request: CreateEntryRequest): PatchEntryResponse {
     createdAt: now,
     updatedAt: now,
   } as Entry)
-  return { entry: saved, solvability: saved.sessionId === null ? recheckSolvability(world.id) : null }
+  return {
+    entry: saved,
+    solvability: saved.sessionId === null ? recheckSolvability(world.id) : null,
+  }
 }

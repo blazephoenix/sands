@@ -16,9 +16,16 @@ describe("NDJSON progress streams", () => {
     const response = ndjsonResponse<TurnEvent>(async (emit, elapsed) => {
       emit({ type: "phase", phase: "reading", round: null, at: elapsed() })
       emit({ type: "phase", phase: "writing", round: 1, at: elapsed() })
-      emit({ type: "error", code: "judge_outage", message: "The Judge did not answer. Try again.", at: elapsed() })
+      emit({
+        type: "error",
+        code: "judge_outage",
+        message: "The Judge did not answer. Try again.",
+        at: elapsed(),
+      })
     })
-    expect(response.headers.get("content-type")).toContain("application/x-ndjson")
+    expect(response.headers.get("content-type")).toContain(
+      "application/x-ndjson"
+    )
     const events = await collect(readNdjson(response, turnEventSchema))
     expect(events.map((e) => e.type)).toEqual(["phase", "phase", "error"])
   })
@@ -28,11 +35,14 @@ describe("NDJSON progress streams", () => {
     const encoder = new TextEncoder()
     const body = new ReadableStream<Uint8Array>({
       start(controller) {
-        for (let i = 0; i < lines.length; i += 7) controller.enqueue(encoder.encode(lines.slice(i, i + 7)))
+        for (let i = 0; i < lines.length; i += 7)
+          controller.enqueue(encoder.encode(lines.slice(i, i + 7)))
         controller.close()
       },
     })
-    const events = await collect(readNdjson(new Response(body), turnEventSchema))
+    const events = await collect(
+      readNdjson(new Response(body), turnEventSchema)
+    )
     expect(events).toHaveLength(2)
   })
 
@@ -40,7 +50,9 @@ describe("NDJSON progress streams", () => {
     const response = ndjsonResponse<TurnEvent>(async (emit, elapsed) => {
       emit({ type: "phase", phase: "reading", round: null, at: elapsed() })
     })
-    await expect(collect(readNdjson(response, turnEventSchema))).rejects.toMatchObject({ code: "stream_incomplete" })
+    await expect(
+      collect(readNdjson(response, turnEventSchema))
+    ).rejects.toMatchObject({ code: "stream_incomplete" })
   })
 
   it("ends a stream whose producer throws with an internal error event", async () => {
@@ -48,11 +60,17 @@ describe("NDJSON progress streams", () => {
       throw new Error("boom")
     })
     const events = await collect(readNdjson(response, turnEventSchema))
-    expect(events).toEqual([expect.objectContaining({ type: "error", code: "internal" })])
+    expect(events).toEqual([
+      expect.objectContaining({ type: "error", code: "internal" }),
+    ])
   })
 
   it("rejects events that break the contract", async () => {
-    const body = new Response(`${JSON.stringify({ type: "phase", phase: "dancing", round: null, at: 0 })}\n`)
-    await expect(collect(readNdjson(body, turnEventSchema))).rejects.toBeInstanceOf(ApiError)
+    const body = new Response(
+      `${JSON.stringify({ type: "phase", phase: "dancing", round: null, at: 0 })}\n`
+    )
+    await expect(
+      collect(readNdjson(body, turnEventSchema))
+    ).rejects.toBeInstanceOf(ApiError)
   })
 })

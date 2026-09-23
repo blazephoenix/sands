@@ -82,14 +82,26 @@ export const POST = handle(async (request: Request, { params }: Context) => {
   const { input } = await readJson(request, turnRequestSchema)
   const session = getSession(id)
   if (session.ending !== "none") {
-    throw new HttpError(409, "conflict", "This Session has ended. Start a new Session from its World to play again.")
+    throw new HttpError(
+      409,
+      "conflict",
+      "This Session has ended. Start a new Session from its World to play again."
+    )
   }
   const hasTurns = listTurns(id).length > 0
   if (input === null && hasTurns) {
-    throw new HttpError(409, "conflict", "This Session has already had its Opening. Reload the page to see it.")
+    throw new HttpError(
+      409,
+      "conflict",
+      "This Session has already had its Opening. Reload the page to see it."
+    )
   }
   if (input !== null && !hasTurns) {
-    throw new HttpError(409, "conflict", "This Session has not had its Opening yet. Reload the page to play it, then act.")
+    throw new HttpError(
+      409,
+      "conflict",
+      "This Session has not had its Opening yet. Reload the page to play it, then act."
+    )
   }
   const scenarios = getScenarios(request)
   if (input === null) return playOpening(request, id, scenarios)
@@ -99,22 +111,42 @@ export const POST = handle(async (request: Request, { params }: Context) => {
       // Step 1: wait for the last Turn's background work (spec §9.1).
       const pending = pendingBackground(id)
       if (pending) {
-        emit({ type: "phase", phase: "waiting_background", round: null, at: elapsed() })
-        const wait = scenarios.has("background-pending") ? FORCED_BACKGROUND_WAIT_MS : Math.max(pending.remainingMs, 600)
+        emit({
+          type: "phase",
+          phase: "waiting_background",
+          round: null,
+          at: elapsed(),
+        })
+        const wait = scenarios.has("background-pending")
+          ? FORCED_BACKGROUND_WAIT_MS
+          : Math.max(pending.remainingMs, 600)
         if (!(await pause(wait, signal))) return
         settleBackground(id, { force: true })
       }
 
       let plan: ReturnType<typeof planTurn>
       try {
-        plan = planTurn(id, input, { rounds: roundsMode(scenarios), ending: forcedEnding(scenarios) })
+        plan = planTurn(id, input, {
+          rounds: roundsMode(scenarios),
+          ending: forcedEnding(scenarios),
+        })
       } catch (error) {
         if (!(error instanceof StoreError)) throw error
-        emit({ type: "error", code: error.code === "not_found" ? "not_found" : "conflict", message: error.message, at: elapsed() })
+        emit({
+          type: "error",
+          code: error.code === "not_found" ? "not_found" : "conflict",
+          message: error.message,
+          at: elapsed(),
+        })
         return
       }
       for (const step of plan.phases) {
-        emit({ type: "phase", phase: step.phase, round: step.round, at: elapsed() })
+        emit({
+          type: "phase",
+          phase: step.phase,
+          round: step.round,
+          at: elapsed(),
+        })
         if (!(await pause(jitter(step.ms), signal))) return
         if (scenarios.has("judge-outage") && step.phase === "judging") {
           emit({
@@ -132,7 +164,12 @@ export const POST = handle(async (request: Request, { params }: Context) => {
         committed = commitTurn(plan)
       } catch (error) {
         if (!(error instanceof StoreError)) throw error
-        emit({ type: "error", code: "conflict", message: error.message, at: elapsed() })
+        emit({
+          type: "error",
+          code: "conflict",
+          message: error.message,
+          at: elapsed(),
+        })
         return
       }
       const { turn, session: saved } = committed
@@ -155,7 +192,12 @@ function playOpening(request: Request, id: string, scenarios: Set<ScenarioId>) {
       try {
         const plan = planOpening(id, { rounds: roundsMode(scenarios) })
         for (const step of plan.phases) {
-          emit({ type: "phase", phase: step.phase, round: step.round, at: elapsed() })
+          emit({
+            type: "phase",
+            phase: step.phase,
+            round: step.round,
+            at: elapsed(),
+          })
           if (!(await pause(jitter(step.ms), signal))) return
           if (scenarios.has("judge-outage") && step.phase === "judging") {
             emit({
@@ -171,7 +213,12 @@ function playOpening(request: Request, id: string, scenarios: Set<ScenarioId>) {
         emit({ type: "result", turn, session, entries: [], at: elapsed() })
       } catch (error) {
         if (!(error instanceof StoreError)) throw error
-        emit({ type: "error", code: error.code === "not_found" ? "not_found" : "conflict", message: error.message, at: elapsed() })
+        emit({
+          type: "error",
+          code: error.code === "not_found" ? "not_found" : "conflict",
+          message: error.message,
+          at: elapsed(),
+        })
       } finally {
         release()
       }

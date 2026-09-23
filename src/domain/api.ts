@@ -7,7 +7,11 @@ import { z } from "zod"
 
 import { entryContentSchema, entrySchema, entryStatusSchema } from "./entry"
 import { endingSchema, sessionSchema } from "./session"
-import { setupStatusSchema, solvabilityResultSchema, worldSchema } from "./world"
+import {
+  setupStatusSchema,
+  solvabilityResultSchema,
+  worldSchema,
+} from "./world"
 
 /** Every non-2xx JSON response. `message` states the cause and the next step. */
 export const apiErrorBodySchema = z.object({
@@ -101,7 +105,10 @@ export type SaveBriefResponse = z.infer<typeof saveBriefResponseSchema>
 export const patchEntryRequestSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("accept") }),
   z.object({ action: z.literal("reject") }),
-  z.object({ action: z.literal("restore"), status: entryStatusSchema.exclude(["locked", "rejected"]) }),
+  z.object({
+    action: z.literal("restore"),
+    status: entryStatusSchema.exclude(["locked", "rejected"]),
+  }),
   z.object({ action: z.literal("edit"), content: entryContentSchema }),
   z.object({ action: z.literal("mark-seen") }),
 ])
@@ -155,6 +162,10 @@ export type CreateSessionResponse = z.infer<typeof createSessionResponseSchema>
  * Player input for a Session that has not had its Opening yet.
  */
 export const turnRequestSchema = z.object({
-  input: z.string().trim().min(1, "Type what Jacob does before sending.").nullable(),
+  input: z
+    .string()
+    .trim()
+    .min(1, "Type what Jacob does before sending.")
+    .nullable(),
 })
 export type TurnRequest = z.infer<typeof turnRequestSchema>

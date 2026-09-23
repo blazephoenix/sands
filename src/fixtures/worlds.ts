@@ -11,7 +11,14 @@
  * Ticket 02's operations (list, create, save the Brief) are at the end.
  */
 import { documentToBrief } from "@/brief/from-document"
-import { briefSection, headingBlock, newBriefTemplate, paragraphBlock, randomId, sequentialIds } from "@/brief/to-document"
+import {
+  briefSection,
+  headingBlock,
+  newBriefTemplate,
+  paragraphBlock,
+  randomId,
+  sequentialIds,
+} from "@/brief/to-document"
 import type { SessionSummary, WorldSummary } from "@/domain/api"
 import type { Brief } from "@/domain/brief"
 import type { Entry } from "@/domain/entry"
@@ -32,14 +39,19 @@ export function londonBriefDocument(prefix: string): SandsBlock[] {
   const ids = sequentialIds(`${prefix}-b`)
   const id = (name: string) => `${prefix}-${name}`
   return [
-    ...briefSection("setting", { place: "London", period: "Autumn 1888" }, { ids, blockId: id("setting") }),
+    ...briefSection(
+      "setting",
+      { place: "London", period: "Autumn 1888" },
+      { ids, blockId: id("setting") }
+    ),
     ...briefSection(
       "character",
       {
         name: "Jacob Flannery",
         role: "Detective, called over from New York for a special case",
         age: "38",
-        personality: "Weary and sharp-eyed. Drinks more than he admits, and knows it.\nPatient with witnesses, impatient with rank.",
+        personality:
+          "Weary and sharp-eyed. Drinks more than he admits, and knows it.\nPatient with witnesses, impatient with rank.",
         backstory:
           "Three merchants have been killed in London in as many weeks. Scotland Yard has sent for an outsider with a reputation for difficult cases.\nHe left a daughter in Brooklyn and writes to her every Sunday.",
         aliases: ["The American", "Flannery"],
@@ -52,8 +64,10 @@ export function londonBriefDocument(prefix: string): SandsBlock[] {
         name: "Geoffrey James",
         role: "Police captain, Scotland Yard",
         age: "54",
-        personality: "Gruff, proud of the Yard, protective of his men. Wants the case closed by Friday.",
-        backstory: "Twenty-six years on the force. Resents that the Home Office sent for an American.",
+        personality:
+          "Gruff, proud of the Yard, protective of his men. Wants the case closed by Friday.",
+        backstory:
+          "Twenty-six years on the force. Resents that the Home Office sent for an American.",
         aliases: ["Captain James", "the Captain"],
       },
       { ids, blockId: id("geoffrey") }
@@ -65,7 +79,8 @@ export function londonBriefDocument(prefix: string): SandsBlock[] {
         role: "Second in command",
         age: "41",
         personality: "Precise, dry-humoured, trusts evidence over rank.",
-        backstory: "Kept the case files of all three killings. She suspects the victims were connected by trade.",
+        backstory:
+          "Kept the case files of all three killings. She suspects the victims were connected by trade.",
         aliases: ["Hopkins"],
       },
       { ids, blockId: id("amanda") }
@@ -88,7 +103,8 @@ export function londonBriefDocument(prefix: string): SandsBlock[] {
         role: "Tea merchant, second victim",
         age: "47",
         personality: "Pious in public, ruthless in business.",
-        backstory: "Found at dawn outside his warehouse near Spitalfields Market.",
+        backstory:
+          "Found at dawn outside his warehouse near Spitalfields Market.",
       },
       { ids, blockId: id("carrow") }
     ),
@@ -109,7 +125,8 @@ export function londonBriefDocument(prefix: string): SandsBlock[] {
         name: "Max Rober",
         role: "Clerk at a shipping office",
         age: "21",
-        personality: "Quiet, polite and meticulous. A cold fury under the courtesy.",
+        personality:
+          "Quiet, polite and meticulous. A cold fury under the courtesy.",
         backstory:
           "Son of Josiah Rober, a wool merchant who threw him and his mother out when he was fifteen. His mother died that winter.\nHe kills merchants as revenge against his father, and against every merchant who reminds him of him.",
         aliases: ["the clerk"],
@@ -118,44 +135,82 @@ export function londonBriefDocument(prefix: string): SandsBlock[] {
         ids,
         blockId: id("max"),
         hiddenFields: ["backstory"],
-        keyFacts: [{ label: "Motive", text: "Revenge against his father, a merchant.", hidden: true }],
+        keyFacts: [
+          {
+            label: "Motive",
+            text: "Revenge against his father, a merchant.",
+            hidden: true,
+          },
+        ],
       }
     ),
-    ...briefSection("location", { name: "Scotland Yard", description: "Great Scotland Yard, Whitehall. Gaslit corridors, damp coats, a captain who wants results." }, { ids, blockId: id("yard") }),
+    ...briefSection(
+      "location",
+      {
+        name: "Scotland Yard",
+        description:
+          "Great Scotland Yard, Whitehall. Gaslit corridors, damp coats, a captain who wants results.",
+      },
+      { ids, blockId: id("yard") }
+    ),
     ...briefSection(
       "arc",
       {
         name: "Introduction",
-        description: "Jacob lands in London, meets the police and learns the state of the case.",
+        description:
+          "Jacob lands in London, meets the police and learns the state of the case.",
         exitConditions: ["Jacob has read the case file and met Captain James."],
       },
       { ids, blockId: id("arc-1") }
     ),
     ...briefSection(
       "arc",
-      { name: "Midpoint", description: "The investigation begins. The Player discovers evidence and backstories." },
+      {
+        name: "Midpoint",
+        description:
+          "The investigation begins. The Player discovers evidence and backstories.",
+      },
       { ids, blockId: id("arc-2") }
     ),
-    ...briefSection("arc", { name: "End", description: "The killer is caught." }, { ids, blockId: id("arc-3") }),
-    ...briefSection("ending", { condition: "The killer is caught and arrested." }, { ids, blockId: id("ending") }),
+    ...briefSection(
+      "arc",
+      { name: "End", description: "The killer is caught." },
+      { ids, blockId: id("arc-3") }
+    ),
+    ...briefSection(
+      "ending",
+      { condition: "The killer is caught and arrested." },
+      { ids, blockId: id("ending") }
+    ),
     ...briefSection(
       "voice",
       {
-        guidelines: "Close third person on Jacob. Short sentences. Fog, not gore: the killings are never shown on the page.",
-        samplePassages: "The river smelled of coal and something older. Jacob turned up his collar and did not look at the body until he had to.",
+        guidelines:
+          "Close third person on Jacob. Short sentences. Fog, not gore: the killings are never shown on the page.",
+        samplePassages:
+          "The river smelled of coal and something older. Jacob turned up his collar and did not look at the body until he had to.",
       },
       { ids, blockId: id("voice") }
     ),
     headingBlock(id("notes"), "Notes for the Writer"),
-    paragraphBlock(ids(), "The Yard is under pressure from the newspapers. Every constable has an opinion about the Irish dockers; none of them is right."),
+    paragraphBlock(
+      ids(),
+      "The Yard is under pressure from the newspapers. Every constable has an opinion about the Irish dockers; none of them is right."
+    ),
   ]
 }
 
 /** A Brief document and the validated Brief it converts to. Throws if the fixture breaks §7.1. */
-export function londonBrief(prefix: string): { briefDoc: SandsBlock[]; brief: Brief } {
+export function londonBrief(prefix: string): {
+  briefDoc: SandsBlock[]
+  brief: Brief
+} {
   const briefDoc = londonBriefDocument(prefix)
   const { validation, issues } = documentToBrief(briefDoc)
-  if (!validation.success) throw new Error(`London Brief fixture is invalid: ${issues.map((i) => i.message).join(" ")}`)
+  if (!validation.success)
+    throw new Error(
+      `London Brief fixture is invalid: ${issues.map((i) => i.message).join(" ")}`
+    )
   return { briefDoc, brief: validation.brief }
 }
 
@@ -163,18 +218,34 @@ export function londonBrief(prefix: string): { briefDoc: SandsBlock[]; brief: Br
 function draftBriefDocument(): SandsBlock[] {
   const ids = sequentialIds("fog-b")
   return [
-    ...briefSection("setting", { place: "London", period: "Winter 1888" }, { ids, blockId: "fog-setting" }),
+    ...briefSection(
+      "setting",
+      { place: "London", period: "Winter 1888" },
+      { ids, blockId: "fog-setting" }
+    ),
     ...briefSection(
       "character",
-      { name: "Jacob Flannery", role: "Detective", personality: "Weary and sharp-eyed." },
+      {
+        name: "Jacob Flannery",
+        role: "Detective",
+        personality: "Weary and sharp-eyed.",
+      },
       { ids, blockId: "fog-jacob", isPlayer: true }
     ),
-    ...briefSection("character", { role: "The killer" }, { ids, blockId: "fog-unnamed" }),
+    ...briefSection(
+      "character",
+      { role: "The killer" },
+      { ids, blockId: "fog-unnamed" }
+    ),
     paragraphBlock(ids(), ""),
   ]
 }
 
-const PASSED: SolvabilityResult = { passed: true, gaps: [], checkedAt: fixtureTime(60) }
+const PASSED: SolvabilityResult = {
+  passed: true,
+  gaps: [],
+  checkedAt: fixtureTime(60),
+}
 
 export function seedWorlds(): World[] {
   const ready = londonBrief("mk")
@@ -227,18 +298,26 @@ export function seedWorlds(): World[] {
 // Operations
 
 export function listWorlds(): World[] {
-  return [...getStore().worlds.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  return [...getStore().worlds.values()].sort((a, b) =>
+    b.updatedAt.localeCompare(a.updatedAt)
+  )
 }
 
 export function getWorld(id: string): World {
   const world = getStore().worlds.get(id)
-  if (!world) throw new StoreError("not_found", `There is no World "${id}". It may have been deleted; go back to your Worlds.`)
+  if (!world)
+    throw new StoreError(
+      "not_found",
+      `There is no World "${id}". It may have been deleted; go back to your Worlds.`
+    )
   return world
 }
 
 /** A World's template Entries (not Session copies), in stored order. */
 export function listWorldEntries(worldId: string): Entry[] {
-  return [...getStore().entries.values()].filter((entry) => entry.worldId === worldId && entry.sessionId === null)
+  return [...getStore().entries.values()].filter(
+    (entry) => entry.worldId === worldId && entry.sessionId === null
+  )
 }
 
 export function sessionSummaries(worldId: string): SessionSummary[] {
@@ -266,7 +345,10 @@ export function worldSummaries(): WorldSummary[] {
   const store = getStore()
   const sessionCounts = new Map<string, number>()
   for (const session of store.sessions.values()) {
-    sessionCounts.set(session.worldId, (sessionCounts.get(session.worldId) ?? 0) + 1)
+    sessionCounts.set(
+      session.worldId,
+      (sessionCounts.get(session.worldId) ?? 0) + 1
+    )
   }
   return listWorlds().map((world) => ({
     id: world.id,
@@ -287,13 +369,19 @@ function briefOf(briefDoc: unknown[]): Brief | null {
   try {
     conversion = documentToBrief(briefDoc as SandsBlock[])
   } catch {
-    throw new StoreError("invalid", "The Brief document is malformed, so it was not saved. Reload the page and try again.")
+    throw new StoreError(
+      "invalid",
+      "The Brief document is malformed, so it was not saved. Reload the page and try again."
+    )
   }
   return conversion.validation.success ? conversion.validation.brief : null
 }
 
 /** Creates a World in `draft`, its Brief the new-Brief template (spec §7.1) unless a document is given. */
-export function createWorld(request: { name: string; briefDoc?: unknown[] }): World {
+export function createWorld(request: {
+  name: string
+  briefDoc?: unknown[]
+}): World {
   const briefDoc = request.briefDoc ?? newBriefTemplate(randomId)
   const now = nowIso()
   const world: World = {
@@ -314,7 +402,10 @@ export function createWorld(request: { name: string; briefDoc?: unknown[] }): Wo
  * the name. The Brief is locked once setup has started (spec §6: `brief_json`
  * is locked); the name can change at any time.
  */
-export function saveBrief(worldId: string, request: { name?: string; briefDoc?: unknown[] }): World {
+export function saveBrief(
+  worldId: string,
+  request: { name?: string; briefDoc?: unknown[] }
+): World {
   const world = getWorld(worldId)
   let next: World = { ...world }
   if (request.briefDoc !== undefined) {
@@ -326,7 +417,11 @@ export function saveBrief(worldId: string, request: { name?: string; briefDoc?: 
           : "Setup has run, so the Brief is locked. Change the World in the setup review instead."
       )
     }
-    next = { ...next, briefDoc: request.briefDoc, brief: briefOf(request.briefDoc) }
+    next = {
+      ...next,
+      briefDoc: request.briefDoc,
+      brief: briefOf(request.briefDoc),
+    }
   }
   if (request.name !== undefined) next = { ...next, name: request.name }
   return saveWorld({ ...next, updatedAt: nowIso() })

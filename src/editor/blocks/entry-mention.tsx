@@ -7,11 +7,22 @@
  * whose Entry is rejected or gone renders as visibly broken.
  */
 import * as React from "react"
-import { createReactInlineContentSpec, useEditorSelectionChange } from "@blocknote/react"
+import {
+  createReactInlineContentSpec,
+  useEditorSelectionChange,
+} from "@blocknote/react"
 import { Link2OffIcon } from "lucide-react"
 
-import { ENTRY_KIND_ICONS, EntryKindBadge, EntryStatusBadge } from "@/components/codex/entry-badges"
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import {
+  ENTRY_KIND_ICONS,
+  EntryKindBadge,
+  EntryStatusBadge,
+} from "@/components/codex/entry-badges"
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card"
 import { cn } from "@/lib/utils"
 
 import { useSandsEditorContext } from "../editor-context"
@@ -40,7 +51,11 @@ function MentionChip({ entryId, label, selection, getPos }: MentionProps) {
     setSelected(pos !== undefined && !empty && from <= pos && to >= pos + 1)
   })
 
-  const reason = !entry ? "This Entry no longer exists." : entry.status === "rejected" ? "This Entry was rejected." : null
+  const reason = !entry
+    ? "This Entry no longer exists."
+    : entry.status === "rejected"
+      ? "This Entry was rejected."
+      : null
 
   return (
     <HoverCard open={hovered || selected} onOpenChange={setHovered}>
@@ -50,7 +65,9 @@ function MentionChip({ entryId, label, selection, getPos }: MentionProps) {
           <span
             className={cn("sands-mention", broken && "is-broken")}
             data-entry-id={entryId}
-            aria-label={broken ? `Broken mention: ${name}. ${reason}` : `Mention: ${name}`}
+            aria-label={
+              broken ? `Broken mention: ${name}. ${reason}` : `Mention: ${name}`
+            }
           />
         }
       >
@@ -67,7 +84,9 @@ function MentionChip({ entryId, label, selection, getPos }: MentionProps) {
           ) : null}
           <p className="font-medium">{name}</p>
           {reason ? (
-            <p className="text-destructive">{reason} Remove this mention or point it at another Entry.</p>
+            <p className="text-destructive">
+              {reason} Remove this mention or point it at another Entry.
+            </p>
           ) : (
             paragraphsOf(entry?.description ?? "")
               .slice(0, 2)
@@ -83,16 +102,19 @@ function MentionChip({ entryId, label, selection, getPos }: MentionProps) {
   )
 }
 
-export const entryMentionSpec = createReactInlineContentSpec(entryMentionConfig, {
-  render: (props) => (
-    <MentionChip
-      entryId={props.inlineContent.props.entryId}
-      label={props.inlineContent.props.label}
-      selection={() => props.editor.prosemirrorState.selection}
-      getPos={() => {
-        const pos = props.getPos()
-        return typeof pos === "number" ? pos : undefined
-      }}
-    />
-  ),
-})
+export const entryMentionSpec = createReactInlineContentSpec(
+  entryMentionConfig,
+  {
+    render: (props) => (
+      <MentionChip
+        entryId={props.inlineContent.props.entryId}
+        label={props.inlineContent.props.label}
+        selection={() => props.editor.prosemirrorState.selection}
+        getPos={() => {
+          const pos = props.getPos()
+          return typeof pos === "number" ? pos : undefined
+        }}
+      />
+    ),
+  }
+)

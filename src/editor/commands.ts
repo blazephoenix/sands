@@ -20,17 +20,29 @@ import {
   type SandsStyleSchema,
 } from "./schema-config"
 
-export type SandsEditor = BlockNoteEditor<SandsBlockSchema, SandsInlineContentSchema, SandsStyleSchema>
+export type SandsEditor = BlockNoteEditor<
+  SandsBlockSchema,
+  SandsInlineContentSchema,
+  SandsStyleSchema
+>
 
 /** Transactions carrying this meta may change locked Entries and group dividers (page-driven syncs). */
 export const ALLOW_LOCKED_META = "sands:allowLocked"
 
-export function isSectionHeading(block: Pick<SandsBlock, "type"> | undefined): boolean {
+export function isSectionHeading(
+  block: Pick<SandsBlock, "type"> | undefined
+): boolean {
   return !!block && isSectionHeadingType(block.type)
 }
 
-export function isLockedEntryHeading(block: Pick<SandsBlock, "type" | "props"> | undefined) {
-  return !!block && isEntryBlockType(block.type) && (block.props as { status?: string }).status === "locked"
+export function isLockedEntryHeading(
+  block: Pick<SandsBlock, "type" | "props"> | undefined
+) {
+  return (
+    !!block &&
+    isEntryBlockType(block.type) &&
+    (block.props as { status?: string }).status === "locked"
+  )
 }
 
 /** A run of top-level blocks that moves as one: a section (heading and fields), or a single block. */
@@ -59,9 +71,17 @@ export function topLevelUnits(document: readonly SandsBlock[]): Unit[] {
 }
 
 /** The top-level block holding `block`. */
-export function topLevelOf(editor: SandsEditor, block: SandsBlock | string): SandsBlock | undefined {
+export function topLevelOf(
+  editor: SandsEditor,
+  block: SandsBlock | string
+): SandsBlock | undefined {
   let current = typeof block === "string" ? editor.getBlock(block) : block
-  for (let parent = current && editor.getParentBlock(current); parent; parent = editor.getParentBlock(parent)) current = parent
+  for (
+    let parent = current && editor.getParentBlock(current);
+    parent;
+    parent = editor.getParentBlock(parent)
+  )
+    current = parent
   return current as SandsBlock | undefined
 }
 
@@ -69,11 +89,16 @@ export function topLevelOf(editor: SandsEditor, block: SandsBlock | string): San
 export function unitOf(editor: SandsEditor, blockId: string): Unit | undefined {
   const top = topLevelOf(editor, blockId)
   if (!top) return undefined
-  return topLevelUnits(editor.document as SandsBlock[]).find((unit) => unit.blocks.some((b) => b.id === top.id))
+  return topLevelUnits(editor.document as SandsBlock[]).find((unit) =>
+    unit.blocks.some((b) => b.id === top.id)
+  )
 }
 
 /** The section a block belongs to (its heading, or a field under it), if any. */
-export function sectionOf(editor: SandsEditor, blockId: string): Unit | undefined {
+export function sectionOf(
+  editor: SandsEditor,
+  blockId: string
+): Unit | undefined {
   const unit = unitOf(editor, blockId)
   return unit?.heading ? unit : undefined
 }
@@ -87,11 +112,15 @@ function isEmptyParagraph(block: SandsBlock) {
  * when it is an empty top-level paragraph, otherwise after the section or
  * block holding the cursor (never between a heading and its fields).
  */
-export function insertUnit(editor: SandsEditor, blocks: SandsBlock[]): SandsBlock[] {
+export function insertUnit(
+  editor: SandsEditor,
+  blocks: SandsBlock[]
+): SandsBlock[] {
   const { block: current } = editor.getTextCursorPosition()
   const top = topLevelOf(editor, current as SandsBlock)!
   if (top.id === current.id && isEmptyParagraph(current as SandsBlock)) {
-    return editor.replaceBlocks([current], blocks).insertedBlocks as SandsBlock[]
+    return editor.replaceBlocks([current], blocks)
+      .insertedBlocks as SandsBlock[]
   }
   const unit = unitOf(editor, top.id)
   const anchor = unit?.blocks.at(-1) ?? top
@@ -101,7 +130,8 @@ export function insertUnit(editor: SandsEditor, blocks: SandsBlock[]): SandsBloc
 /** Puts the cursor where the Author types next in a fresh section: its name, else its first value. */
 function focusNewSection(editor: SandsEditor, inserted: SandsBlock[]) {
   const [heading, ...fields] = inserted
-  if (Array.isArray(heading.content)) editor.setTextCursorPosition(heading, "end")
+  if (Array.isArray(heading.content))
+    editor.setTextCursorPosition(heading, "end")
   else if (fields[0]) editor.setTextCursorPosition(fields[0], "end")
 }
 
@@ -123,20 +153,30 @@ export function deleteSection(editor: SandsEditor, headingId: string) {
 }
 
 /** Moves a section (or a single top-level block) past its neighbouring unit. */
-export function moveUnit(editor: SandsEditor, blockId: string, direction: -1 | 1): boolean {
+export function moveUnit(
+  editor: SandsEditor,
+  blockId: string,
+  direction: -1 | 1
+): boolean {
   const units = topLevelUnits(editor.document as SandsBlock[])
   const top = topLevelOf(editor, blockId)
-  const index = units.findIndex((unit) => unit.blocks.some((b) => b.id === top?.id))
+  const index = units.findIndex((unit) =>
+    unit.blocks.some((b) => b.id === top?.id)
+  )
   const neighbour = units[index + direction]
   if (index === -1 || !neighbour) return false
   const moving = units[index].blocks
   const cursor = editor.getTextCursorPosition().block
   editor.transact(() => {
     editor.removeBlocks(moving)
-    if (direction === -1) editor.insertBlocks(moving, neighbour.blocks[0], "before")
+    if (direction === -1)
+      editor.insertBlocks(moving, neighbour.blocks[0], "before")
     else editor.insertBlocks(moving, neighbour.blocks.at(-1)!, "after")
   })
-  if (editor.getBlock(cursor.id) && Array.isArray(editor.getBlock(cursor.id)!.content)) {
+  if (
+    editor.getBlock(cursor.id) &&
+    Array.isArray(editor.getBlock(cursor.id)!.content)
+  ) {
     editor.setTextCursorPosition(cursor.id, "end")
   }
   return true
@@ -150,15 +190,26 @@ export function selectSection(editor: SandsEditor, headingId: string) {
 }
 
 export function prefersReducedMotion() {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  )
 }
 
 function blockElement(editor: SandsEditor, blockId: string) {
-  return editor.domElement?.querySelector<HTMLElement>(`.bn-block[data-id="${CSS.escape(blockId)}"]`) ?? null
+  return (
+    editor.domElement?.querySelector<HTMLElement>(
+      `.bn-block[data-id="${CSS.escape(blockId)}"]`
+    ) ?? null
+  )
 }
 
 /** Places the cursor in a block (or, for a heading without text, its first field) and scrolls it into view. */
-export function focusBlock(editor: SandsEditor, blockId: string, where: "start" | "end" = "end") {
+export function focusBlock(
+  editor: SandsEditor,
+  blockId: string,
+  where: "start" | "end" = "end"
+) {
   const block = editor.getBlock(blockId) as SandsBlock | undefined
   if (!block) return false
   editor.focus()
@@ -168,7 +219,10 @@ export function focusBlock(editor: SandsEditor, blockId: string, where: "start" 
     const next = sectionOf(editor, blockId)?.blocks[1]
     if (next) editor.setTextCursorPosition(next, where)
   }
-  blockElement(editor, blockId)?.scrollIntoView({ block: "center", behavior: prefersReducedMotion() ? "auto" : "smooth" })
+  blockElement(editor, blockId)?.scrollIntoView({
+    block: "center",
+    behavior: prefersReducedMotion() ? "auto" : "smooth",
+  })
   return true
 }
 
@@ -177,7 +231,11 @@ export function focusBlock(editor: SandsEditor, blockId: string, where: "start" 
  * a solvability gap). CSS `[data-flash]`; under reduced motion it shows without
  * animating.
  */
-export function flashBlock(editor: SandsEditor, blockId: string, durationMs = 1600) {
+export function flashBlock(
+  editor: SandsEditor,
+  blockId: string,
+  durationMs = 1600
+) {
   const element = blockElement(editor, blockId)
   if (!element) return
   element.removeAttribute("data-flash")
