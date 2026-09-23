@@ -85,9 +85,10 @@ export function EntrySourceBadge({ source, sourceTurn }: { source: EntrySource; 
 const STATUS: Record<EntryStatus, { label: string; icon: LucideIcon | null; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   locked: { label: "Locked", icon: LockIcon, variant: "outline" },
   proposed: { label: "Proposed", icon: null, variant: "secondary" },
-  accepted: { label: "Accepted", icon: CheckIcon, variant: "default" },
+  // UI wording (the Author's choice): Approved and Removed; the data keeps `accepted` / `rejected`.
+  accepted: { label: "Approved", icon: CheckIcon, variant: "default" },
   edited: { label: "Edited", icon: PencilIcon, variant: "outline" },
-  rejected: { label: "Rejected", icon: XIcon, variant: "destructive" },
+  rejected: { label: "Removed", icon: XIcon, variant: "destructive" },
 }
 
 export function EntryStatusBadge({ status }: { status: EntryStatus }) {
