@@ -16,6 +16,7 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import type { GetSessionResponse } from "@/domain/session-view"
 import { cn } from "@/lib/utils"
 
+import { EndingScreen } from "./ending"
 import { Composer, PROSE, StoryEmpty, StorySkeleton, TurnSection, scrollToElement } from "./story"
 import { useSession } from "./use-session"
 
@@ -78,14 +79,23 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
   const [announcement, setAnnouncement] = React.useState("")
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
   const turnRefs = React.useRef(new Map<string, HTMLElement>())
+  const endingRef = React.useRef<HTMLHeadingElement>(null)
   const playerName = playerNameOf(data)
-  const { turns } = data
+  const ended = data.session.ending !== "none"
+  const turns = ended ? data.turns.slice(0, -1) : data.turns
 
   // On load: the latest Turn in view, the cursor in the input.
   React.useEffect(() => {
     window.scrollTo({ top: document.documentElement.scrollHeight })
     inputRef.current?.focus()
   }, [])
+
+  // The Ending: once its final Passage has revealed, bring the Ending screen into view and focus it.
+  React.useEffect(() => {
+    if (!ended || revealing) return
+    endingRef.current?.focus({ preventScroll: true })
+    scrollToElement(endingRef.current, "center")
+  }, [ended, revealing])
 
   // A new Passage: bring it into view.
   React.useEffect(() => {
@@ -109,7 +119,8 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
     const turn = await playTurn(input)
     if (turn) {
       setDraft("")
-      setAnnouncement(`Turn ${turn.idx + 1}. ${turn.passage}`)
+      const ending = turn.state.ending === "none" ? "" : ` The story has ended: ${turn.state.ending}.`
+      setAnnouncement(`Turn ${turn.idx + 1}. ${turn.passage}${ending}`)
     }
     // The textarea was disabled during the Turn, which drops focus; give it back.
     requestAnimationFrame(() => inputRef.current?.focus())
@@ -126,7 +137,7 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
       </div>
 
       <article aria-label="Story" className={cn(PROSE, "flex flex-1 flex-col gap-10 pt-10 pb-8")}>
-        {turns.length === 0 ? (
+        {data.turns.length === 0 ? (
           <StoryEmpty
             playerName={playerName}
             suggestions={SUGGESTIONS}
@@ -149,9 +160,19 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
             />
           ))
         )}
+        {ended ? (
+          <EndingScreen
+            data={data}
+            playerName={playerName}
+            revealing={revealing === data.turns.at(-1)?.id}
+            onRevealed={finishReveal}
+            headingRef={endingRef}
+          />
+        ) : null}
       </article>
 
-      <Composer
+      {ended ? null : (
+        <Composer
         value={draft}
         onValueChange={setDraft}
         onSubmit={submit}
@@ -159,8 +180,9 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
         revealing={revealing !== null}
         backgroundPending={backgroundPending}
         playerName={playerName}
-        inputRef={inputRef}
-      />
+          inputRef={inputRef}
+        />
+      )}
     </div>
   )
 }
