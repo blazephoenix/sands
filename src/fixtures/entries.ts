@@ -43,6 +43,8 @@ type Spec<K extends EntryKind> = {
   status: EntryStatus | Record<Variant, EntryStatus>
   keyFacts?: string[]
   jevFlags?: JevFlag[]
+  /** Data the Author changed in a variant (an `edited` Entry), over `data`. */
+  editedData?: Partial<Record<Variant, Partial<EntryData<K>>>>
 }
 
 /**
@@ -350,6 +352,9 @@ function londonSpecs(): Spec<EntryKind>[] {
       source: "setup",
       status: { review: "proposed", ready: "accepted" },
     },
+    // Setup drafts the arrest to need every Clue it lists, so in review
+    // removing any of C1-C4 fails solvability. In the ready World the Author
+    // edited it down to any three of the four.
     {
       kind: "decisive_action",
       key: "arrest-max",
@@ -359,13 +364,14 @@ function londonSpecs(): Spec<EntryKind>[] {
         verb: "arrest",
         correctTargetId: "max",
         requires: ["c1", "c2", "c3", "c4"],
-        requiresCount: 3,
+        requiresCount: null,
         onSuccess: "win",
         wrongTargetPenalty: 15,
         prematurePenalty: 20,
       },
+      editedData: { ready: { requiresCount: 3 } },
       source: "setup",
-      status: { review: "proposed", ready: "accepted" },
+      status: { review: "proposed", ready: "edited" },
     },
   ] as Spec<EntryKind>[]
 }
@@ -376,7 +382,7 @@ const REF_FIELDS = ["connections", "locationId", "knownBy", "characterId", "clue
 export function londonEntries(worldId: string, prefix: string, variant: Variant): Entry[] {
   const id = (key: string) => `${prefix}-${key}`
   return londonSpecs().map((spec, index) => {
-    const data: Record<string, unknown> = { ...spec.data }
+    const data: Record<string, unknown> = { ...spec.data, ...spec.editedData?.[variant] }
     for (const field of REF_FIELDS) {
       const value = data[field]
       if (Array.isArray(value)) data[field] = value.map((key: string) => id(key))

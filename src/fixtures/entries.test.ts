@@ -26,6 +26,13 @@ describe("solvability after every change to a World Entry (spec §7.2, §8 step 
     expect(getWorld(REVIEW).solvability).toEqual(restored.solvability)
   })
 
+  it("counts Clues needed: the ready World's arrest takes any three of its four Clues", () => {
+    expect(patchEntry("mk-c2", { action: "reject" }).solvability).toMatchObject({ passed: true, gaps: [] })
+    const { solvability } = patchEntry("mk-c3", { action: "reject" })
+    expect(solvability?.passed).toBe(false)
+    expect(solvability?.gaps.map((gap) => gap.entryId)).toEqual(["mk-c2", "mk-c3"])
+  })
+
   it("stamps each result with the time it was checked", () => {
     const before = getWorld(REVIEW).solvability!.checkedAt
     const { solvability } = patchEntry(C2, { action: "accept" })
