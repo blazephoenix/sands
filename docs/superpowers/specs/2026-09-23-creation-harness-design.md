@@ -407,7 +407,7 @@ Each rule has a feedback template. A failure becomes one line to the writer, e.g
 | Jev choice confidence floor | 0.6 |
 | Passage length target | ~150 words |
 
-Environment: `XAI_API_KEY`, `WRITER_MODEL`, `OPENAI_API_KEY`, `DRAFTER_MODEL`, `JEV_API_KEY`, `JEV_BASE_URL` (endpoint provided by the user at repo setup), `JEV_MODEL` (default `jev-1.13.0`), `DB_URL`.
+Environment: `XAI_API_KEY`, `WRITER_MODEL`, `OPENAI_API_KEY`, `DRAFTER_MODEL`, `TYPESAFE_API_KEY` (the name the TypeSafe SDK reads), `JEV_BASE_URL` (endpoint provided by the user at repo setup), `JEV_MODEL` (default `jev-1.13.0`), `DB_URL`.
 
 ---
 
