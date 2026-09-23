@@ -41,6 +41,12 @@ export type EntryEditorHandle = {
 
 export type EntryEditorProps = {
   entries: readonly Entry[]
+  /**
+   * More Entries that `@` mentions may resolve to, without being shown: e.g.
+   * the rest of the Codex when the editor holds one Entry. Rejected ones
+   * render as broken mentions, as usual.
+   */
+  mentionEntries?: readonly Entry[]
   readOnly?: boolean
   /** Accept, Reject, Restore: shown in each Entry heading's ⠿ menu and keyboard block menu. */
   entryActions?: (entry: EntryBlockInfo) => BlockAction[]
@@ -62,7 +68,7 @@ function fingerprint(conversion: EntryBlockConversion) {
   return JSON.stringify([conversion.entryId, conversion.content, conversion.issues])
 }
 
-export function EntryEditor({ entries, readOnly, entryActions, entryLabelNote, onEntryChange, className, ref }: EntryEditorProps) {
+export function EntryEditor({ entries, mentionEntries, readOnly, entryActions, entryLabelNote, onEntryChange, className, ref }: EntryEditorProps) {
   const editorRef = React.useRef<SandsEditor | null>(null)
   const [initialContent] = React.useState(() => entriesToDocument(entries))
   const [live, setLive] = React.useState<EntryBlockConversion[]>(() => documentToEntries(initialContent))
@@ -74,8 +80,8 @@ export function EntryEditor({ entries, readOnly, entryActions, entryLabelNote, o
   const kindOf = React.useCallback((id: string) => kindOfRef.current.get(id), [])
 
   React.useEffect(() => {
-    kindOfRef.current = new Map(entries.map((entry) => [entry.id, entry.kind]))
-  }, [entries])
+    kindOfRef.current = new Map([...(mentionEntries ?? []), ...entries].map((entry) => [entry.id, entry.kind]))
+  }, [entries, mentionEntries])
 
   React.useEffect(() => {
     for (const conversion of documentToEntries(initialContent)) lastSeen.current.set(conversion.blockId, fingerprint(conversion))
@@ -83,7 +89,7 @@ export function EntryEditor({ entries, readOnly, entryActions, entryLabelNote, o
 
   // The mention index: stored Entries, with names updated live from the editor.
   const entryIndex = React.useMemo(() => {
-    const index = new Map(buildEntryIndex(entries))
+    const index = new Map(buildEntryIndex([...(mentionEntries ?? []), ...entries]))
     for (const conversion of live) {
       const existing = conversion.entryId ? index.get(conversion.entryId) : undefined
       if (existing && conversion.content) {
@@ -91,7 +97,7 @@ export function EntryEditor({ entries, readOnly, entryActions, entryLabelNote, o
       }
     }
     return index
-  }, [entries, live])
+  }, [entries, mentionEntries, live])
 
   const kindCounts = React.useMemo(() => {
     const counts: Partial<Record<EntryKind, number>> = {}
