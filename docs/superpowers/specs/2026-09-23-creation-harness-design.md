@@ -3,7 +3,7 @@
 **Date:** 2026-09-23
 **Due:** Friday 2026-09-25
 **Source requirements:** `docs/requirements.md`
-**Status:** Design approved in brainstorming; awaiting spec review
+**Status:** Approved. Project scaffolded (Next.js 16, shadcn, SQLite, BlockNote, AI SDK, TypeSafe SDK). Next step: implementation plan. See §17.
 
 ---
 
@@ -419,3 +419,38 @@ Environment: `XAI_API_KEY`, `WRITER_MODEL`, `OPENAI_API_KEY`, `DRAFTER_MODEL`, `
 4. **Latency estimates are unmeasured.** Mitigation: day-1 measurement; passage length and model choice are config.
 5. **Two drafts double Grok cost per turn.** Accepted for the latency gain.
 6. **Short memory.** Events older than 4 passages survive only through state and codex (§12).
+
+---
+
+## 17. Precedence and handoff
+
+### Precedence
+
+This spec and the ADRs in `docs/adr/` take precedence over `docs/requirements.md`. Where they differ, the difference is deliberate:
+
+| Requirements say | This design | ADR |
+|---|---|---|
+| Play may invent places, NPCs and objects | Only authored places; play invents characters only | 0004 |
+| The small OpenAI model parses intent; extraction catches unplanned clues | The Judge does both | 0009 |
+| Codex types: location, character, NPC, faction, clue, object | Plus Story logic Entries: exit condition, knowledge, decisive action | 0007 |
+| Up to 3 attempts, one passage at a time | Up to 3 Rounds of 2 parallel Drafts | 0003 |
+| Harness pane shows each attempt | Harness pane shows finished Turns only, in test mode; drafts go to the console | 0003 |
+| Baseline and compare view are acceptance scope | Cut first if time runs short | 0012 |
+
+Domain vocabulary is defined in `CONTEXT.md`. Where the requirements use other words (antagonist, capture condition, evidence plan, knowledge map, attempt, run), the glossary term wins.
+
+### State at handoff (2026-09-23)
+
+- Scaffold committed: Next.js 16.3 (code in `src/`), shadcn `base-nova`, `drizzle-orm` 0.45 + `better-sqlite3`, BlockNote 0.54, AI SDK 7 with the xAI and OpenAI providers, `@typesafe-ai/sdk`, Vitest. `pnpm typecheck`, `lint`, `test` and `build` pass. No application code yet.
+- ESLint is pinned to v9: `eslint-plugin-react` (via `eslint-config-next`) does not support ESLint 10.
+- The TypeSafe plugin (`typesafe@typesafe-ai`) is enabled at project scope.
+
+### Open items
+
+1. **Re-verify §10 against the official Jev docs.** The Jev facts in this spec (endpoint path, question conventions, thresholds, `jev-1.13.0`) came from third-party sites during brainstorming. Load the `typesafe-ai` skill and check them against https://docs.typesafe.ai (API, JavaScript SDK, primitives, confidence) before planning the Judge.
+2. **Jev endpoint:** the Author will provide it (`JEV_BASE_URL`).
+3. **Writer and Drafter model names:** chosen by the day-1 latency test (`WRITER_MODEL`, `DRAFTER_MODEL`).
+
+### Next step
+
+Write the implementation plan from this spec with the `superpowers:writing-plans` skill, following the build order in §4.
