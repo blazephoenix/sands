@@ -16,3 +16,4 @@ Only the steps whose result the Player reads block the Passage: reading the inpu
 
 - Two Drafts roughly double Writer cost per Turn. Accepted for latency, and because choosing between passing Drafts is part of the creativity story.
 - A Draft the Judge has not ruled on never ships; a Judge outage fails the Turn.
+- The Opening (ADR-0014) follows the same rule: the first scene of a Session is written, judged and only then revealed.

@@ -4,6 +4,8 @@ Status: accepted
 
 The first demo's build order is also its cut order, last item first: Jev and BlockNote tests, Brief editor, setup, setup review, Turn loop, harness pane, Codex editing in play, replay, pacing, then baseline mode and the compare view. With the editor taking about a day of two, the baseline (the Brief as a system prompt to Grok with no harness) and the side-by-side compare view are expected to be cut, dropping one acceptance criterion: that the baseline shows at least two violations on the adversarial script.
 
+On 2026-09-23 the Author changed the build order, not the cut order: every UI surface (Worlds home, Brief, setup review, Session) was built first, against the real route handlers of spec §5.2 backed by an in-memory fixture store, so the surfaces could be judged while the engine is written. The engine replaces the store behind each route without changing the UI or the route contracts. Engine work keeps the order above, and the cut order stands.
+
 We protected the harness over the comparison because the harness is the thesis; a baseline with nothing solid to compare against proves nothing, and once replay exists the baseline is cheap to add back.
 
 ## Considered Options

@@ -2,7 +2,7 @@
 
 Status: accepted
 
-The Brief editor, the setup review and the in-play Codex pane are one BlockNote editor with custom typed blocks (Character, Arc, Location, Clue and so on) and free prose between them. Typed blocks drive mechanics; free prose becomes locked Brief text that only the Writer and the Judge read. References between Entries are inline mentions that can only point at Entries that exist.
+The Brief editor and the in-play Codex pane are one BlockNote editor: section headings (Character, Arc, Location, Clue and so on) with `Label: value` fields, and free prose between them (ADR-0013). Sections drive mechanics; free prose becomes locked Brief text that only the Writer and the Judge read. The setup review is not an editor surface: it is a list of what setup drafted beside one Entry card, and it opens the same editor only to edit that one Entry. References between Entries are inline mentions that can only point at Entries that exist.
 
 The Author wanted a Notion-like authoring experience. BlockNote is a Notion-style editor built on Tiptap, licensed MPL-2.0, and ships the slash menu, drag handles and nesting we would otherwise build.
 
@@ -15,5 +15,6 @@ The Author wanted a Notion-like authoring experience. BlockNote is a Notion-styl
 ## Consequences
 
 - Only MPL-2.0 BlockNote packages are used; the `@blocknote/xl-*` packages are GPL-3.0 or commercial.
-- Unverified: whether a typed block holds several labelled multi-paragraph fields with per-field Hidden toggles. It is tested first; the fallback is plain Tiptap with custom nodes, the free drag-handle extension and a slash menu on `@tiptap/suggestion`.
+- Settled: a typed block could hold labelled, Hidden-able fields (the spec §7.4 test passed), but the Author chose plain documents with `Label: value` fields instead (ADR-0013). The Tiptap fallback was not needed.
+- The setup review was first built as one editor document of every Entry, with Accept and Reject in the ⠿ menu. The Author found it unclear what needed a decision, so on 2026-09-23 it became a review list and card: only drafted Entries are decisions, Judge-flagged ones come first, each says why setup drafted it, and the actions are Approve, Edit and Remove.
 - The editor costs about a day of the two before the first demo, which is why the baseline is expected to be cut (ADR-0012).

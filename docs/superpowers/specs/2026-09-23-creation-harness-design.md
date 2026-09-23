@@ -103,7 +103,7 @@ Non-goals (from `docs/requirements.md` §14, plus decisions made here): voice in
 | `GET /api/worlds/[id]` | World, brief, entries, solvability result |
 | `PATCH /api/entries/[id]` | Accept, edit or reject an entry (world template or session copy) |
 | `POST /api/sessions` | Start a session from a world |
-| `POST /api/sessions/[id]/turn` | Play one turn; returns progress events as NDJSON, then the approved passage and turn summary |
+| `POST /api/sessions/[id]/turn` | Play one turn, or the Opening with `input: null` (ADR-0014); returns progress events as NDJSON, then the approved passage and turn summary |
 | `GET /api/sessions/[id]` | Story, current state, entries, harness log |
 
 The turn route does not stream passage text; the passage is final before it is sent. The client performs the animated reveal (animation design is later work).
@@ -174,7 +174,7 @@ Kind-specific `data_json`:
 | `id` | |
 | `session_id` | |
 | `idx` | 0-based, monotonic per session |
-| `player_input` | |
+| `player_input` | Null for the Opening (turn 0) |
 | `passage` | The shipped passage |
 | `flagged` | True if shipped after 3 failed rounds |
 | `log_json` | Intent, classification, outcome, directive, every draft with rule results, discovery answers, background results, timings, Jev model version |
@@ -197,18 +197,20 @@ reputation, off_script_count, warnings_given[], pacing_nudge (bool + reason), en
 
 ### 7.1 Brief editor (BlockNote)
 
-A Notion-style block editor. The document mixes **typed blocks** (which drive mechanics) with **free prose** (which is locked text for the writer and judge).
+A Notion-style block editor. The document mixes **section headings with `Label: value` fields** (which drive mechanics) with **free prose** (which is locked text for the writer and judge).
 
-- **Typed blocks**, inserted with the slash menu (`/character`, `/arc`, `/location`, `/setting`, `/ending`, `/voice`):
-  - **Setting:** place, period.
-  - **Character:** name, role, age, personality, backstory, aliases, player-character flag.
-  - **Arc:** name, description, optional exit conditions. Arcs can be reordered by drag; **document order is arc order**.
-  - **Ending:** the ending condition (e.g. "the killer is caught").
-  - **Location** (optional): name, description.
-  - **Voice** (optional): guidelines, sample passages.
-- **Custom fields:** each typed block has "+ Add field" for an author-labeled field. Custom fields become the item's `key_facts`.
-- **Free prose:** any paragraph, heading or list outside a typed block becomes locked brief text, grouped under the nearest heading. It reaches the writer and the judge; code cannot act on it. Only typed-block fields drive mechanics.
-- **Hidden toggle** on every field marks it secret. Together, hidden fields are the hidden truth.
+- **The editor is a plain BlockNote document** (Author's choice from a UI prototype, 2026-09-23): no form controls inside blocks; every control lives in BlockNote's own menus (slash menu, ⠿ side menu, formatting toolbar).
+- **Section headings** are the only custom blocks, inserted with the slash menu (`/character`, `/arc`, `/location`, `/setting`, `/ending`, `/voice`): an icon and kind label, then the name for Character, Arc and Location. They have no children. **Document order is arc order.**
+- **Fields** are ordinary paragraphs under a section heading that read `Label: value` (Shift+Enter for a second line). The known labels per kind are:
+  - **Setting:** Place, Period.
+  - **Character:** Role, Age, Personality, Backstory, Aliases. **Player character** is a prop on the heading, toggled from the ⠿ menu.
+  - **Arc:** Description, Exit condition.
+  - **Ending:** Condition (e.g. "the killer is caught").
+  - **Location** (optional): Description.
+  - **Voice** (optional): Guidelines, Sample passage.
+- **Custom fields:** any other label is an Author-labelled field and becomes the item's `key_facts`. A near-miss of a known label is reported as a probable typo.
+- **Free prose:** any block that is not `Label: value` under a section heading becomes locked brief text, grouped under the nearest standard heading, and ends the current section. It reaches the writer and the judge; code cannot act on it. Only section headings and their fields drive mechanics.
+- **Hidden** is a text style applied from the formatting toolbar; a field whose value carries it is secret. Together, hidden fields are the hidden truth.
 - **New brief template:** a new world opens with one Setting block, one player Character block, three Arc blocks and one Ending block, so a sparse brief is quick to fill in.
 - **Conversion:** a function walks the BlockNote document and builds the brief object, validated with zod. Validation errors carry the block id so the editor highlights the field.
 - **Storage:** BlockNote document JSON and validated brief JSON. YAML is rendered from the brief JSON for prompts and export; hidden fields are rendered with a `SECRET — never state or imply` marker in the writer's prompt.
@@ -216,9 +218,9 @@ A Notion-style block editor. The document mixes **typed blocks** (which drive me
 
 ### 7.2 Entry editor (setup review and codex pane)
 
-The same BlockNote schema, with one typed block per entry kind (location, character, npc, faction, clue, object, exit condition, knowledge, decisive action):
+The same BlockNote editor and pattern as §7.1, with one section heading per entry kind (location, character, npc, faction, clue, object, exit condition, knowledge, decisive action):
 
-- **Block header:** kind, source, status, Jev flags, **Accept** and **Reject** buttons.
+- **Entry heading:** kind icon and kind, handle, source, status and Jev-flag marker as a plain-text label line, then the name. **Accept**, **Reject** and **Restore** are in the ⠿ menu. Fields are `Label: value` paragraphs, including kind-specific data (e.g. `Red herring: yes`, `Requires: @C1, @C3`).
 - **References** use a custom inline mention (`@Whitechapel`, `@C1`). The mention menu lists only existing, non-rejected entries, so the author cannot point at something that does not exist.
 - **Editing** a block sets status `edited`, then re-runs solvability (setup review) or takes effect from the next turn (play).
 - **Locked** entries render read-only.
@@ -228,7 +230,7 @@ The same BlockNote schema, with one typed block per entry kind (location, charac
 
 Use only MPL-2.0 BlockNote packages (`@blocknote/core`, `@blocknote/react`, and a UI package such as `@blocknote/shadcn` or `@blocknote/mantine`). Do not use `@blocknote/xl-*` packages (GPL-3.0 or commercial).
 
-### 7.4 Day-1 BlockNote test (1 hour)
+### 7.4 Day-1 BlockNote test (1 hour) — passed; superseded by the §7.1 design
 
 A BlockNote custom block has flat typed props plus one content area; a Character needs several multi-paragraph fields. Verify on day 1 that a typed block can hold multiple labeled, multi-paragraph fields with a per-field hidden toggle, most likely as nested child blocks (one "field" block per field) under a typed parent block. Pass: a Character block with personality, backstory and one custom field round-trips through conversion to the brief object. **Fallback** if it fails: plain Tiptap with custom nodes (section → card → field), the open-source Tiptap drag-handle extension, and a slash menu built on `@tiptap/suggestion`.
 
@@ -254,6 +256,10 @@ Expected setup time: 30–60 seconds, once per world.
 ## 9. Turn loop
 
 Target: **3–5 seconds** from submit to passage on a turn that needs no retry. All timings in this spec are estimates to be confirmed by measurement on day 1.
+
+### 9.0 The Opening (turn 0)
+
+A Session never starts blank. As soon as it is created, the harness plays its **Opening**: the Writer writes the first scene (the Player character at the start location, the first Arc under way) and the Judge rules on it like any Turn. There is no player input, so steps 2 and 3 below are skipped: nothing is read or classified, and no Outcome is resolved. The directive asks for an opening scene and allows no reveals. The Agency rule checks that the Player character does nothing beyond arriving. The Opening is turn 0, with `player_input` null. The Session page plays it automatically, with the same progress events and reveal as any Turn; a failure leaves the Session with no Turns and offers Retry.
 
 ### 9.1 Critical path (before the passage appears)
 
@@ -353,6 +359,7 @@ Each rule has a feedback template. A failure becomes one line to the writer, e.g
 ## 11. UI
 
 - **`/worlds/[id]/brief`:** BlockNote brief editor; **Run setup** button with progress.
+- **`/worlds/[id]`:** a ready world's sessions, most recent first, and **New Session**. A world that is not ready goes to its brief or its setup review.
 - **`/worlds/[id]/setup`:** entry editor grouped into **World** (locations, characters, NPCs, factions, clues, objects) and **Story logic** (exit conditions, knowledge, decisive actions); per-block accept / edit / reject; Jev flags; solvability banner listing any gaps; **Start**.
 - **`/sessions/[id]`:**
   - **Story pane** (center): passages with a client-side animated reveal; free-text input; ending screen.
