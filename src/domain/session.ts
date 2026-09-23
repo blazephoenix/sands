@@ -6,6 +6,10 @@
  * state after the Turn and the Turn's log. Background work (naming new
  * characters, Exit conditions, pacing) is merged into the latest Turn when it
  * finishes.
+ *
+ * Turn 0 is always the Opening (spec §9.0): the Writer sets the first scene
+ * before the Player acts, so it has no Player input, no reading and no
+ * Outcome. Every later Turn has all three.
  */
 import { z } from "zod"
 
@@ -161,6 +165,7 @@ export const backgroundResultsSchema = z.object({
 export type BackgroundResults = z.infer<typeof backgroundResultsSchema>
 
 export const turnLogSchema = z.object({
+  /** What the Judge read from the Player's input. Null for the Opening: there is no input. */
   reading: z.object({
     intent: choiceAnswer,
     /** An Entry id, `none` or `not_in_codex`, with the label shown. */
@@ -171,8 +176,9 @@ export const turnLogSchema = z.object({
       /** Below the confidence floor, so treated as tangential. */
       belowFloor: z.boolean(),
     }),
-  }),
-  outcome: outcomeSchema,
+  }).nullable(),
+  /** What code decided. Null for the Opening: no Outcome is resolved. */
+  outcome: outcomeSchema.nullable(),
   /** The Directive given to the Writer, summarised. */
   directive: z.string(),
   rounds: z.array(roundSchema).min(1).max(3),
@@ -198,9 +204,10 @@ export const turnSchema = z
   .object({
     id: z.string().min(1),
     sessionId: z.string().min(1),
-    /** 0-based, monotonic per Session. */
+    /** 0-based, monotonic per Session. 0 is the Opening. */
     idx: z.number().int().min(0),
-    playerInput: z.string(),
+    /** Null exactly for the Opening (turn 0). */
+    playerInput: z.string().nullable(),
     passage: z.string(),
     /** Shipped after three failed Rounds. */
     flagged: z.boolean(),
@@ -210,6 +217,9 @@ export const turnSchema = z
     createdAt: z.iso.datetime(),
   })
   .superRefine((turn, ctx) => {
+    for (const message of openingRuleIssues(turn)) {
+      ctx.addIssue({ code: "custom", message, path: ["playerInput"] })
+    }
     const shipped = turn.log.rounds.flatMap((round) => round.drafts).filter((draft) => draft.shipped)
     if (shipped.length !== 1) {
       ctx.addIssue({ code: "custom", message: "A Turn ships exactly one Draft.", path: ["log", "rounds"] })
@@ -233,3 +243,37 @@ export const turnSchema = z
   })
 export type Turn = z.infer<typeof turnSchema>
 
+
+/** The Opening is always Turn 0 (spec §9.0). */
+export const OPENING_IDX = 0
+
+/** Is this Turn the Session's Opening? */
+export function isOpening(turn: Pick<Turn, "idx">) {
+  return turn.idx === OPENING_IDX
+}
+
+/**
+ * The Opening rule: Turn 0 has no Player input, no reading and no Outcome;
+ * every later Turn has all three. Returns what is wrong, or nothing.
+ */
+export function openingRuleIssues(turn: { idx: number; playerInput: string | null; log: Pick<TurnLog, "reading" | "outcome"> }): string[] {
+  const issues: string[] = []
+  if (turn.idx === OPENING_IDX) {
+    if (turn.playerInput !== null) issues.push("Turn 0 is the Opening: it has no Player input.")
+    if (turn.log.reading !== null || turn.log.outcome !== null) issues.push("The Opening reads no input and resolves no Outcome.")
+  } else {
+    if (turn.playerInput === null) issues.push("Only the Opening (Turn 0) may have no Player input.")
+    if (turn.log.reading === null || turn.log.outcome === null) issues.push("A Turn after the Opening reads its input and resolves an Outcome.")
+  }
+  return issues
+}
+
+/** How a Turn is named in the story and the harness log: "Opening", then "Turn 1", "Turn 2"… */
+export function turnLabel(turn: Pick<Turn, "idx">) {
+  return isOpening(turn) ? "Opening" : `Turn ${turn.idx}`
+}
+
+/** Turns the Player has played, from a count of a Session's Turns: every Turn but the Opening. */
+export function playerTurnCount(turnCount: number) {
+  return Math.max(0, turnCount - 1)
+}

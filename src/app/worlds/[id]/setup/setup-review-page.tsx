@@ -7,8 +7,8 @@
  * and Start Session once the World is solvable.
  *
  * Page guards by setup status: `draft` points back to the Brief, `drafting`
- * waits for setup, `review` and `ready` show the review (`ready` also lists
- * the World's Sessions).
+ * waits for setup, `review` shows the review. Setup is behind a `ready`
+ * World, so it goes to the World page and its Sessions instead (ticket 05).
  */
 import * as React from "react"
 import Link from "next/link"
@@ -32,16 +32,16 @@ import { nextUndecided, reviewDecision, reviewProgress, reviewSections, sidebarO
 
 import { EntryCard } from "./entry-card"
 import { REVIEW_ROW_ATTR, ReviewSidebar } from "./review-sidebar"
-import { withScenario } from "@/components/worlds/world-links"
+import { sessionHref, withScenario, worldPageHref } from "@/components/worlds/world-links"
 import { SolvabilityBanner } from "./solvability-banner"
 import { errorMessage, useSetupReview, type ReviewAction } from "./use-setup-review"
-import { WorldSessions } from "./world-sessions"
 
 type Load = { state: "loading" } | { state: "error"; error: ApiError } | { state: "ready"; data: GetWorldResponse }
 
 const DRAFTING_POLL_MS = 4000
 
 export function SetupReviewPage({ worldId }: { worldId: string }) {
+  const router = useRouter()
   const [load, setLoad] = React.useState<Load>({ state: "loading" })
   const [attempt, setAttempt] = React.useState(0)
 
@@ -57,12 +57,18 @@ export function SetupReviewPage({ worldId }: { worldId: string }) {
     return () => controller.abort()
   }, [worldId, attempt])
 
+  // A ready World is played, not reviewed: its page lists its Sessions.
+  const ready = load.state === "ready" && load.data.world.setupStatus === "ready"
+  React.useEffect(() => {
+    if (ready) router.replace(withScenario(worldPageHref(worldId)))
+  }, [ready, router, worldId])
+
   const retry = () => {
     setLoad({ state: "loading" })
     setAttempt((n) => n + 1)
   }
 
-  if (load.state === "loading") return <ReviewSkeleton />
+  if (load.state === "loading" || ready) return <ReviewSkeleton />
   if (load.state === "error") return <LoadError error={load.error} onRetry={retry} />
 
   const { world } = load.data
@@ -356,7 +362,7 @@ function ReviewWorkspace({ initial }: { initial: GetWorldResponse }) {
     setStarting(true)
     try {
       const sessionId = await review.startSession()
-      router.push(withScenario(`/sessions/${encodeURIComponent(sessionId)}`))
+      router.push(withScenario(sessionHref(sessionId)))
     } catch (error) {
       setStarting(false)
       toast.add({ title: "Couldn't start a Session", description: `${errorMessage(error)} Your review is unchanged.`, type: "error", priority: "high" })
@@ -475,7 +481,6 @@ function ReviewWorkspace({ initial }: { initial: GetWorldResponse }) {
               </Card>
             )}
 
-            {world.setupStatus === "ready" ? <WorldSessions sessions={initial.sessions} /> : null}
           </div>
         </div>
       </div>

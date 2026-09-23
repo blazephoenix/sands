@@ -1,7 +1,8 @@
 /**
  * Sessions and Turns: fixture data, the Turn builders, and store operations.
  *
- * Sessions of "The Merchant Killings" (ready World):
+ * Sessions of "The Merchant Killings" (ready World), each starting with its
+ * Opening (Turn 0, chosen by the Session's seed):
  * - `s-midplay`: six Turns into play. Turn 3 needed a second Round (both first
  *   Drafts rejected), Turn 5 was flagged after three Rounds, and Turn 6's
  *   background work is still pending. Two Entries were invented in play.
@@ -13,12 +14,18 @@
  * `planTurn` builds the next Turn from the Session's state without saving it,
  * `commitTurn` saves it, and `settleBackground` finishes the latest Turn's
  * background work when it is due.
+ *
+ * The Opening (ticket 05; spec §9.0): `OPENINGS` holds the first scenes,
+ * `pickOpening` chooses one by seed, `planOpening` builds Turn 0, and
+ * `claimOpening` keeps two requests from writing one Session's Opening at once.
  */
 import { copyEntriesForSession } from "@/codex/session-copy"
 import type { CreateSessionResponse } from "@/domain/api"
 import { isLiveEntry, type Entry } from "@/domain/entry"
 import {
+  OPENING_IDX,
   RULES,
+  isOpening,
   turnSchema,
   type BackgroundResults,
   type Classification,
@@ -32,6 +39,7 @@ import {
   type RuleResult,
   type Session,
   type Turn,
+  type TurnLog,
 } from "@/domain/session"
 import { ENGINE_CONFIG, ruleVerdict } from "@/engine/config"
 
@@ -62,12 +70,23 @@ const RULE_QUESTIONS: Record<Rule, string> = {
   ending: "Does the Draft narrate an Ending other than ending?",
 }
 
-/** Rule results for one Draft: low probabilities except the `overrides`. `ending` is only asked on ending Turns. */
-export function buildRules(overrides: Partial<Record<Rule, number>> = {}, options: { endingTurn?: boolean; seed?: number } = {}): RuleResult[] {
+/** The Opening has no Player input: Agency asks whether the Player character does anything beyond arriving (spec §9.0). */
+const OPENING_AGENCY_QUESTION = "Does the Player character say or do anything beyond arriving at the start location?"
+
+export type RuleOptions = { endingTurn?: boolean; opening?: boolean; seed?: number }
+
+/**
+ * Rule results for one Draft: low probabilities except the `overrides`.
+ * `ending` is only asked on ending Turns; the Opening has no Outcome to
+ * contradict, so it is not asked `outcome`.
+ */
+export function buildRules(overrides: Partial<Record<Rule, number>> = {}, options: RuleOptions = {}): RuleResult[] {
   const seed = options.seed ?? 1
-  return RULES.filter((rule) => rule !== "ending" || options.endingTurn).map((rule, index) => {
+  const asked = RULES.filter((rule) => (rule !== "ending" || options.endingTurn) && (rule !== "outcome" || !options.opening))
+  return asked.map((rule, index) => {
     const probability = overrides[rule] ?? Math.round((0.03 + ((seed * 7 + index * 13) % 17) / 100) * 100) / 100
-    return { rule, question: RULE_QUESTIONS[rule], probability, ...ruleVerdict(probability) }
+    const question = options.opening && rule === "agency" ? OPENING_AGENCY_QUESTION : RULE_QUESTIONS[rule]
+    return { rule, question, probability, ...ruleVerdict(probability) }
   })
 }
 
@@ -81,22 +100,18 @@ export function buildRound(index: number, drafts: Draft[], feedback: string[] = 
 }
 
 /** A Round where both Drafts pass and the first ships. */
-function cleanRound(turnKey: string, passage: string, alternative: string, seed: number, endingTurn = false): Round[] {
+function cleanRound(turnKey: string, passage: string, alternative: string, seed: number, options: Omit<RuleOptions, "seed"> = {}): Round[] {
   return [
     buildRound(1, [
-      buildDraft(`${turnKey}-r1a`, passage, buildRules({}, { seed, endingTurn }), true),
-      buildDraft(`${turnKey}-r1b`, alternative, buildRules({}, { seed: seed + 3, endingTurn })),
+      buildDraft(`${turnKey}-r1a`, passage, buildRules({}, { ...options, seed }), true),
+      buildDraft(`${turnKey}-r1b`, alternative, buildRules({}, { ...options, seed: seed + 3 })),
     ]),
   ]
 }
 
-export type TurnSpec = {
+/** What every Turn has, the Opening included. */
+type TurnBase = {
   idx: number
-  input: string
-  intent: [string, number]
-  target: [string, string, number]
-  classification: [Classification, number]
-  outcome: Omit<Outcome, "ending" | "deathRoll"> & Partial<Pick<Outcome, "ending" | "deathRoll">>
   directive: string
   passage: string
   /** Defaults to one clean Round shipping `passage`. */
@@ -108,39 +123,44 @@ export type TurnSpec = {
   minutes: number
 }
 
-export function buildTurn(sessionId: string, spec: TurnSpec): Turn {
+export type TurnSpec = TurnBase & {
+  input: string
+  intent: [string, number]
+  target: [string, string, number]
+  classification: [Classification, number]
+  outcome: Omit<Outcome, "ending" | "deathRoll"> & Partial<Pick<Outcome, "ending" | "deathRoll">>
+}
+
+/** The Opening: Turn 0, no Player input, nothing read and no Outcome (spec §9.0). */
+export type OpeningSpec = Omit<TurnBase, "idx">
+
+function assembleTurn(sessionId: string, spec: TurnBase, played: { input: string; reading: TurnLog["reading"]; outcome: Outcome } | null): Turn {
   const key = `${sessionId}-t${spec.idx}`
-  const endingTurn = (spec.outcome.ending ?? "none") !== "none"
+  const endingTurn = (played?.outcome.ending ?? "none") !== "none"
   const rounds =
-    spec.rounds ?? cleanRound(key, spec.passage, spec.alternative ?? `${spec.passage.split(". ")[0]}.`, spec.idx + 2, endingTurn)
+    spec.rounds ??
+    cleanRound(key, spec.passage, spec.alternative ?? `${spec.passage.split(". ")[0]}.`, spec.idx + 2, { endingTurn, opening: played === null })
   const shipped = rounds.flatMap((round) => round.drafts).find((draft) => draft.shipped)!
-  const [classification, classificationP] = spec.classification
+  const readingMs = played ? 410 : 0
+  const resolvingMs = played ? 3 : 0
   return {
     id: key,
     sessionId,
     idx: spec.idx,
-    playerInput: spec.input,
+    playerInput: played?.input ?? null,
     passage: shipped.text,
     flagged: rounds.length === 3 && !shipped.passed,
     log: {
-      reading: {
-        intent: { value: spec.intent[0], probability: spec.intent[1] },
-        target: { value: spec.target[0], label: spec.target[1], probability: spec.target[2] },
-        classification: {
-          value: classification,
-          probability: classificationP,
-          belowFloor: classificationP < ENGINE_CONFIG.choiceConfidenceFloor,
-        },
-      },
-      outcome: { ending: "none", deathRoll: null, ...spec.outcome },
+      reading: played?.reading ?? null,
+      outcome: played?.outcome ?? null,
       directive: spec.directive,
       rounds,
       discovery: spec.discovery ?? [],
       background: spec.background,
       timings: {
-        totalMs: 2600 + rounds.length * 1900,
-        readingMs: 410,
-        resolvingMs: 3,
+        totalMs: (played ? 2600 : 2200) + rounds.length * 1900,
+        readingMs,
+        resolvingMs,
         writingMs: 1500 * rounds.length,
         judgingMs: 640 * rounds.length,
         backgroundMs: spec.background ? 2100 : null,
@@ -151,6 +171,27 @@ export function buildTurn(sessionId: string, spec: TurnSpec): Turn {
     backgroundStatus: spec.background === null ? "pending" : spec.background.error ? "failed" : "done",
     createdAt: fixtureTime(spec.minutes),
   }
+}
+
+export function buildTurn(sessionId: string, spec: TurnSpec): Turn {
+  const [classification, classificationP] = spec.classification
+  return assembleTurn(sessionId, spec, {
+    input: spec.input,
+    reading: {
+      intent: { value: spec.intent[0], probability: spec.intent[1] },
+      target: { value: spec.target[0], label: spec.target[1], probability: spec.target[2] },
+      classification: {
+        value: classification,
+        probability: classificationP,
+        belowFloor: classificationP < ENGINE_CONFIG.choiceConfidenceFloor,
+      },
+    },
+    outcome: { ending: "none", deathRoll: null, ...spec.outcome },
+  })
+}
+
+export function buildOpening(sessionId: string, spec: OpeningSpec): Turn {
+  return assembleTurn(sessionId, { ...spec, idx: OPENING_IDX }, null)
 }
 
 function background(partial: Partial<BackgroundResults> = {}): BackgroundResults {
@@ -218,7 +259,7 @@ export function seedSessionEntries(): Entry[] {
       keyFacts: [],
       data: { ...person, role: "Lamplighter", personality: "Talkative, superstitious.", backstory: "Has lit the same street for thirty years." },
       source: "play",
-      sourceTurn: 2,
+      sourceTurn: 3,
       status: "proposed",
       jevFlags: [],
       seenAt: fixtureTime(131),
@@ -236,7 +277,7 @@ export function seedSessionEntries(): Entry[] {
       keyFacts: [],
       data: { ...person, role: "Landlady", personality: "Sharp-tongued, counts every penny.", backstory: "Widowed; takes in lodgers from the shipping offices." },
       source: "play",
-      sourceTurn: 4,
+      sourceTurn: 5,
       status: "proposed",
       jevFlags: [],
       seenAt: null,
@@ -245,6 +286,28 @@ export function seedSessionEntries(): Entry[] {
     }
   )
   return out
+}
+
+/**
+ * A seeded Session's Opening, chosen by its seed like any new Session's, and
+ * written the minute it started. Its background work found nothing: the
+ * first Arc's Exit condition is not met by arriving.
+ */
+function seededOpening(sessionId: string, minutes: number): Turn {
+  const session = SESSIONS.find((candidate) => candidate.id === sessionId)!
+  const opening = pickOpening(session.seed)
+  const c = (key: string) => copyId(sessionId, `${PREFIX}-${key}`)
+  return buildOpening(sessionId, {
+    minutes,
+    directive: OPENING_DIRECTIVE,
+    passage: opening.passage,
+    alternative: opening.alternative,
+    background: background({
+      arcCheck: [{ exitConditionId: c("exit-1"), probability: 0.07, met: false }],
+      pacing: { probability: 0.86, nudge: false, reason: null },
+    }),
+    state: state({ locationId: c("yard") }),
+  })
 }
 
 export function seedTurns(): Turn[] {
@@ -259,8 +322,9 @@ function midPlayTurns(): Turn[] {
   const docks = c("docks")
 
   return [
+    seededOpening(s, 120),
     buildTurn(s, {
-      idx: 0,
+      idx: 1,
       minutes: 121,
       input: "I take the case file from Captain James and read it at his desk.",
       intent: ["examine", 0.91],
@@ -274,7 +338,7 @@ function midPlayTurns(): Turn[] {
       state: state({ locationId: yard, arcIndex: 1 }),
     }),
     buildTurn(s, {
-      idx: 1,
+      idx: 2,
       minutes: 124,
       input: "I ask Amanda what the victims had in common.",
       intent: ["question", 0.95],
@@ -299,7 +363,7 @@ function midPlayTurns(): Turn[] {
       state: state({ locationId: yard, arcIndex: 1, knowledgeRevealed: { [c("amanda")]: [c("k-amanda")] } }),
     }),
     buildTurn(s, {
-      idx: 2,
+      idx: 3,
       minutes: 129,
       input: "I walk to Whitechapel High Street.",
       intent: ["move", 0.97],
@@ -311,12 +375,12 @@ function midPlayTurns(): Turn[] {
       rounds: [
         buildRound(1, [
           buildDraft(
-            `${s}-t2-r1a`,
+            `${s}-t3-r1a`,
             "Jacob walked east past the Ten Bells, where a barman swore he had seen the killer twice.",
             buildRules({ location: 0.81, codex: 0.36 }, { seed: 4 })
           ),
           buildDraft(
-            `${s}-t2-r1b`,
+            `${s}-t3-r1b`,
             "\"Right then,\" Jacob said to the cabman, and told him to wait while he walked the length of the street.",
             buildRules({ agency: 0.67 }, { seed: 5 })
           ),
@@ -325,13 +389,13 @@ function midPlayTurns(): Turn[] {
           2,
           [
             buildDraft(
-              `${s}-t2-r2a`,
+              `${s}-t3-r2a`,
               "Whitechapel High Street was all barrows and breath. A lamplighter was still at work outside the draper's shop, where Whitlock had died, and the shutters were painted over in black.",
               buildRules({ location: 0.12 }, { seed: 6 }),
               true
             ),
             buildDraft(
-              `${s}-t2-r2b`,
+              `${s}-t3-r2b`,
               "The street smelled of wet straw. Nobody looked at the draper's shop, which is how Jacob knew they all remembered it.",
               buildRules({}, { seed: 7 })
             ),
@@ -350,7 +414,7 @@ function midPlayTurns(): Turn[] {
       state: state({ locationId: whitechapel, arcIndex: 1, knowledgeRevealed: { [c("amanda")]: [c("k-amanda")] } }),
     }),
     buildTurn(s, {
-      idx: 3,
+      idx: 4,
       minutes: 133,
       input: "I examine the ground outside Whitlock's shop.",
       intent: ["examine", 0.94],
@@ -381,7 +445,7 @@ function midPlayTurns(): Turn[] {
       }),
     }),
     buildTurn(s, {
-      idx: 4,
+      idx: 5,
       minutes: 139,
       input: "I take a constable's lantern and search the docks alone after dark.",
       intent: ["move", 0.86],
@@ -398,14 +462,14 @@ function midPlayTurns(): Turn[] {
       passage: "",
       rounds: [
         buildRound(1, [
-          buildDraft(`${s}-t4-r1a`, "Jacob drew his revolver and fired at the shape by the warehouse.", buildRules({ agency: 0.74 }, { seed: 8 })),
-          buildDraft(`${s}-t4-r1b`, "Somewhere in the dark, Max Rober was watching him, and Jacob knew it.", buildRules({ knowledge: 0.69, unplanned_clue: 0.55 }, { seed: 9 })),
+          buildDraft(`${s}-t5-r1a`, "Jacob drew his revolver and fired at the shape by the warehouse.", buildRules({ agency: 0.74 }, { seed: 8 })),
+          buildDraft(`${s}-t5-r1b`, "Somewhere in the dark, Max Rober was watching him, and Jacob knew it.", buildRules({ knowledge: 0.69, unplanned_clue: 0.55 }, { seed: 9 })),
         ]),
         buildRound(
           2,
           [
-            buildDraft(`${s}-t4-r2a`, "Jacob called out to the watchman and asked him to walk the quay with him.", buildRules({ agency: 0.58 }, { seed: 10 })),
-            buildDraft(`${s}-t4-r2b`, "The electric lamps along the quay buzzed and flickered as Jacob passed.", buildRules({ period: 0.62 }, { seed: 11 })),
+            buildDraft(`${s}-t5-r2a`, "Jacob called out to the watchman and asked him to walk the quay with him.", buildRules({ agency: 0.58 }, { seed: 10 })),
+            buildDraft(`${s}-t5-r2b`, "The electric lamps along the quay buzzed and flickered as Jacob passed.", buildRules({ period: 0.62 }, { seed: 11 })),
           ],
           [
             "Agency (0.74): the Draft has Jacob fire a revolver the Player never drew. Rewrite without adding his actions.",
@@ -416,12 +480,12 @@ function midPlayTurns(): Turn[] {
           3,
           [
             buildDraft(
-              `${s}-t4-r3a`,
+              `${s}-t5-r3a`,
               "The lantern made a small, lonely room of light. Jacob moved along the quay, and twice he stopped, sure he had heard a step behind him that was not his own. Nothing came of it. By the chandlery a scrap of paper fluttered on a nail.",
               buildRules({ agency: 0.52 }, { seed: 12 }),
               true
             ),
-            buildDraft(`${s}-t4-r3b`, "A young man in a clerk's coat slipped between the warehouses as Jacob raised the lantern.", buildRules({ knowledge: 0.61 }, { seed: 13 })),
+            buildDraft(`${s}-t5-r3b`, "A young man in a clerk's coat slipped between the warehouses as Jacob raised the lantern.", buildRules({ knowledge: 0.61 }, { seed: 13 })),
           ],
           [
             "Agency (0.58): the Draft has Jacob speak to the watchman. Rewrite without adding his words.",
@@ -450,7 +514,7 @@ function midPlayTurns(): Turn[] {
       }),
     }),
     buildTurn(s, {
-      idx: 5,
+      idx: 6,
       minutes: 146,
       input: "I ask Dr. Pryce what the three wounds have in common.",
       intent: ["question", 0.93],
@@ -491,8 +555,9 @@ function winTurns(): Turn[] {
   const c = (key: string) => copyId(s, `${PREFIX}-${key}`)
   const done = (arcIndex: number) => background({ pacing: { probability: 0.82, nudge: false, reason: null }, arcAdvancedTo: arcIndex > 0 ? arcIndex : null })
   return [
+    seededOpening(s, 200),
     buildTurn(s, {
-      idx: 0,
+      idx: 1,
       minutes: 202,
       input: "I ask Dr. Pryce about the wounds.",
       intent: ["question", 0.94],
@@ -506,7 +571,7 @@ function winTurns(): Turn[] {
       state: state({ locationId: c("yard"), arcIndex: 1, cluesFound: [c("c1")], reputation: 65 }),
     }),
     buildTurn(s, {
-      idx: 1,
+      idx: 2,
       minutes: 206,
       input: "I search the quay by Pembury's chandlery.",
       intent: ["examine", 0.9],
@@ -520,7 +585,7 @@ function winTurns(): Turn[] {
       state: state({ locationId: c("docks"), arcIndex: 2, cluesFound: [c("c1"), c("c2")], reputation: 70 }),
     }),
     buildTurn(s, {
-      idx: 2,
+      idx: 3,
       minutes: 210,
       input: "I find Nell Garvey and ask what she saw the morning Carrow died.",
       intent: ["question", 0.92],
@@ -534,7 +599,7 @@ function winTurns(): Turn[] {
       state: state({ locationId: c("spitalfields"), arcIndex: 2, cluesFound: [c("c1"), c("c2"), c("c3")], reputation: 75 }),
     }),
     buildTurn(s, {
-      idx: 3,
+      idx: 4,
       minutes: 214,
       input: "I arrest Max Rober at the shipping office.",
       intent: ["arrest", 0.95],
@@ -560,8 +625,9 @@ function deathTurns(): Turn[] {
   const s = SESSION_IDS.death
   const c = (key: string) => copyId(s, `${PREFIX}-${key}`)
   return [
+    seededOpening(s, 300),
     buildTurn(s, {
-      idx: 0,
+      idx: 1,
       minutes: 302,
       input: "I go to Spitalfields Market.",
       intent: ["move", 0.96],
@@ -574,7 +640,7 @@ function deathTurns(): Turn[] {
       state: state({ locationId: c("spitalfields"), arcIndex: 1 }),
     }),
     buildTurn(s, {
-      idx: 1,
+      idx: 2,
       minutes: 306,
       input: "I follow the young clerk into Carrow's warehouse alone, unarmed, in the dark.",
       intent: ["move", 0.8],
@@ -625,10 +691,11 @@ function removedTurns(): Turn[] {
       state: state({ locationId: yard, reputation: rep, offScriptCount: count, warningsGiven: warnings, ending }),
     })
   return [
-    offScript(0, 402, "I insult Captain James in front of his men.", "The room went quiet. Captain James looked at Jacob the way a man looks at a stain.", "Off-script. Low patience from the Captain.", 1, 50, []),
-    offScript(1, 405, "I tear up the case file.", "\"That,\" said the Captain, very softly, \"was the only copy. You have had your warning, Mr. Flannery.\"", "Off-script count 2: the Captain warns Jacob in the story.", 2, 40, [2]),
-    offScript(2, 408, "I tell the newspapers the Yard is useless.", "The morning papers carried his words by nine. By ten the Captain had them pinned to his door. \"Once more,\" he said, \"and you are on the boat home.\"", "Off-script count 3: final warning in the story.", 3, 30, [2, 3]),
-    offScript(3, 412, "I walk out of the Yard and spend the day in a public house.", "When Jacob came back, his desk had been cleared. The Captain did not look up. \"The Home Office thanks you for your time,\" he said. \"Your ship sails on Thursday.\"", "Ending: removed. The Captain takes Jacob off the case.", 4, 20, [2, 3], "removed"),
+    seededOpening(s, 400),
+    offScript(1, 402, "I insult Captain James in front of his men.", "The room went quiet. Captain James looked at Jacob the way a man looks at a stain.", "Off-script. Low patience from the Captain.", 1, 50, []),
+    offScript(2, 405, "I tear up the case file.", "\"That,\" said the Captain, very softly, \"was the only copy. You have had your warning, Mr. Flannery.\"", "Off-script count 2: the Captain warns Jacob in the story.", 2, 40, [2]),
+    offScript(3, 408, "I tell the newspapers the Yard is useless.", "The morning papers carried his words by nine. By ten the Captain had them pinned to his door. \"Once more,\" he said, \"and you are on the boat home.\"", "Off-script count 3: final warning in the story.", 3, 30, [2, 3]),
+    offScript(4, 412, "I walk out of the Yard and spend the day in a public house.", "When Jacob came back, his desk had been cleared. The Captain did not look up. \"The Home Office thanks you for your time,\" he said. \"Your ship sails on Thursday.\"", "Ending: removed. The Captain takes Jacob off the case.", 4, 20, [2, 3], "removed"),
   ]
 }
 
@@ -840,6 +907,46 @@ export const TANGENTIAL_STEPS: ScriptStep[] = [
   },
 ]
 
+// The Opening (spec §9.0): the first scene, before the Player acts.
+//
+// Several are written so that two Sessions of one World visibly start
+// differently; the Session's seed picks one, so a replay starts the same way.
+// None reveals anything: Jacob arrives, and the case is only in the air.
+
+export type OpeningScript = { key: string; passage: string; alternative: string }
+
+export const OPENING_DIRECTIVE =
+  "Opening. Set the first scene: Jacob arrives at Scotland Yard, Arc 1 (Introduction) under way. No reveals. Jacob does nothing beyond arriving. Normal Band."
+
+export const OPENINGS: OpeningScript[] = [
+  {
+    key: "hansom",
+    passage:
+      "The fog had come up from the river before noon and taken Whitehall street by street. By the time the hansom set Jacob Flannery down at Great Scotland Yard, the gas lamps were lit and doing no good at all. The driver counted his coins twice and looked at him the way London looks at an American. By the railings a newsboy was crying the killings in a voice worn thin with practice. Three, he said. Three in as many weeks. Nobody stopped to buy. On the steps a constable in a wet cape watched Jacob come up out of the fog and did not trouble to hide his opinion of it. Somewhere inside a door banged, and a man laughed without much humour. Jacob stood a moment with his bag in his hand. Eleven days of sea were still in his legs. Then he went in.",
+    alternative:
+      "The fog had Whitehall to itself. Jacob Flannery climbed down from the hansom at Great Scotland Yard and stood with his bag in his hand while a newsboy cried the killings to nobody.",
+  },
+  {
+    key: "bench",
+    passage:
+      "They kept him waiting on a bench outside the Captain's door, which Jacob took as a kind of welcome. The corridor smelled of wet wool and lamp oil. The fog had come in with every coat that passed and hung under the ceiling, as though it too had business with the Yard. Clerks went by holding files against their chests like hymn books. Two constables stopped talking when they saw him, and started again, lower, once they were past. He caught the words New York, and then the word merchants. On the wall opposite, someone had pinned up the morning paper and someone else had torn the headline off. Jacob sat with his hat on his knee. His collar was still damp from the street. Behind the door a voice was being very patient with somebody. He watched the clock above the stairs and waited to be sent for.",
+    alternative:
+      "They kept Jacob waiting on a bench outside the Captain's door. The corridor smelled of wet wool, and the constables lowered their voices as they went by.",
+  },
+  {
+    key: "on-foot",
+    passage:
+      "London met him with its back turned. Jacob Flannery walked the last of the way, because the cabman could not see the road and said so. The fog was yellow at the edges and brown in the middle, and it tasted of coal. Things came out of it one at a time: a railing, a lamp, the breath of a horse, a constable's helmet floating at the height of a man. Great Scotland Yard, when it arrived, was a wall of wet brick and lit windows, with more men going in than coming out. Each of them glanced at the stranger in American boots with a carpet bag. Three merchants were dead in this city, and the city was going about its business as if they were not. Jacob turned up his collar. He did not hurry. He had crossed an ocean to be looked at like this.",
+    alternative:
+      "Jacob walked the last of the way through the fog. Great Scotland Yard came out of it a lit window at a time.",
+  },
+]
+
+/** The Opening a Session plays, chosen by its seed. */
+export function pickOpening(seed: number): OpeningScript {
+  return OPENINGS[Math.abs(Math.trunc(seed)) % OPENINGS.length]
+}
+
 export type ForcedEnding = Exclude<Ending, "none">
 
 /** The Endings the `ending-*` scenarios force on the next Turn. */
@@ -1036,14 +1143,20 @@ const FAILING_DRAFTS: { text: string; rule: Rule; probability: number; feedback:
   },
 ]
 
-function failingDraft(id: string, index: number, seed: number, endingTurn: boolean) {
+function failingDraft(id: string, index: number, seed: number, options: Omit<RuleOptions, "seed">) {
   const spec = FAILING_DRAFTS[index % FAILING_DRAFTS.length]
-  return { draft: buildDraft(id, spec.text, buildRules({ [spec.rule]: spec.probability }, { seed, endingTurn })), feedback: spec.feedback }
+  return { draft: buildDraft(id, spec.text, buildRules({ [spec.rule]: spec.probability }, { ...options, seed })), feedback: spec.feedback }
 }
 
-/** The Rounds of a played Turn: the step's own, or the forced second Round or flagged Turn. */
-function roundsFor(key: string, step: ScriptStep, mode: RoundsMode, seed: number, endingTurn: boolean): Round[] {
-  const rules = (overrides: Partial<Record<Rule, number>> = {}, offset = 0) => buildRules(overrides, { seed: seed + offset, endingTurn })
+/** The Rounds of a played Turn or an Opening: the script's own, or the forced second Round or flagged Turn. */
+function roundsFor(
+  key: string,
+  step: Pick<ScriptStep, "passage" | "alternative" | "oneRejected">,
+  mode: RoundsMode,
+  seed: number,
+  options: Omit<RuleOptions, "seed">
+): Round[] {
+  const rules = (overrides: Partial<Record<Rule, number>> = {}, offset = 0) => buildRules(overrides, { ...options, seed: seed + offset })
   if (mode === "script") {
     if (step.oneRejected) {
       return [
@@ -1059,8 +1172,8 @@ function roundsFor(key: string, step: ScriptStep, mode: RoundsMode, seed: number
   }
 
   const failed = (round: number) => {
-    const a = failingDraft(`${key}-r${round}a`, round * 2 - 2, seed + round, endingTurn)
-    const b = failingDraft(`${key}-r${round}b`, round * 2 - 1, seed + round + 1, endingTurn)
+    const a = failingDraft(`${key}-r${round}a`, round * 2 - 2, seed + round, options)
+    const b = failingDraft(`${key}-r${round}b`, round * 2 - 1, seed + round + 1, options)
     return { drafts: [a.draft, b.draft], feedback: [a.feedback, b.feedback] }
   }
   const round1 = failed(1)
@@ -1089,6 +1202,14 @@ function roundsFor(key: string, step: ScriptStep, mode: RoundsMode, seed: number
 /** One step of a Turn's progress, as the Turn route streams it. */
 export type TurnPhaseStep = { phase: "reading" | "resolving" | "writing" | "judging"; round: number | null; ms: number }
 
+/** Writing and judging, once per Round. */
+function roundPhases(rounds: readonly Round[]): TurnPhaseStep[] {
+  return rounds.flatMap((round): TurnPhaseStep[] => [
+    { phase: "writing", round: round.index, ms: 1450 },
+    { phase: "judging", round: round.index, ms: 800 },
+  ])
+}
+
 export type PlannedTurn = {
   turn: Turn
   phases: TurnPhaseStep[]
@@ -1105,6 +1226,9 @@ export function planTurn(sessionId: string, input: string, options: { rounds?: R
   const session = getSession(sessionId)
   if (session.ending !== "none") throw new StoreError("conflict", "This Session has ended. Start a new Session from its World to play again.")
   const turns = listTurns(sessionId)
+  if (turns.length === 0) {
+    throw new StoreError("conflict", "This Session has not had its Opening yet. Reload the page to play it, then act.")
+  }
   const previous = turns.at(-1)
   if (previous?.backgroundStatus === "pending") {
     throw new StoreError("conflict", "The last Turn's background work is still running. Wait for it, then try again.")
@@ -1163,14 +1287,11 @@ export function planTurn(sessionId: string, input: string, options: { rounds?: R
     ending: ending ?? "none",
   }
 
-  const rounds = roundsFor(`${sessionId}-t${idx}`, step, options.rounds ?? "script", idx * 3 + 2, ending !== null)
+  const rounds = roundsFor(`${sessionId}-t${idx}`, step, options.rounds ?? "script", idx * 3 + 2, { endingTurn: ending !== null })
   const phases: TurnPhaseStep[] = [
     { phase: "reading", round: null, ms: 650 },
     { phase: "resolving", round: null, ms: 250 },
-    ...rounds.flatMap((round): TurnPhaseStep[] => [
-      { phase: "writing", round: round.index, ms: 1450 },
-      { phase: "judging", round: round.index, ms: 800 },
-    ]),
+    ...roundPhases(rounds),
   ]
   const spent = (phase: TurnPhaseStep["phase"]) => phases.filter((p) => p.phase === phase).reduce((sum, p) => sum + p.ms, 0)
 
@@ -1206,6 +1327,91 @@ export function planTurn(sessionId: string, input: string, options: { rounds?: R
     },
   }
   return { turn, phases, newNpcs: ending ? [] : (step.newNpcs ?? []) }
+}
+
+/**
+ * Builds a Session's Opening (Turn 0, spec §9.0) without saving it: the
+ * Writer sets the first scene at the start Location, and the Judge rules on
+ * it. Nothing is read and no Outcome is resolved, so its only phases are
+ * writing and judging. The seed picks which Opening; `rounds` forces extra
+ * Rounds like any Turn.
+ */
+export function planOpening(sessionId: string, options: { rounds?: RoundsMode } = {}): PlannedTurn {
+  const session = getSession(sessionId)
+  if (listTurns(sessionId).length > 0) {
+    throw new StoreError("conflict", "This Session has already had its Opening. Reload the page to see it.")
+  }
+  const { entries } = liveSessionEntries(sessionId)
+  const script = pickOpening(session.seed)
+  const rounds = roundsFor(`${sessionId}-t${OPENING_IDX}`, script, options.rounds ?? "script", 2, { opening: true })
+  const phases = roundPhases(rounds)
+  const spent = (phase: TurnPhaseStep["phase"]) => phases.filter((p) => p.phase === phase).reduce((sum, p) => sum + p.ms, 0)
+  const built = buildOpening(sessionId, {
+    minutes: 0,
+    directive: OPENING_DIRECTIVE,
+    passage: script.passage,
+    rounds,
+    background: null,
+    state: initialState(entries),
+  })
+  const turn: Turn = {
+    ...built,
+    createdAt: nowIso(),
+    log: {
+      ...built.log,
+      timings: {
+        totalMs: phases.reduce((sum, p) => sum + p.ms, 0),
+        readingMs: 0,
+        resolvingMs: 0,
+        writingMs: spent("writing"),
+        judgingMs: spent("judging"),
+        backgroundMs: null,
+      },
+    },
+  }
+  return { turn, phases, newNpcs: [] }
+}
+
+declare global {
+  var __sandsOpeningsInFlight: WeakMap<object, Set<string>> | undefined
+}
+
+/** Sessions whose Opening is being written now, for the current store (kept on `globalThis` like the background jobs). */
+function openingsInFlight(): Set<string> {
+  globalThis.__sandsOpeningsInFlight ??= new WeakMap()
+  const store = getStore()
+  let inFlight = globalThis.__sandsOpeningsInFlight.get(store)
+  if (!inFlight) {
+    inFlight = new Set()
+    globalThis.__sandsOpeningsInFlight.set(store, inFlight)
+  }
+  return inFlight
+}
+
+/**
+ * Claims the right to write a Session's Opening, so a second tab, a fast
+ * reload or a doubled effect cannot write another one alongside it. Throws a
+ * conflict when the Session already has Turns or another request holds the
+ * claim. Returns the release; call it when the Opening ships, fails or the
+ * client goes away (nothing is saved before a Passage ships, so a released
+ * claim leaves the Session as it was).
+ */
+export function claimOpening(sessionId: string): () => void {
+  getSession(sessionId)
+  if (listTurns(sessionId).length > 0) {
+    throw new StoreError("conflict", "This Session has already had its Opening. Reload the page to see it.")
+  }
+  const inFlight = openingsInFlight()
+  if (inFlight.has(sessionId)) {
+    throw new StoreError("conflict", "This Session's Opening is already being written, perhaps in another tab. It appears here once it ships.")
+  }
+  inFlight.add(sessionId)
+  let released = false
+  return () => {
+    if (released) return
+    released = true
+    inFlight.delete(sessionId)
+  }
 }
 
 /** Saves a planned Turn: the Turn row, the Session's Ending, and its background work (spec §9.1 step 7). */
@@ -1273,7 +1479,8 @@ function slug(name: string) {
 function exitConditionMet(key: string | null, turns: readonly Turn[], keyOf: (id: string) => string | null): boolean {
   const last = turns.at(-1)
   if (!last) return false
-  const visited = new Set(turns.map((turn) => keyOf(turn.state.locationId)))
+  // Arriving is not visiting: the Opening sets the scene, and the Player has done nothing yet.
+  const visited = new Set(turns.filter((turn) => !isOpening(turn)).map((turn) => keyOf(turn.state.locationId)))
   const knowledge = new Set(Object.values(last.state.knowledgeRevealed).flat().map(keyOf))
   switch (key) {
     case "exit-1":

@@ -1,24 +1,24 @@
 "use client"
 
 /**
- * The story pane: a manuscript. Passages flow as plain paragraphs at a
- * reading measure, with the Player's inputs as small muted lines between them.
- * Below it, the composer: the action input, one live progress line, and an
- * inline error with Retry when a Turn fails.
+ * The story pane: a manuscript. It opens with the Opening, the first scene
+ * the Writer sets before the Player acts; then Passages flow as plain
+ * paragraphs at a reading measure, with the Player's inputs as small muted
+ * lines between them. Below it, the composer: the action input, one live
+ * progress line, and an inline error with Retry when a Turn fails.
  */
 import * as React from "react"
-import { ArrowUpIcon, BookOpenIcon, RotateCcwIcon, TriangleAlertIcon } from "lucide-react"
+import { ArrowUpIcon, RotateCcwIcon, TriangleAlertIcon } from "lucide-react"
 
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group"
 import { Kbd } from "@/components/ui/kbd"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect"
 import type { TurnPhase } from "@/domain/events"
-import type { Turn } from "@/domain/session"
+import { turnLabel, type Turn } from "@/domain/session"
 import { isTypingTarget } from "@/lib/keyboard"
 import { cn } from "@/lib/utils"
 
@@ -79,12 +79,15 @@ export function TurnSection({
   ref?: React.Ref<HTMLElement>
 }) {
   return (
-    <section ref={ref} aria-label={`Turn ${turn.idx + 1}`} className="flex scroll-mt-24 flex-col gap-3">
-      <p className="text-sm text-muted-foreground">
-        <span aria-hidden>› </span>
-        <span className="sr-only">You: </span>
-        {turn.playerInput}
-      </p>
+    <section ref={ref} aria-label={turnLabel(turn)} className="flex scroll-mt-24 flex-col gap-3">
+      {/* The Opening has no Player input, so no input line above it. */}
+      {turn.playerInput === null ? null : (
+        <p className="text-sm text-muted-foreground">
+          <span aria-hidden>› </span>
+          <span className="sr-only">You: </span>
+          {turn.playerInput}
+        </p>
+      )}
       <p className="text-lg leading-8 text-pretty">
         {revealing ? (
           <>
@@ -99,24 +102,52 @@ export function TurnSection({
   )
 }
 
-export function StoryEmpty({ playerName, suggestions, onSuggest }: { playerName: string; suggestions: string[]; onSuggest: (text: string) => void }) {
+/**
+ * The story column while the Opening is written: the label it will carry, the
+ * live progress line, and nothing that pretends to be prose (ADR-0003). Its
+ * height roughly matches a Passage, so the Opening does not shift the page
+ * when it arrives. On failure: the cause and Retry; the Session has no Turns.
+ */
+export function OpeningPending({ run, onRetry }: { run: TurnRun; onRetry: () => void }) {
+  if (run.status === "failed") {
+    return (
+      <Alert variant="destructive">
+        <TriangleAlertIcon />
+        <AlertTitle>The Opening did not finish</AlertTitle>
+        <AlertDescription>{run.message} The Session has no Turns yet, so nothing was lost.</AlertDescription>
+        <AlertAction>
+          <Button variant="outline" size="sm" onClick={onRetry} autoFocus>
+            <RotateCcwIcon data-icon="inline-start" />
+            Retry
+          </Button>
+        </AlertAction>
+      </Alert>
+    )
+  }
   return (
-    <Empty className="flex-none py-12">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <BookOpenIcon />
-        </EmptyMedia>
-        <EmptyTitle>The story starts with you</EmptyTitle>
-        <EmptyDescription>Type what {playerName} does first. Each Passage appears once the Judge has passed it.</EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent className="flex-row flex-wrap justify-center gap-2">
+    <section aria-label="Opening" aria-busy="true" className="flex min-h-80 flex-col gap-3">
+      <p className="text-sm text-muted-foreground">The story begins once the Judge has passed its first scene.</p>
+      <p role="status" aria-live="polite" className="flex items-center gap-2 text-lg leading-8 text-muted-foreground">
+        <Spinner aria-hidden />
+        {progressLabel(run) ?? OPENING_FIRST_LABEL}
+      </p>
+    </section>
+  )
+}
+
+/** After the Opening, until the Player first acts: a few ways in, for a Player who is not sure where to start. */
+export function FirstActionHints({ playerName, suggestions, onSuggest }: { playerName: string; suggestions: string[]; onSuggest: (text: string) => void }) {
+  return (
+    <div className="flex animate-in flex-col gap-2 duration-300 fade-in-0 motion-reduce:animate-none">
+      <p className="text-sm text-muted-foreground">Type what {playerName} does, or begin with one of these.</p>
+      <div className="flex flex-wrap gap-2">
         {suggestions.map((suggestion) => (
           <Button key={suggestion} variant="outline" size="sm" onClick={() => onSuggest(suggestion)}>
             {suggestion}
           </Button>
         ))}
-      </EmptyContent>
-    </Empty>
+      </div>
+    </div>
   )
 }
 
@@ -145,8 +176,15 @@ const PHASE_LABELS: Record<TurnPhase, (round: number | null) => string> = {
   judging: (round) => (round && round > 1 ? `Judging, Round ${round}…` : "Judging…"),
 }
 
+const OPENING_FIRST_LABEL = "Setting the scene…"
+
 export function progressLabel(run: TurnRun) {
   if (run.status !== "running") return null
+  if (run.input === null) {
+    // The Opening: no input to read, no Outcome to resolve. Its first writing is setting the scene.
+    if (!run.phase || (run.phase === "writing" && (run.round ?? 1) === 1)) return OPENING_FIRST_LABEL
+    return PHASE_LABELS[run.phase](run.round)
+  }
   return run.phase ? PHASE_LABELS[run.phase](run.round) : "Sending your action…"
 }
 
@@ -157,6 +195,7 @@ export function Composer({
   run,
   revealing,
   backgroundPending,
+  awaitingOpening,
   playerName,
   inputRef,
 }: {
@@ -166,11 +205,15 @@ export function Composer({
   run: TurnRun
   revealing: boolean
   backgroundPending: boolean
+  /** The Opening is being written or revealed: the Player can act once it has been read. */
+  awaitingOpening: boolean
   playerName: string
   inputRef: React.RefObject<HTMLTextAreaElement | null>
 }) {
-  const busy = run.status === "running"
-  const progress = progressLabel(run)
+  // The Opening's progress and errors live in the story column, not here.
+  const openingRun = run.status !== "idle" && run.input === null
+  const busy = run.status === "running" || awaitingOpening
+  const progress = openingRun ? null : progressLabel(run)
   const submit = () => {
     const input = value.trim()
     if (!input || busy) return
@@ -187,6 +230,8 @@ export function Composer({
     )
   } else if (revealing) {
     status = "Click, Space or Esc to show the whole Passage."
+  } else if (awaitingOpening) {
+    status = "You can act once the Opening has been written."
   } else if (backgroundPending) {
     status = (
       <>
@@ -199,13 +244,13 @@ export function Composer({
   return (
     <div className="sticky bottom-0 z-10 bg-background pt-2 pb-4">
       <div className={cn(PROSE, "flex flex-col gap-2")}>
-        {run.status === "failed" ? (
+        {run.status === "failed" && run.input !== null ? (
           <Alert variant="destructive">
             <TriangleAlertIcon />
             <AlertTitle>The Turn did not finish</AlertTitle>
             <AlertDescription>{run.message}</AlertDescription>
             <AlertAction>
-              <Button variant="outline" size="sm" onClick={() => onSubmit(run.input)}>
+              <Button variant="outline" size="sm" onClick={() => onSubmit(run.input ?? "")}>
                 <RotateCcwIcon data-icon="inline-start" />
                 Retry
               </Button>
@@ -244,7 +289,7 @@ export function Composer({
                 <Kbd>Enter</Kbd> new line
               </span>
               <InputGroupButton type="submit" variant="default" size="sm" disabled={busy || !value.trim()} aria-label="Act">
-                {busy ? <Spinner data-icon="inline-start" /> : <ArrowUpIcon data-icon="inline-start" />}
+                {busy && !awaitingOpening ? <Spinner data-icon="inline-start" /> : <ArrowUpIcon data-icon="inline-start" />}
                 Act
               </InputGroupButton>
             </InputGroupAddon>

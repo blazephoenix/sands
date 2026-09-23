@@ -3,7 +3,8 @@
 /**
  * `/sessions/[id]`: the Player plays a Session and the Author watches the
  * harness work. The story column owns the page; the Codex and the harness
- * open as right-side sheets.
+ * open as right-side sheets. A new Session's Opening writes itself on load
+ * and reveals like any Passage; the Player can act once it has been read.
  */
 import * as React from "react"
 import Link from "next/link"
@@ -19,6 +20,7 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { isOpening, turnLabel } from "@/domain/session"
 import type { GetSessionResponse } from "@/domain/session-view"
 import { useSingleKeyShortcut } from "@/lib/keyboard"
 import { cn } from "@/lib/utils"
@@ -26,7 +28,7 @@ import { cn } from "@/lib/utils"
 import { CodexPane, unseenPlayEntries } from "./codex-pane"
 import { EndingScreen } from "./ending"
 import { HarnessPane } from "./harness-pane"
-import { Composer, PROSE, StoryEmpty, StorySkeleton, TurnSection, scrollToElement } from "./story"
+import { Composer, FirstActionHints, OpeningPending, PROSE, StorySkeleton, TurnSection, scrollToElement } from "./story"
 import { useTestMode } from "./test-mode"
 import { useSession } from "./use-session"
 
@@ -84,7 +86,7 @@ export function playerNameOf(data: GetSessionResponse) {
 }
 
 function SessionView({ data, session }: { data: GetSessionResponse; session: SessionState }) {
-  const { run, playTurn, revealing, finishReveal, backgroundPending, update, localEntries } = session
+  const { run, playTurn, playOpening, revealing, finishReveal, backgroundPending, update, localEntries } = session
   const [draft, setDraft] = React.useState("")
   const [announcement, setAnnouncement] = React.useState("")
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
@@ -93,6 +95,9 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
   const playerName = playerNameOf(data)
   const ended = data.session.ending !== "none"
   const turns = ended ? data.turns.slice(0, -1) : data.turns
+  const opening = data.turns.find(isOpening) ?? null
+  /** The Opening is still being written, or is revealing: the Player acts once it has been read. */
+  const awaitingOpening = !ended && (opening === null || revealing === opening.id)
 
   const [testMode, setTestMode] = useTestMode()
   const [requestedSheet, setSheet] = React.useState<"codex" | "harness" | null>(null)
@@ -107,8 +112,10 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
   useSingleKeyShortcut("t", () => toggleSheet("harness"), { enabled: testMode })
   const newEntries = unseenPlayEntries(data.entries).length
 
-  // On load: the latest Turn in view, the cursor in the input.
+  // On load: the latest Turn in view, the cursor in the input. A Session still waiting for its Opening stays at the top.
+  const loadedWithTurns = React.useRef(data.turns.length > 0)
   React.useEffect(() => {
+    if (!loadedWithTurns.current) return
     window.scrollTo({ top: document.documentElement.scrollHeight })
     inputRef.current?.focus()
   }, [])
@@ -126,8 +133,23 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
     scrollToElement(turnRefs.current.get(revealing) ?? null)
   }, [revealing])
 
+  // The Opening arrived: announce it whole (the reveal itself is hidden from screen readers).
+  const liveText = opening && revealing === opening.id ? `${turnLabel(opening)}. ${opening.passage}` : announcement
+
+  // Once the Opening has been read (revealed, skipped, or loaded from elsewhere), the Player's turn: focus the input.
+  const wasAwaitingOpening = React.useRef(awaitingOpening)
+  React.useEffect(() => {
+    if (wasAwaitingOpening.current && !awaitingOpening) {
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+      })
+    }
+    wasAwaitingOpening.current = awaitingOpening
+  }, [awaitingOpening])
+
   // Nothing typed is lost: warn before leaving with an unsent action or a Turn in progress.
-  const unsaved = draft.trim() !== "" || run.status === "running"
+  // Not for the Opening: nothing of the Player's is at stake, and a reload simply starts it again.
+  const unsaved = draft.trim() !== "" || (run.status === "running" && run.input !== null)
   React.useEffect(() => {
     if (!unsaved) return
     function onBeforeUnload(event: BeforeUnloadEvent) {
@@ -143,7 +165,7 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
     if (turn) {
       setDraft("")
       const ending = turn.state.ending === "none" ? "" : ` The story has ended: ${turn.state.ending}.`
-      setAnnouncement(`Turn ${turn.idx + 1}. ${turn.passage}${ending}`)
+      setAnnouncement(`${turnLabel(turn)}. ${turn.passage}${ending}`)
     }
     // The textarea was disabled during the Turn, which drops focus; give it back.
     requestAnimationFrame(() => inputRef.current?.focus())
@@ -216,19 +238,12 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
         {data.world.name}, Session {data.sessionNumber}
       </h1>
       <div aria-live="polite" className="sr-only">
-        {announcement}
+        {liveText}
       </div>
 
       <article aria-label="Story" className={cn(PROSE, "flex flex-1 flex-col gap-10 pt-10 pb-8")}>
         {data.turns.length === 0 ? (
-          <StoryEmpty
-            playerName={playerName}
-            suggestions={SUGGESTIONS}
-            onSuggest={(text) => {
-              setDraft(text)
-              inputRef.current?.focus()
-            }}
-          />
+          <OpeningPending run={run} onRetry={() => void playOpening()} />
         ) : (
           turns.map((turn) => (
             <TurnSection
@@ -243,6 +258,16 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
             />
           ))
         )}
+        {!ended && !awaitingOpening && data.turns.length === 1 && run.status === "idle" ? (
+          <FirstActionHints
+            playerName={playerName}
+            suggestions={SUGGESTIONS}
+            onSuggest={(text) => {
+              setDraft(text)
+              inputRef.current?.focus()
+            }}
+          />
+        ) : null}
         {ended ? (
           <EndingScreen
             data={data}
@@ -257,13 +282,14 @@ function SessionView({ data, session }: { data: GetSessionResponse; session: Ses
 
       {ended ? null : (
         <Composer
-        value={draft}
-        onValueChange={setDraft}
-        onSubmit={submit}
-        run={run}
-        revealing={revealing !== null}
-        backgroundPending={backgroundPending}
-        playerName={playerName}
+          value={draft}
+          onValueChange={setDraft}
+          onSubmit={submit}
+          run={run}
+          revealing={revealing !== null}
+          backgroundPending={backgroundPending}
+          awaitingOpening={awaitingOpening}
+          playerName={playerName}
           inputRef={inputRef}
         />
       )}

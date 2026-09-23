@@ -4,7 +4,8 @@
  * The harness pane (test mode): the Session's state after the latest Turn,
  * and a log of every finished Turn's inner workings, newest first. Finished
  * Turns only; nothing streams in here (ADR-0003). Background results fill in
- * when the page's poll picks them up.
+ * when the page's poll picks them up. Turn 0 reads "Opening": no reading and
+ * no Outcome, but its Directive, Rounds, Drafts and Rule results as usual.
  */
 import * as React from "react"
 import {
@@ -27,7 +28,7 @@ import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import type { Entry } from "@/domain/entry"
-import { RULE_LABELS, type Classification, type Draft, type Outcome, type Round, type Turn } from "@/domain/session"
+import { RULE_LABELS, turnLabel, type Classification, type Draft, type Outcome, type Round, type Turn, type TurnLog as TurnLogData } from "@/domain/session"
 import type { GetSessionResponse } from "@/domain/session-view"
 import { ENGINE_CONFIG, bandFor } from "@/engine/config"
 import { cn } from "@/lib/utils"
@@ -284,6 +285,49 @@ function Background({ turn, names, arcName }: { turn: Turn; names: Names; arcNam
   )
 }
 
+function ReadingSection({ reading }: { reading: NonNullable<TurnLogData["reading"]> }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label>Reading</Label>
+      <ul className="flex flex-col gap-1 text-sm">
+        <li className="flex justify-between gap-2">
+          <span>Intent: {reading.intent.value}</span>
+          <P value={reading.intent.probability} />
+        </li>
+        <li className="flex justify-between gap-2">
+          <span>Target: {reading.target.label}</span>
+          <P value={reading.target.probability} />
+        </li>
+        <li className="flex justify-between gap-2">
+          <span>
+            Classification: {CLASSIFICATION_LABELS[reading.classification.value]}
+            {reading.classification.belowFloor ? <span className="text-muted-foreground"> (below the floor, treated as tangential)</span> : null}
+          </span>
+          <P value={reading.classification.probability} />
+        </li>
+      </ul>
+    </div>
+  )
+}
+
+function OutcomeSection({ outcome, directive }: { outcome: Outcome; directive: string }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label>Outcome</Label>
+      <p className="text-sm">
+        <span className="font-medium">{OUTCOME_LABELS[outcome.kind]}.</span> {outcome.summary}
+      </p>
+      <p className="text-xs text-muted-foreground">
+        Reputation {signed(outcome.reputationDelta)} · off-script {signed(outcome.offScriptDelta)}
+        {outcome.deathRoll
+          ? ` · death roll ${formatProbability(outcome.deathRoll.roll)} against odds ${formatProbability(outcome.deathRoll.odds)}, ${outcome.deathRoll.lethal ? "lethal" : "survived"}`
+          : ""}
+      </p>
+      <p className="text-xs text-muted-foreground">Directive: {directive}</p>
+    </div>
+  )
+}
+
 function TurnLog({ turn, names, arcName, defaultOpen }: { turn: Turn; names: Names; arcName: (index: number) => string; defaultOpen: boolean }) {
   const { log } = turn
   const { reading, outcome } = log
@@ -293,7 +337,7 @@ function TurnLog({ turn, names, arcName, defaultOpen }: { turn: Turn; names: Nam
         <ChevronRightIcon aria-hidden className="mt-0.5 size-4 shrink-0 transition-transform duration-150 group-data-[open]/turn:rotate-90 motion-reduce:transition-none" />
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
-            Turn {turn.idx + 1}
+            {turnLabel(turn)}
             {turn.flagged ? (
               <Badge variant="destructive">
                 <FlagIcon data-icon="inline-start" aria-hidden />
@@ -309,44 +353,24 @@ function TurnLog({ turn, names, arcName, defaultOpen }: { turn: Turn; names: Nam
               </Badge>
             ) : null}
           </span>
-          <span className="truncate text-xs text-muted-foreground">› {turn.playerInput}</span>
+          <span className="truncate text-xs text-muted-foreground">
+            {turn.playerInput === null ? "The first scene, before the Player acts" : `› ${turn.playerInput}`}
+          </span>
         </span>
       </CollapsibleTrigger>
       <CollapsibleContent className="flex flex-col gap-4 ps-7 pe-1 pt-1 pb-4">
-        <div className="flex flex-col gap-1.5">
-          <Label>Reading</Label>
-          <ul className="flex flex-col gap-1 text-sm">
-            <li className="flex justify-between gap-2">
-              <span>Intent: {reading.intent.value}</span>
-              <P value={reading.intent.probability} />
-            </li>
-            <li className="flex justify-between gap-2">
-              <span>Target: {reading.target.label}</span>
-              <P value={reading.target.probability} />
-            </li>
-            <li className="flex justify-between gap-2">
-              <span>
-                Classification: {CLASSIFICATION_LABELS[reading.classification.value]}
-                {reading.classification.belowFloor ? <span className="text-muted-foreground"> (below the floor, treated as tangential)</span> : null}
-              </span>
-              <P value={reading.classification.probability} />
-            </li>
-          </ul>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label>Outcome</Label>
-          <p className="text-sm">
-            <span className="font-medium">{OUTCOME_LABELS[outcome.kind]}.</span> {outcome.summary}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Reputation {signed(outcome.reputationDelta)} · off-script {signed(outcome.offScriptDelta)}
-            {outcome.deathRoll
-              ? ` · death roll ${formatProbability(outcome.deathRoll.roll)} against odds ${formatProbability(outcome.deathRoll.odds)}, ${outcome.deathRoll.lethal ? "lethal" : "survived"}`
-              : ""}
-          </p>
-          <p className="text-xs text-muted-foreground">Directive: {log.directive}</p>
-        </div>
+        {reading && outcome ? (
+          <>
+            <ReadingSection reading={reading} />
+            <OutcomeSection outcome={outcome} directive={log.directive} />
+          </>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            <Label>Directive</Label>
+            <p className="text-sm">{log.directive}</p>
+            <p className="text-xs text-muted-foreground">No Player input, so nothing was read and no Outcome was resolved.</p>
+          </div>
+        )}
 
         <div className="flex flex-col gap-3">
           <Label>Rounds</Label>
@@ -380,8 +404,8 @@ function TurnLog({ turn, names, arcName, defaultOpen }: { turn: Turn; names: Nam
         </div>
 
         <p className="text-xs text-muted-foreground tabular-nums">
-          {(log.timings.totalMs / 1000).toFixed(1)} s to the Passage (reading {log.timings.readingMs} ms, writing {log.timings.writingMs} ms,
-          judging {log.timings.judgingMs} ms){log.timings.backgroundMs !== null ? `, background ${log.timings.backgroundMs} ms` : ""} ·{" "}
+          {(log.timings.totalMs / 1000).toFixed(1)} s to the Passage ({reading ? `reading ${log.timings.readingMs} ms, ` : ""}writing{" "}
+          {log.timings.writingMs} ms, judging {log.timings.judgingMs} ms){log.timings.backgroundMs !== null ? `, background ${log.timings.backgroundMs} ms` : ""} ·{" "}
           {log.jevModelVersion}
         </p>
       </CollapsibleContent>
@@ -410,7 +434,7 @@ export function HarnessPane({ data }: { data: GetSessionResponse }) {
             <FlaskConicalIcon />
           </EmptyMedia>
           <EmptyTitle>No Turns yet</EmptyTitle>
-          <EmptyDescription>Play a Turn. Its reading, Outcome, Drafts and Rule results appear here once its Passage ships.</EmptyDescription>
+          <EmptyDescription>The Opening is being written. Its Drafts and Rule results appear here once the Judge has passed it.</EmptyDescription>
         </EmptyHeader>
       </Empty>
     )
