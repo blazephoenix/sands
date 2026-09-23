@@ -32,7 +32,7 @@ import { nextUndecided, reviewDecision, reviewProgress, reviewSections, sidebarO
 
 import { EntryCard } from "./entry-card"
 import { REVIEW_ROW_ATTR, ReviewSidebar } from "./review-sidebar"
-import { withScenario } from "./scenario-href"
+import { withScenario } from "@/components/worlds/world-links"
 import { SolvabilityBanner } from "./solvability-banner"
 import { errorMessage, useSetupReview, type ReviewAction } from "./use-setup-review"
 import { WorldSessions } from "./world-sessions"

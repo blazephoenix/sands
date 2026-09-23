@@ -10,7 +10,7 @@ import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle }
 import type { SessionSummary } from "@/domain/api"
 import type { Ending } from "@/domain/session"
 
-import { withScenario } from "./scenario-href"
+import { withScenario } from "@/components/worlds/world-links"
 
 const ENDING: Record<Ending, { label: string; variant: "secondary" | "outline" | "default" | "destructive" }> = {
   none: { label: "In play", variant: "secondary" },
