@@ -8,18 +8,23 @@
  * - `s-win`, `s-death`, `s-removed`: one finished Session per Ending.
  *
  * Each Session holds its own copies of the World's Entries (ADR-0005).
- * Ticket 04 adds its Turn script (the Turns the Turn route plays next) here,
- * built with `buildTurn` and `buildRound`.
+ *
+ * Playing (ticket 04): `TURN_SCRIPT` holds the Turns the Turn route plays,
+ * `planTurn` builds the next Turn from the Session's state without saving it,
+ * `commitTurn` saves it, and `settleBackground` finishes the latest Turn's
+ * background work when it is due.
  */
 import { copyEntriesForSession } from "@/codex/session-copy"
 import type { CreateSessionResponse } from "@/domain/api"
-import type { Entry } from "@/domain/entry"
+import { isLiveEntry, type Entry } from "@/domain/entry"
 import {
   RULES,
+  turnSchema,
   type BackgroundResults,
   type Classification,
   type Discovery,
   type Draft,
+  type Ending,
   type Outcome,
   type PlayerState,
   type Round,
@@ -30,7 +35,7 @@ import {
 } from "@/domain/session"
 import { ENGINE_CONFIG, ruleVerdict } from "@/engine/config"
 
-import { londonEntries } from "./entries"
+import { listSessionEntries, londonEntries, saveEntry } from "./entries"
 import { getStore, newId, nowIso, StoreError } from "./store"
 import { copyId, fixtureTime, SESSION_IDS, WORLD_IDS } from "./ids"
 import { getWorld, saveWorld } from "./worlds"
@@ -627,11 +632,258 @@ function removedTurns(): Turn[] {
   ]
 }
 
-/**
- * The Turns the Turn route plays next, in order, as `buildTurn` specs (their
- * `idx` and `minutes` are replaced when played). Ticket 04 fills this in.
- */
-export const TURN_SCRIPT: Omit<TurnSpec, "idx" | "minutes">[] = []
+// Turn script (ticket 04): the Turns the Turn route plays.
+//
+// The route does not understand the Player's input. It picks the first
+// unplayed step whose keywords appear in the input, or a generic tangential
+// step when none match, and builds the Turn from the Session's current state.
+// References are template keys ("yard", "c1", "k-amanda"), resolved to this
+// Session's copies, so the script plays in any Session of a London World.
+// Forced scenarios swap in the Ending steps or extra Rounds.
+
+/** A character the Drafter names from a Passage during background work. */
+export type ScriptNpc = { name: string; description: string; role: string; personality: string; backstory: string }
+
+export type ScriptStep = {
+  key: string
+  /** Lowercase words or phrases in the Player's input that pick this step. */
+  keywords: string[]
+  intent: [string, number]
+  /** Template key of the targeted Entry (or "none"), with the Judge's probability. */
+  target: [string, number]
+  classification: [Classification, number]
+  outcome: { kind: Outcome["kind"]; summary: string; reputationDelta?: number; offScriptDelta?: number }
+  directive: string
+  /** Template key of the Location the Passage is set in; the Player's Location when omitted. */
+  location?: string
+  passage: string
+  /** The other Draft of a clean Round. */
+  alternative: string
+  /** Template keys of the Clues and Knowledge the Passage reveals. */
+  reveals?: string[]
+  /** Round 1 rejects one of its two Drafts and ships the other. */
+  oneRejected?: boolean
+  /** Characters the Drafter names from the Passage in background work. */
+  newNpcs?: ScriptNpc[]
+}
+
+export const TURN_SCRIPT: ScriptStep[] = [
+  {
+    key: "case-file",
+    keywords: ["file", "case", "captain", "james", "desk", "read"],
+    intent: ["examine", 0.9],
+    target: ["geoffrey", 0.64],
+    classification: ["on_script", 0.92],
+    outcome: { kind: "narrated", summary: "Jacob reads the case file; nothing is decided." },
+    directive: "Arc 1, Introduction. Captain James hands over the file with visible reluctance. Normal Band: he is civil, not warm.",
+    location: "yard",
+    passage:
+      "Captain James kept the file in a drawer he had to unlock, as though the dead might get out. Three merchants in three weeks, all east of the Tower: Whitlock the draper, Carrow the tea importer, Ashby the ship's broker. Each killed before dawn by a single wound, and none of them robbed of so much as a watch. Jacob read it twice. The Captain watched him from the window and offered nothing but the weather.",
+    alternative: "The file was thin for three dead men. Captain James let Jacob read it standing, and did not ask what he thought.",
+  },
+  {
+    key: "amanda",
+    keywords: ["amanda", "hopkins", "victims", "trade", "common", "money", "ledgers"],
+    intent: ["question", 0.95],
+    target: ["amanda", 0.95],
+    classification: ["on_script", 0.91],
+    outcome: { kind: "questioned", summary: "Amanda may reveal what she knows at normal Band." },
+    directive: "Allowed reveal: Amanda on the victims' trade. She is precise and a little amused.",
+    location: "yard",
+    reveals: ["k-amanda"],
+    passage:
+      "Amanda Hopkins had the victims' papers spread across her desk before Jacob finished the question. \"Whitlock, Carrow, Ashby,\" she said, tapping each in turn. \"Different trades, different parishes. But every one of them lent money to the same house: Rober and Sons, wool, down at St Katharine's.\" She closed the folder. \"Nobody upstairs thinks that matters. Nobody upstairs has read a ledger since the Crimea.\"",
+    alternative: "\"Money,\" Hopkins said, without looking up. \"It is always money, and this time it is Rober and Sons.\"",
+  },
+  {
+    key: "pryce",
+    keywords: ["pryce", "surgeon", "doctor", "wound", "wounds", "bodies", "body", "mortuary", "blade", "knife"],
+    intent: ["question", 0.94],
+    target: ["pryce", 0.95],
+    classification: ["on_script", 0.92],
+    outcome: { kind: "questioned", summary: "Pryce may reveal what he knows at low Band or above." },
+    directive: "Allowed reveal: Pryce on the wounds (C1). He enjoys Jacob's bluntness.",
+    location: "yard",
+    reveals: ["k-pryce", "c1"],
+    passage:
+      "Dr. Pryce received him in the cold room below the Yard, drying his hands on a towel that had seen better decades. \"Same blade, all three,\" he said. \"Short, hooked, kept very sharp. One stroke, from the right, by a man of middling height who was not in a hurry.\" He folded the towel with great care. \"Whoever he is, Mr. Flannery, he has thought about this for a long time.\"",
+    alternative: "Pryce laid three drawings side by side. \"One blade,\" he said. \"Hooked. The same hand every time.\"",
+  },
+  {
+    key: "whitechapel",
+    keywords: ["whitechapel", "high street", "draper", "whitlock"],
+    intent: ["move", 0.96],
+    target: ["whitechapel", 0.95],
+    classification: ["on_script", 0.89],
+    outcome: { kind: "moved", summary: "Jacob moves to Whitechapel High Street." },
+    directive: "Scene: Whitechapel High Street, morning. Describe only this street.",
+    location: "whitechapel",
+    oneRejected: true,
+    passage:
+      "Whitechapel High Street was all barrows, breath and wet straw. The draper's shop where Whitlock died still had its shutters up, painted over in black, and a woman in mourning was sweeping the step as though she could sweep the whole business away. Costermongers called their prices. Nobody looked at the shop, which was how Jacob knew that everybody remembered it.",
+    alternative: "The street smelled of wet straw and coal smoke. The draper's shutters were painted black.",
+    newNpcs: [
+      {
+        name: "Ada Pruitt",
+        description: "Whitlock's widowed sister, who keeps the draper's shop open for the sake of its creditors.",
+        role: "Draper's sister",
+        personality: "Brisk, proud, tired of policemen.",
+        backstory: "Kept house for her brother for eleven years.",
+      },
+    ],
+  },
+  {
+    key: "ground",
+    keywords: ["ground", "gutter", "search", "examine", "look around", "step", "shop"],
+    intent: ["examine", 0.93],
+    target: ["none", 0.81],
+    classification: ["on_script", 0.9],
+    outcome: { kind: "examined", summary: "C5, the docker's cap, is discoverable here." },
+    directive: "Discoverable: C5 (a labelled red herring). Let the constables be pleased with it.",
+    location: "whitechapel",
+    reveals: ["c5"],
+    passage:
+      "In the gutter by the shop step lay a docker's cap, sodden and trodden flat, with a green ribbon stitched inside the band. The constable at the door looked delighted with it. Jacob turned it over with the end of his cane. It had lain there a good deal longer than a week, and the constable, who had not thought of that, went on looking delighted.",
+    alternative: "A docker's cap lay in the gutter. The constable on the door was very pleased with it.",
+  },
+  {
+    key: "nell",
+    keywords: ["nell", "garvey", "flower", "flowers", "violets", "spitalfields", "market", "witness"],
+    intent: ["question", 0.93],
+    target: ["nell", 0.94],
+    classification: ["on_script", 0.91],
+    outcome: { kind: "questioned", summary: "Nell may reveal what she saw at normal Band." },
+    directive: "Allowed reveal: C3. Normal Band: Nell is wary, then fair.",
+    location: "spitalfields",
+    reveals: ["k-nell", "c3"],
+    passage:
+      "Nell Garvey sold violets from a basket at the market's edge and priced her answers higher than her flowers. She let Jacob wait while she served two housemaids. \"A clerk,\" she said at last, turning a stem in her fingers. \"Young. Good coat, better boots. Came out of Carrow's side door before it was light, the morning they found him. Walked like he had somewhere to be and all day to get there.\"",
+    alternative: "\"A clerk,\" Nell said. \"Young, good coat. Out of Carrow's before it was light.\"",
+  },
+  {
+    key: "docks",
+    keywords: ["docks", "dock", "quay", "katharine", "chandlery", "pembury", "wharf", "river"],
+    intent: ["examine", 0.88],
+    target: ["docks", 0.9],
+    classification: ["on_script", 0.88],
+    outcome: { kind: "examined", summary: "C2 is discoverable at St Katharine Docks." },
+    directive: "Scene: St Katharine Docks by day. Discoverable: C2.",
+    location: "docks",
+    reveals: ["c2"],
+    passage:
+      "St Katharine Docks smelled of tar, tea and river. The ships' chandler was shouting at a boy about rope and did not stop to look at Jacob. By the chandlery door, caught on a nail at the height of a man's hand, a torn page of accounts lifted and fell in the wind. Three names on it had been underlined, hard enough to cut the paper: Whitlock, Carrow, Ashby.",
+    alternative: "On a nail by the chandlery hung a torn page of accounts. Three names were underlined.",
+    newNpcs: [
+      {
+        name: "Silas Pembury",
+        description: "The ships' chandler on the quay at St Katharine Docks. Loud, and sees who comes and goes.",
+        role: "Ships' chandler",
+        personality: "Loud, quick to anger, quicker to forget.",
+        backstory: "Has kept the chandlery on the quay since the docks opened.",
+      },
+    ],
+  },
+  {
+    key: "straw",
+    keywords: ["straw", "cufflink", "behind", "carrow"],
+    intent: ["examine", 0.91],
+    target: ["spitalfields", 0.77],
+    classification: ["on_script", 0.9],
+    outcome: { kind: "examined", summary: "C4 is discoverable behind Carrow's warehouse." },
+    directive: "Scene: behind Carrow's warehouse at Spitalfields Market. Discoverable: C4.",
+    location: "spitalfields",
+    reveals: ["c4"],
+    passage:
+      "Behind Carrow's warehouse the straw had been raked into a heap and left to rot. Jacob went through it on his knees while a carter watched with open interest. At the bottom, where the damp had kept it, lay a silver cufflink, one of a pair. The engraving was worn, but plain enough: J.R.",
+    alternative: "In the rotting straw behind the warehouse lay a silver cufflink engraved J.R.",
+  },
+  {
+    key: "josiah",
+    keywords: ["josiah", "father", "merchant", "wool", "rober and sons"],
+    intent: ["question", 0.9],
+    target: ["josiah", 0.92],
+    classification: ["on_script", 0.86],
+    outcome: { kind: "questioned", summary: "Josiah reveals nothing below high Band." },
+    directive: "No allowed reveals: Josiah's Knowledge needs high Band. He is proud and gives nothing about his family.",
+    location: "docks",
+    passage:
+      "Josiah Rober received him standing, in an office that smelled of lanolin and money, and did not offer a chair. He answered every question about his debtors with a date and a figure. When the questions turned toward his family, the merchant looked at the clock on the wall until the silence did the work of showing Jacob out.",
+    alternative: "Josiah Rober answered with dates and figures, and nothing else.",
+  },
+]
+
+/** When no step matches the input: the story goes on, and nothing is decided. */
+export const TANGENTIAL_STEPS: ScriptStep[] = [
+  {
+    key: "fog",
+    keywords: [],
+    intent: ["other", 0.74],
+    target: ["none", 0.86],
+    classification: ["tangential", 0.71],
+    outcome: { kind: "narrated", summary: "Nothing in the story depends on this; it is narrated." },
+    directive: "Tangential action. Narrate it briefly; no reveals, no new places.",
+    passage:
+      "The fog came up from the river in the afternoon and did not go home. Jacob found a coffee stall under the railway arches and drank something that had been introduced to coffee once, briefly. Around him London went about its business, and none of its business was his case.",
+    alternative: "The fog came up from the river. Jacob drank bad coffee under the arches.",
+  },
+  {
+    key: "lamps",
+    keywords: [],
+    intent: ["other", 0.7],
+    target: ["none", 0.84],
+    classification: ["tangential", 0.68],
+    outcome: { kind: "narrated", summary: "Nothing in the story depends on this; it is narrated." },
+    directive: "Tangential action. Narrate it briefly; no reveals, no new places.",
+    passage:
+      "A newsboy was selling the killings on every corner, with a drawing of the murderer on the front page who looked like nobody at all. The gas lamps came on one by one. Jacob stood a while and watched the crowd, and the case sat in his pocket like a stone.",
+    alternative: "The gas lamps came on one by one, and the case sat in Jacob's pocket like a stone.",
+  },
+]
+
+export type ForcedEnding = Exclude<Ending, "none">
+
+/** The Endings the `ending-*` scenarios force on the next Turn. */
+export const ENDING_STEPS: Record<ForcedEnding, ScriptStep> = {
+  win: {
+    key: "ending-win",
+    keywords: [],
+    intent: ["arrest", 0.95],
+    target: ["max", 0.94],
+    classification: ["on_script", 0.95],
+    outcome: { kind: "decisive_success", summary: "The arrest of the right man with the Clues it needs succeeds: the story is won." },
+    directive: "Ending: win. Narrate the arrest. Max goes quietly.",
+    location: "docks",
+    passage:
+      "Max Rober was at his desk in the shipping office when they came for him. He put down his pen, wiped the nib, and squared the papers in front of him before he stood. He did not ask why. On the walk to the Yard he said only one thing, to nobody in particular: that his father would read about it in the morning, and that he hoped the old man would read it twice.",
+    alternative: "Max Rober put down his pen and stood. He did not ask why.",
+  },
+  death: {
+    key: "ending-death",
+    keywords: [],
+    intent: ["move", 0.78],
+    target: ["spitalfields", 0.72],
+    classification: ["reckless", 0.88],
+    outcome: { kind: "reckless_death", summary: "" },
+    directive: "Ending: death. Narrate it without gore.",
+    location: "spitalfields",
+    passage:
+      "The warehouse door stood open, which should have told him something. Inside it smelled of tea and cold iron, and the dark went further back than the building did. Jacob heard the step behind him a moment too late. The lantern went over. After that there was only the river, somewhere close, going on about its business as it always had.",
+    alternative: "Jacob heard the step behind him a moment too late.",
+  },
+  removed: {
+    key: "ending-removed",
+    keywords: [],
+    intent: ["other", 0.83],
+    target: ["geoffrey", 0.7],
+    classification: ["off_script", 0.86],
+    outcome: { kind: "off_script", summary: "", reputationDelta: ENGINE_CONFIG.offScriptPenalty, offScriptDelta: 1 },
+    directive: "Ending: removed. The Captain takes Jacob off the case.",
+    location: "yard",
+    passage:
+      "When Jacob came back to the Yard his desk had been cleared and his coat hung on the door. Captain James did not look up from his papers. \"The Home Office thanks you for your time, Mr. Flannery,\" he said. \"Your ship sails on Thursday. Someone will see you to it.\"",
+    alternative: "His desk had been cleared. The Captain did not look up.",
+  },
+}
 
 // Operations
 
@@ -683,3 +935,441 @@ export function createSession(request: { worldId: string; mode: "harness" | "bas
   return { session, entries }
 }
 
+
+/** A Session with the World it is played in, as `GET /api/sessions/[id]` returns it. */
+export function getSessionView(id: string) {
+  const session = getSession(id)
+  const siblings = [...getStore().sessions.values()]
+    .filter((other) => other.worldId === session.worldId)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))
+  return {
+    session,
+    sessionNumber: siblings.findIndex((other) => other.id === session.id) + 1,
+    world: getWorld(session.worldId),
+    turns: listTurns(id),
+    entries: listSessionEntries(id),
+  }
+}
+
+// Playing a Turn (the fixture stand-in for spec §9).
+
+/** How long background work runs after a Passage ships. */
+export const BACKGROUND_MS = 3500
+
+/** The template key of a Session copy: "s-1.mk-k-nell" copies "mk-k-nell", key "k-nell". */
+function templateKey(entry: Entry): string | null {
+  if (!entry.templateId) return null
+  const dash = entry.templateId.indexOf("-")
+  return dash === -1 ? entry.templateId : entry.templateId.slice(dash + 1)
+}
+
+function liveSessionEntries(sessionId: string) {
+  const entries = listSessionEntries(sessionId).filter(isLiveEntry)
+  const byKey = new Map<string, Entry>()
+  for (const entry of entries) {
+    const key = templateKey(entry)
+    if (key) byKey.set(key, entry)
+  }
+  return { entries, byKey }
+}
+
+function playerName(entries: readonly Entry[]) {
+  const player = entries.find((entry) => entry.kind === "character" && entry.data.isPlayer)
+  return player?.name || "the Player character"
+}
+
+/** The Player state before the first Turn: at the start Location, first Arc, starting Reputation. */
+export function initialState(entries: readonly Entry[]): PlayerState {
+  const locations = entries.filter((entry) => entry.kind === "location" && isLiveEntry(entry))
+  const start = locations.find((entry) => entry.kind === "location" && entry.data.isStart) ?? locations[0]
+  if (!start) throw new StoreError("conflict", "This Session has no Location to start in. Accept a Location in the Codex, then try again.")
+  return state({ locationId: start.id })
+}
+
+function clampReputation(value: number) {
+  const [low, high] = ENGINE_CONFIG.reputationRange
+  return Math.min(high, Math.max(low, value))
+}
+
+/** Picks the step for an input: the unplayed step with the most keyword hits, else a tangential one. */
+export function pickStep(input: string, playedPassages: ReadonlySet<string>, turnCount: number): ScriptStep {
+  const text = ` ${input.toLowerCase().replace(/[^a-z0-9' ]+/g, " ")} `
+  let best: ScriptStep | null = null
+  let bestHits = 0
+  for (const step of TURN_SCRIPT) {
+    if (playedPassages.has(step.passage)) continue
+    const hits = step.keywords.filter((keyword) => text.includes(` ${keyword} `) || text.includes(` ${keyword}'s `)).length
+    if (hits > bestHits) {
+      best = step
+      bestHits = hits
+    }
+  }
+  return best ?? TANGENTIAL_STEPS[turnCount % TANGENTIAL_STEPS.length]
+}
+
+export type RoundsMode = "script" | "second-round" | "flagged"
+
+const FAILING_DRAFTS: { text: string; rule: Rule; probability: number; feedback: string }[] = [
+  {
+    text: "Jacob drew his revolver and fired a warning shot into the fog.",
+    rule: "agency",
+    probability: 0.74,
+    feedback: "Agency (0.74): the Draft has Jacob fire a revolver the Player never drew. Rewrite without adding his actions.",
+  },
+  {
+    text: "Jacob hailed a cab for the Ten Bells, where every rumour in Whitechapel was for sale.",
+    rule: "location",
+    probability: 0.79,
+    feedback: "Location (0.79): the Draft introduces the Ten Bells as a place to go. Keep to the Codex's Locations.",
+  },
+  {
+    text: "\"I know who did it,\" Jacob announced, though he knew nothing of the kind.",
+    rule: "agency",
+    probability: 0.66,
+    feedback: "Agency (0.66): the Draft has Jacob speak beyond the Player's input. Rewrite without adding his words.",
+  },
+  {
+    text: "Electric light spilled from the shop windows as Jacob passed.",
+    rule: "period",
+    probability: 0.72,
+    feedback: "Period (0.72): electric shop lighting is an anachronism for 1888 London. Use gas or oil.",
+  },
+]
+
+function failingDraft(id: string, index: number, seed: number, endingTurn: boolean) {
+  const spec = FAILING_DRAFTS[index % FAILING_DRAFTS.length]
+  return { draft: buildDraft(id, spec.text, buildRules({ [spec.rule]: spec.probability }, { seed, endingTurn })), feedback: spec.feedback }
+}
+
+/** The Rounds of a played Turn: the step's own, or the forced second Round or flagged Turn. */
+function roundsFor(key: string, step: ScriptStep, mode: RoundsMode, seed: number, endingTurn: boolean): Round[] {
+  const rules = (overrides: Partial<Record<Rule, number>> = {}, offset = 0) => buildRules(overrides, { seed: seed + offset, endingTurn })
+  if (mode === "script") {
+    if (step.oneRejected) {
+      return [
+        buildRound(1, [
+          buildDraft(`${key}-r1a`, step.alternative, rules({ codex: 0.68 })),
+          buildDraft(`${key}-r1b`, step.passage, rules({}, 1), true),
+        ]),
+      ]
+    }
+    return [
+      buildRound(1, [buildDraft(`${key}-r1a`, step.passage, rules(), true), buildDraft(`${key}-r1b`, step.alternative, rules({}, 3))]),
+    ]
+  }
+
+  const failed = (round: number) => {
+    const a = failingDraft(`${key}-r${round}a`, round * 2 - 2, seed + round, endingTurn)
+    const b = failingDraft(`${key}-r${round}b`, round * 2 - 1, seed + round + 1, endingTurn)
+    return { drafts: [a.draft, b.draft], feedback: [a.feedback, b.feedback] }
+  }
+  const round1 = failed(1)
+  if (mode === "second-round") {
+    return [
+      buildRound(1, round1.drafts),
+      buildRound(2, [buildDraft(`${key}-r2a`, step.passage, rules({}, 5), true), buildDraft(`${key}-r2b`, step.alternative, rules({}, 6))], round1.feedback),
+    ]
+  }
+  const round2 = failed(2)
+  // Round 3 fails too; the least-violating Draft (the step's Passage, just over the line) ships and the Turn is flagged.
+  return [
+    buildRound(1, round1.drafts),
+    buildRound(2, round2.drafts, round1.feedback),
+    buildRound(
+      3,
+      [
+        buildDraft(`${key}-r3a`, step.passage, rules({ agency: 0.53 }, 7), true),
+        buildDraft(`${key}-r3b`, step.alternative, rules({ knowledge: 0.61, agency: 0.57 }, 8)),
+      ],
+      round2.feedback
+    ),
+  ]
+}
+
+/** One step of a Turn's progress, as the Turn route streams it. */
+export type TurnPhaseStep = { phase: "reading" | "resolving" | "writing" | "judging"; round: number | null; ms: number }
+
+export type PlannedTurn = {
+  turn: Turn
+  phases: TurnPhaseStep[]
+  /** Characters the Drafter will name in background work. */
+  newNpcs: ScriptNpc[]
+}
+
+/**
+ * Builds the next Turn of a Session from its current state and the Player's
+ * input, without saving anything. The last Turn's background work must be
+ * settled first (`settleBackground`).
+ */
+export function planTurn(sessionId: string, input: string, options: { rounds?: RoundsMode; ending?: ForcedEnding | null } = {}): PlannedTurn {
+  const session = getSession(sessionId)
+  if (session.ending !== "none") throw new StoreError("conflict", "This Session has ended. Start a new Session from its World to play again.")
+  const turns = listTurns(sessionId)
+  const previous = turns.at(-1)
+  if (previous?.backgroundStatus === "pending") {
+    throw new StoreError("conflict", "The last Turn's background work is still running. Wait for it, then try again.")
+  }
+  const { entries, byKey } = liveSessionEntries(sessionId)
+  const before = previous?.state ?? initialState(entries)
+  const idx = turns.length
+  const ending = options.ending ?? null
+  const step = ending ? ENDING_STEPS[ending] : pickStep(input, new Set(turns.map((turn) => turn.passage)), idx)
+  const name = playerName(entries)
+
+  // Discovery: Clues and Knowledge the Passage reveals that were not known yet.
+  const cluesFound = [...before.cluesFound]
+  const knowledgeRevealed: Record<string, string[]> = Object.fromEntries(Object.entries(before.knowledgeRevealed).map(([k, v]) => [k, [...v]]))
+  const discovery: Discovery[] = []
+  const required = new Set(entries.flatMap((entry) => (entry.kind === "decisive_action" ? entry.data.requires : [])))
+  let recovery = 0
+  for (const key of step.reveals ?? []) {
+    const entry = byKey.get(key)
+    if (entry?.kind === "clue" && !cluesFound.includes(entry.id)) {
+      cluesFound.push(entry.id)
+      if (required.has(entry.id)) recovery += ENGINE_CONFIG.recovery
+      discovery.push({ target: { kind: "clue", entryId: entry.id }, question: `Did the Draft reveal ${entry.name.replace(/^[A-Z]{1,2}\d+ — /u, "").replace(/^./, (c) => c.toLowerCase())}?`, probability: 0.91, revealed: true })
+    }
+    if (entry?.kind === "knowledge" && !(knowledgeRevealed[entry.data.characterId] ?? []).includes(entry.id)) {
+      knowledgeRevealed[entry.data.characterId] = [...(knowledgeRevealed[entry.data.characterId] ?? []), entry.id]
+      discovery.push({ target: { kind: "knowledge", entryId: entry.id }, question: `Did the Draft reveal that ${entry.data.fact.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase())}?`, probability: 0.89, revealed: true })
+    }
+  }
+
+  let offScriptCount = before.offScriptCount + (step.outcome.offScriptDelta ?? 0)
+  let summary = step.outcome.summary
+  let deathRoll: Outcome["deathRoll"] = null
+  if (ending === "removed") {
+    offScriptCount = Math.max(offScriptCount, ENGINE_CONFIG.offScriptThreshold)
+    summary = `Off-script count reaches ${offScriptCount}: ${name} is removed from the case.`
+  }
+  if (ending === "death") {
+    const odds = ENGINE_CONFIG.deathOddsPerArc[Math.min(before.arcIndex, ENGINE_CONFIG.deathOddsPerArc.length - 1)]
+    deathRoll = { odds, roll: 0.07, lethal: true }
+    summary = `Death roll 0.07 against odds of ${odds.toFixed(2)}: the action is lethal. The story ends in death.`
+  }
+  const reputationDelta = (step.outcome.reputationDelta ?? 0) + recovery
+  const warningsGiven = [...new Set([...before.warningsGiven, ...ENGINE_CONFIG.offScriptWarningsAt.filter((at) => at <= offScriptCount)])]
+
+  const target = step.target[0] === "none" ? undefined : byKey.get(step.target[0])
+  const location = step.location ? byKey.get(step.location) : undefined
+  const after: PlayerState = {
+    ...before,
+    locationId: location?.id ?? before.locationId,
+    cluesFound,
+    knowledgeRevealed,
+    reputation: clampReputation(before.reputation + reputationDelta),
+    offScriptCount,
+    warningsGiven,
+    ending: ending ?? "none",
+  }
+
+  const rounds = roundsFor(`${sessionId}-t${idx}`, step, options.rounds ?? "script", idx * 3 + 2, ending !== null)
+  const phases: TurnPhaseStep[] = [
+    { phase: "reading", round: null, ms: 650 },
+    { phase: "resolving", round: null, ms: 250 },
+    ...rounds.flatMap((round): TurnPhaseStep[] => [
+      { phase: "writing", round: round.index, ms: 1450 },
+      { phase: "judging", round: round.index, ms: 800 },
+    ]),
+  ]
+  const spent = (phase: TurnPhaseStep["phase"]) => phases.filter((p) => p.phase === phase).reduce((sum, p) => sum + p.ms, 0)
+
+  const built = buildTurn(sessionId, {
+    idx,
+    minutes: 0,
+    input,
+    intent: step.intent,
+    target: target ? [target.id, target.name, step.target[1]] : ["none", "none", step.target[1]],
+    classification: step.classification,
+    outcome: { kind: step.outcome.kind, summary, reputationDelta, offScriptDelta: step.outcome.offScriptDelta ?? 0, deathRoll, ending: ending ?? "none" },
+    directive: step.directive,
+    passage: step.passage,
+    rounds,
+    discovery,
+    // An ending Turn has no background work: nothing comes after it.
+    background: ending ? background() : null,
+    state: after,
+  })
+  const turn: Turn = {
+    ...built,
+    createdAt: nowIso(),
+    log: {
+      ...built.log,
+      timings: {
+        totalMs: phases.reduce((sum, p) => sum + p.ms, 0),
+        readingMs: spent("reading"),
+        resolvingMs: spent("resolving"),
+        writingMs: spent("writing"),
+        judgingMs: spent("judging"),
+        backgroundMs: ending ? 0 : null,
+      },
+    },
+  }
+  return { turn, phases, newNpcs: ending ? [] : (step.newNpcs ?? []) }
+}
+
+/** Saves a planned Turn: the Turn row, the Session's Ending, and its background work (spec §9.1 step 7). */
+export function commitTurn(plan: PlannedTurn): { turn: Turn; session: Session } {
+  const store = getStore()
+  const session = getSession(plan.turn.sessionId)
+  const turns = listTurns(session.id)
+  if (turns.length !== plan.turn.idx || session.ending !== "none") {
+    throw new StoreError("conflict", "Another Turn finished first in this Session. Reload to see it.")
+  }
+  // Written when the Passage ships, not when the Turn was planned.
+  const turn = turnSchema.parse({ ...plan.turn, createdAt: nowIso() } satisfies Turn)
+  const saved: Session = { ...session, ending: turn.state.ending, updatedAt: turn.createdAt }
+  store.turns.set(session.id, [...turns, turn])
+  store.sessions.set(session.id, saved)
+  if (turn.backgroundStatus === "pending") {
+    backgroundJobs().set(turn.id, { dueAt: Date.parse(turn.createdAt) + BACKGROUND_MS, newNpcs: plan.newNpcs })
+  }
+  return { turn, session: saved }
+}
+
+// Background work (spec §9.2): runs after the Passage ships, merged into the latest Turn when it finishes.
+
+type BackgroundJob = { dueAt: number; newNpcs: ScriptNpc[] }
+
+declare global {
+  var __sandsBackgroundJobs: WeakMap<object, Map<string, BackgroundJob>> | undefined
+}
+
+/**
+ * Scheduled background work by Turn id, for the current store. Kept on
+ * `globalThis` (each route has its own module graph in dev) and keyed by the
+ * store, so a reset store starts with none.
+ */
+function backgroundJobs(): Map<string, BackgroundJob> {
+  globalThis.__sandsBackgroundJobs ??= new WeakMap()
+  const store = getStore()
+  let jobs = globalThis.__sandsBackgroundJobs.get(store)
+  if (!jobs) {
+    jobs = new Map()
+    globalThis.__sandsBackgroundJobs.set(store, jobs)
+  }
+  return jobs
+}
+
+/** The latest Turn's background work, if it is still running, with the time left. */
+export function pendingBackground(sessionId: string): { turnId: string; remainingMs: number } | null {
+  const last = listTurns(sessionId).at(-1)
+  if (!last || last.backgroundStatus !== "pending") return null
+  const jobs = backgroundJobs()
+  // Seeded pending work (the mid-play Session's last Turn) starts when first asked about.
+  let job = jobs.get(last.id)
+  if (!job) {
+    job = { dueAt: Date.now() + BACKGROUND_MS, newNpcs: [] }
+    jobs.set(last.id, job)
+  }
+  return { turnId: last.id, remainingMs: Math.max(0, job.dueAt - Date.now()) }
+}
+
+function slug(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+}
+
+/** Did the story meet this Exit condition, judging by the Session so far? */
+function exitConditionMet(key: string | null, turns: readonly Turn[], keyOf: (id: string) => string | null): boolean {
+  const last = turns.at(-1)
+  if (!last) return false
+  const visited = new Set(turns.map((turn) => keyOf(turn.state.locationId)))
+  const knowledge = new Set(Object.values(last.state.knowledgeRevealed).flat().map(keyOf))
+  switch (key) {
+    case "exit-1":
+      return visited.has("yard")
+    case "exit-2":
+      return knowledge.has("k-amanda") && (visited.has("whitechapel") || visited.has("spitalfields"))
+    case "exit-3":
+      return last.state.ending === "win"
+    default:
+      return false
+  }
+}
+
+function madeProgress(turn: Turn, before: Turn | undefined) {
+  if (!before) return true
+  const count = (t: Turn) => Object.values(t.state.knowledgeRevealed).flat().length
+  return turn.state.cluesFound.length > before.state.cluesFound.length || count(turn) > count(before) || turn.state.arcIndex > before.state.arcIndex
+}
+
+/**
+ * Finishes the latest Turn's background work if it is due (or at once with
+ * `force`): names new NPCs, checks the Arc's Exit conditions and pacing, and
+ * merges the results into that Turn's log and state (ADR-0006). Returns the
+ * updated Turn and any new Entries, or null when nothing was pending or due.
+ */
+export function settleBackground(sessionId: string, options: { force?: boolean } = {}): { turn: Turn; entries: Entry[] } | null {
+  const pending = pendingBackground(sessionId)
+  if (!pending || (!options.force && pending.remainingMs > 0)) return null
+  const store = getStore()
+  const session = getSession(sessionId)
+  const turns = listTurns(sessionId)
+  const last = turns.at(-1)!
+  const job = backgroundJobs().get(last.id)!
+  const { entries } = liveSessionEntries(sessionId)
+  const now = nowIso()
+
+  // Extraction: named characters not in the Codex become proposed play NPCs.
+  const known = new Set(listSessionEntries(sessionId).map((entry) => entry.name.toLowerCase()))
+  const created: Entry[] = []
+  for (const npc of job.newNpcs) {
+    const id = `${sessionId}.play-${slug(npc.name)}`
+    if (known.has(npc.name.toLowerCase()) || store.entries.has(id)) continue
+    created.push(
+      saveEntry({
+        id,
+        worldId: session.worldId,
+        sessionId,
+        templateId: null,
+        kind: "npc",
+        name: npc.name,
+        description: npc.description,
+        keyFacts: [],
+        data: { role: npc.role, age: "", personality: npc.personality, backstory: npc.backstory, isPlayer: false, hiddenFields: [], aliases: [] },
+        source: "play",
+        sourceTurn: last.idx,
+        status: "proposed",
+        jevFlags: [],
+        seenAt: null,
+        createdAt: now,
+        updatedAt: now,
+      })
+    )
+  }
+
+  // Arc check: every Exit condition of the current Arc.
+  const keyById = new Map(entries.map((entry) => [entry.id, templateKey(entry)]))
+  const keyOf = (id: string) => keyById.get(id) ?? null
+  const exits = entries.filter((entry) => entry.kind === "exit_condition" && entry.data.arcIndex === last.state.arcIndex)
+  const arcCheck = exits.map((entry) => {
+    const met = exitConditionMet(templateKey(entry), turns, keyOf)
+    return { exitConditionId: entry.id, probability: met ? 0.88 : 0.23, met }
+  })
+  const arcCount = getWorld(session.worldId).brief?.arcs.length ?? 1
+  const arcAdvancedTo =
+    arcCheck.length > 0 && arcCheck.every((check) => check.met) && last.state.arcIndex < arcCount - 1 ? last.state.arcIndex + 1 : null
+
+  // Pacing: no progress over the last few Turns sets a nudge for the next Directive.
+  const window = turns.slice(-ENGINE_CONFIG.pacingWindow)
+  const stalled =
+    turns.length >= ENGINE_CONFIG.pacingWindow && window.every((turn) => !madeProgress(turn, turns[turn.idx - 1])) && arcAdvancedTo === null
+  const arcName = getWorld(session.worldId).brief?.arcs[last.state.arcIndex]?.name ?? `Arc ${last.state.arcIndex + 1}`
+  const reason = stalled ? `No progress toward the ${arcName} Arc's Exit conditions in the last ${ENGINE_CONFIG.pacingWindow} Turns.` : null
+
+  const results: BackgroundResults = background({
+    newEntryIds: created.map((entry) => entry.id),
+    arcCheck,
+    arcAdvancedTo,
+    pacing: { probability: stalled ? 0.27 : 0.81, nudge: stalled, reason },
+  })
+  const turn = turnSchema.parse({
+    ...last,
+    backgroundStatus: "done",
+    log: { ...last.log, background: results, timings: { ...last.log.timings, backgroundMs: Math.max(0, Date.now() - Date.parse(last.createdAt)) } },
+    state: { ...last.state, arcIndex: arcAdvancedTo ?? last.state.arcIndex, pacingNudge: { active: stalled, reason } },
+  } satisfies Turn)
+  store.turns.set(sessionId, [...turns.slice(0, -1), turn])
+  backgroundJobs().delete(last.id)
+  return { turn, entries: created }
+}
