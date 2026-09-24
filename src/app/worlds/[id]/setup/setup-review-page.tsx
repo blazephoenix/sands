@@ -1,14 +1,14 @@
 "use client"
 
 /**
- * The setup review (ticket 03; the Author's design from the prototype on
+ * The setup review (the Author's design from the prototype on
  * `prototype/ui-decisions`, variant E): a sidebar of what setup drafted, one
  * Entry card at a time with Approve / Edit / Remove, the solvability banner,
  * and Start Session once the World is solvable.
  *
  * Page guards by setup status: `draft` points back to the Brief, `drafting`
  * waits for setup, `review` shows the review. Setup is behind a `ready`
- * World, so it goes to the World page and its Sessions instead (ticket 05).
+ * World, so it goes to the World page and its Sessions instead.
  */
 import * as React from "react"
 import Link from "next/link"

@@ -53,7 +53,7 @@ export type WorldSummary = z.infer<typeof worldSummarySchema>
 
 /**
  * GET /api/worlds: every World, most recently updated first. Not in spec §5.2;
- * added by ticket 02 for the Worlds home.
+ * added for the Worlds home.
  */
 export const listWorldsResponseSchema = z.object({
   worlds: z.array(worldSummarySchema),

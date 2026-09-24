@@ -2,8 +2,8 @@
 
 /**
  * Single-key shortcuts that never fire while the person is typing (UX bar:
- * `d` toggles the theme; page tickets add their own, e.g. `a` / `r` in the
- * setup review). Show each shortcut with `Kbd` in its control's tooltip.
+ * `d` toggles the theme; pages add their own, e.g. `c` / `t` on the
+ * Session page). Show each shortcut with `Kbd` in its control's tooltip.
  */
 import * as React from "react"
 

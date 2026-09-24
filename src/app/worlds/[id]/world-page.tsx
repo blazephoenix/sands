@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * The World page (ticket 05): a playable World opens to its Sessions, with
+ * The World page: a playable World opens to its Sessions, with
  * New Session to start another. Setup is behind a ready World, so the setup
  * review is not shown here. A World that is not ready yet is sent where it
  * belongs: its Brief while in draft or drafting, the setup review in review.

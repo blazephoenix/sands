@@ -15,7 +15,7 @@ beforeEach(() => {
   resetStore()
 })
 
-describe("Worlds operations (ticket 02)", () => {
+describe("Worlds operations", () => {
   it("lists every World with its Session count, most recently updated first", () => {
     const summaries = worldSummaries()
     expect(summaries.map((w) => w.id)).toContain(WORLD_IDS.ready)
@@ -79,7 +79,7 @@ describe("Worlds operations (ticket 02)", () => {
     ).toThrow(/malformed/)
   })
 
-  it("has the scenarios this ticket's routes read", () => {
+  it("has the scenarios the Worlds routes read", () => {
     expect(Object.keys(SCENARIOS)).toEqual(
       expect.arrayContaining([
         "empty",

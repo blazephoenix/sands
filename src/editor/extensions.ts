@@ -1,5 +1,5 @@
 /**
- * Editor extensions for the plain-document design (editor-design.md):
+ * Editor extensions for the plain-document design (docs/design/editor-design.md):
  *
  * - `sectionsExtension`: decorations that mark each field paragraph with its
  *   section's state (for CSS: rejected, locked), show a muted hint after an

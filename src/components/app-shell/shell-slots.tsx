@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * Page-provided parts of the app header, so page tickets never edit the shell:
+ * Page-provided parts of the app header, so pages never edit the shell:
  *
  *   <ShellBreadcrumbs items={worldCrumbs(world, "Setup")} />
  *   <ShellActions>

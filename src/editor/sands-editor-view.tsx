@@ -2,7 +2,7 @@
 
 /**
  * The one BlockNote editor behind every editing surface (ADR-0008), on the
- * shadcn UI package, as a plain document (editor-design.md). `BriefEditor` and
+ * shadcn UI package, as a plain document (docs/design/editor-design.md). `BriefEditor` and
  * `EntryEditor` wrap it per surface; use those rather than this directly.
  */
 import "@blocknote/shadcn/style.css"

@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * Section headings: the only custom blocks (editor-design.md). Each renders a
+ * Section headings: the only custom blocks (docs/design/editor-design.md). Each renders a
  * small muted, non-editable label line (icon, kind, status bits), then, for
  * named kinds, the name as editable text in a large line. No controls, no
  * children.

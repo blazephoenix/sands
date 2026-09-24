@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * The Brief page (ticket 02, spec §7.1, §8, §11): the Author writes the Brief
+ * The Brief page (spec §7.1, §8, §11): the Author writes the Brief
  * in the shared editor, sees every §7.1 problem live, and runs setup while
  * watching it step by step. Success moves on to the setup review.
  *

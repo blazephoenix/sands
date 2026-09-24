@@ -1,5 +1,5 @@
 /**
- * GET /api/worlds: the Worlds home list (not in spec §5.2; added by ticket 02).
+ * GET /api/worlds: the Worlds home list (not in spec §5.2).
  * The `empty` scenario answers with no Worlds.
  *
  * POST /api/worlds: create a World in `draft` from a Brief document, or from

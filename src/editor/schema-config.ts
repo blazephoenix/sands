@@ -5,7 +5,7 @@
  * the conversions in `src/brief/` and `./entry-blocks.ts` read documents typed
  * by them.
  *
- * One schema, one plain-document design (editor-design.md, spec §7.1-7.2):
+ * One schema, one plain-document design (docs/design/editor-design.md, spec §7.1-7.2):
  * - Section headings are the only custom blocks: six Brief kinds and nine
  *   Entry kinds. They have no children. Named kinds hold the name as their
  *   inline content.

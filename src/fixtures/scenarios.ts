@@ -1,6 +1,6 @@
 /**
  * Named fixture scenarios: the one place that lists every UI state a developer
- * can force in dev. Page tickets read this registry; they do not edit it.
+ * can force in dev. Pages read this registry; add new scenarios here.
  *
  * How to force a scenario (dev only; ignored in production builds):
  * - On a page: add `?scenario=<id>` to the page URL, or pick it from the

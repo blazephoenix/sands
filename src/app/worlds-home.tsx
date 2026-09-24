@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * The Worlds home (ticket 02): every World with its setup status, when it last
+ * The Worlds home: every World with its setup status, when it last
  * changed and how many Sessions it has, and "New World", which creates a World
  * and opens its Brief.
  *

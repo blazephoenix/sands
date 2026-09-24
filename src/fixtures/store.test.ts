@@ -183,7 +183,7 @@ describe("starting a Session (ADR-0005)", () => {
 })
 
 describe("scenario registry", () => {
-  it("lists every scenario the page tickets need", () => {
+  it("lists every scenario the pages need", () => {
     for (const id of [
       "slow",
       "request-error",

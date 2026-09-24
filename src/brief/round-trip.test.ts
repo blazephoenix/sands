@@ -1,5 +1,5 @@
 /**
- * Spec §7.4, the day-1 BlockNote test, for the §7.1 design (editor-design.md):
+ * Spec §7.4, the day-1 BlockNote test, for the §7.1 design (docs/design/editor-design.md):
  * a Character section with personality, backstory and one custom field, some
  * of it multi-line and some Hidden, round-trips through conversion to the
  * Brief object.

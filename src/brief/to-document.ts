@@ -1,5 +1,5 @@
 /**
- * Brief -> Brief editor document (editor-design.md). Pure.
+ * Brief -> Brief editor document (docs/design/editor-design.md). Pure.
  *
  * Used for the new-Brief template (spec §7.1), for fixtures, and for the
  * round-trip test. Sections come out in a fixed order (Settings, Characters,

@@ -1,5 +1,5 @@
 /**
- * The setup review's model (spec §8 step 4, ticket 03): which Entries need the
+ * The setup review's model (spec §8 step 4): which Entries need the
  * Author's decision, in what order, and what the UI calls each status. Pure.
  *
  * Only what setup drafted needs a decision. The Author's own locked Entries

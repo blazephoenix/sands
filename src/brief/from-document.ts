@@ -1,5 +1,5 @@
 /**
- * Brief editor document -> Brief (spec §7.1, editor-design.md). Pure.
+ * Brief editor document -> Brief (spec §7.1, docs/design/editor-design.md). Pure.
  *
  * - A section heading (setting, character, ...) starts a Brief item. Named
  *   kinds take their name from the heading's text.

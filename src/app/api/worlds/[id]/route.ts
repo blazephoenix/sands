@@ -1,6 +1,6 @@
 /**
  * GET /api/worlds/[id]: the World (with its Brief and stored solvability
- * result), its template Entries and its Sessions. Shared by tickets 02-04.
+ * result), its template Entries and its Sessions. Shared by every page.
  */
 import type { GetWorldResponse } from "@/domain/api"
 import { getWorld, listWorldEntries, sessionSummaries } from "@/fixtures/worlds"

@@ -10,6 +10,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - [docs/adr/](docs/adr/): settled decisions. Check for a relevant ADR before re-deciding something.
 - [docs/superpowers/specs/2026-09-23-creation-harness-design.md](docs/superpowers/specs/2026-09-23-creation-harness-design.md): the design. It and the ADRs take precedence over `docs/requirements.md`.
 - How to use these: [docs/agents/domain.md](docs/agents/domain.md). Record new terms and decisions with `/domain-modeling`.
+- [docs/design/](docs/design/): the UI bar every change must meet (`ux-bar.md`) and the shared editor's design (`editor-design.md`).
+- Tickets are GitHub issues: [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md). There is no `.scratch/`.
 
 ## Rules
 

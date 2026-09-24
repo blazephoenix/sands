@@ -240,16 +240,16 @@ export async function* streamRoute<S extends z.ZodType<{ type: string }>>(
 
 const enc = encodeURIComponent
 
-/** Typed calls for the shared routes, plus the two streaming routes tickets 02 and 04 implement. */
+/** Typed calls for the shared routes, plus the two streaming routes (setup and Turn). */
 export const api = {
   getWorld: (id: string, signal?: AbortSignal) =>
     apiFetch(`/api/worlds/${enc(id)}`, getWorldResponseSchema, { signal }),
 
-  /** GET /api/worlds (ticket 02): the Worlds home list. */
+  /** GET /api/worlds: the Worlds home list. */
   listWorlds: (signal?: AbortSignal) =>
     apiFetch("/api/worlds", listWorldsResponseSchema, { signal }),
 
-  /** POST /api/worlds (ticket 02): a new World in draft, its Brief the new-Brief template unless one is given. */
+  /** POST /api/worlds: a new World in draft, its Brief the new-Brief template unless one is given. */
   createWorld: (body: CreateWorldRequest = {}, signal?: AbortSignal) =>
     apiFetch("/api/worlds", createWorldResponseSchema, {
       method: "POST",
@@ -257,7 +257,7 @@ export const api = {
       signal,
     }),
 
-  /** PUT /api/worlds/[id]/brief (ticket 02): autosave of the Brief document and the World's name. */
+  /** PUT /api/worlds/[id]/brief: autosave of the Brief document and the World's name. */
   saveBrief: (
     worldId: string,
     body: SaveBriefRequest,
@@ -293,13 +293,13 @@ export const api = {
   getSession: (id: string, signal?: AbortSignal) =>
     apiFetch(`/api/sessions/${enc(id)}`, getSessionResponseSchema, { signal }),
 
-  /** POST /api/worlds/[id]/setup (ticket 02). */
+  /** POST /api/worlds/[id]/setup. */
   streamSetup: (worldId: string, options: { signal?: AbortSignal } = {}) =>
     streamRoute(`/api/worlds/${enc(worldId)}/setup`, setupEventSchema, {
       signal: options.signal,
     }),
 
-  /** POST /api/sessions/[id]/turn (ticket 04). */
+  /** POST /api/sessions/[id]/turn. */
   streamTurn: (
     sessionId: string,
     body: TurnRequest,

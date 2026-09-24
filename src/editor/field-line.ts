@@ -1,5 +1,5 @@
 /**
- * `Label: value` fields and sections (editor-design.md). Pure.
+ * `Label: value` fields and sections (docs/design/editor-design.md). Pure.
  *
  * A section is a heading block followed by the paragraphs that read
  * `Label: value`. Blank paragraphs are skipped. Anything else (another

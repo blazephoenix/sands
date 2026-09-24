@@ -143,7 +143,7 @@
     }
 }
 /*
- * Shared editor (src/editor): a plain BlockNote document (editor-design.md).
+ * Shared editor (src/editor): a plain BlockNote document (docs/design/editor-design.md).
  * Semantic tokens only. Unlayered on purpose: BlockNote's own CSS is
  * unlayered, and layered rules would lose to it.
  */

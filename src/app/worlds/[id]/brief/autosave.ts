@@ -1,6 +1,6 @@
 /**
  * Debounced autosave with one request in flight at a time, retry with backoff,
- * and a status that tells the truth (ux-bar: nothing typed is ever lost).
+ * and a status that tells the truth (docs/design/ux-bar.md: nothing typed is ever lost).
  *
  * - `change()` after every edit: the latest snapshot is saved `debounceMs` later.
  * - Edits made while a save is in flight are saved right after it.

@@ -10,12 +10,12 @@
  *
  * Each Session holds its own copies of the World's Entries (ADR-0005).
  *
- * Playing (ticket 04): `TURN_SCRIPT` holds the Turns the Turn route plays,
+ * Playing: `TURN_SCRIPT` holds the Turns the Turn route plays,
  * `planTurn` builds the next Turn from the Session's state without saving it,
  * `commitTurn` saves it, and `settleBackground` finishes the latest Turn's
  * background work when it is due.
  *
- * The Opening (ticket 05; spec §9.0): `OPENINGS` holds the first scenes,
+ * The Opening (spec §9.0): `OPENINGS` holds the first scenes,
  * `pickOpening` chooses one by seed, `planOpening` builds Turn 0, and
  * `claimOpening` keeps two requests from writing one Session's Opening at once.
  */
@@ -53,7 +53,7 @@ export { SESSION_IDS, copyId } from "./ids"
 const WORLD = WORLD_IDS.ready
 const PREFIX = "mk"
 
-// Builders (also for ticket 04's Turn script).
+// Builders (also for the Turn script).
 
 const RULE_QUESTIONS: Record<Rule, string> = {
   character_drift:
@@ -1045,7 +1045,7 @@ function removedTurns(): Turn[] {
   ]
 }
 
-// Turn script (ticket 04): the Turns the Turn route plays.
+// Turn script: the Turns the Turn route plays.
 //
 // The route does not understand the Player's input. It picks the first
 // unplayed step whose keywords appear in the input, or a generic tangential

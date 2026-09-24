@@ -4,7 +4,7 @@ import { WorldsHome } from "./worlds-home"
 
 export const metadata: Metadata = { title: "Worlds" }
 
-/** The Worlds home: every World, and "New World" (ticket 02). */
+/** The Worlds home: every World, and "New World". */
 export default function HomePage() {
   return <WorldsHome />
 }

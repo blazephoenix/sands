@@ -2,7 +2,7 @@
  * Editor keyboard shortcuts, in one place so tooltips can show them with `Kbd`.
  * ProseMirror key names (`Mod` is Cmd on macOS, Ctrl elsewhere).
  *
- * Page tickets: do not bind these combinations to page actions.
+ * Pages: do not bind these combinations to page actions.
  */
 export const EDITOR_SHORTCUTS = {
   /** Toggle the Hidden style on the selected text (also the eye button in the formatting toolbar). */

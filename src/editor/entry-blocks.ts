@@ -1,5 +1,5 @@
 /**
- * Entries <-> Entry sections (spec §7.2, editor-design.md). Pure.
+ * Entries <-> Entry sections (spec §7.2, docs/design/editor-design.md). Pure.
  *
  * An Entry is a heading block (one type per kind; its id is the Entry's id, its
  * text is the name, its props carry source, status and Jev flags) followed by

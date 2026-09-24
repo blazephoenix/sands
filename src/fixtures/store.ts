@@ -9,9 +9,9 @@
  *
  * Area modules own their data and operations:
  * - `worlds.ts`       Worlds and Briefs
- * - `setup-script.ts` the scripted setup run (ticket 02)
+ * - `setup-script.ts` the scripted setup run
  * - `entries.ts`      Entries, per World and per Session copy
- * - `sessions.ts`     Sessions, their Turns and the Turn script (ticket 04)
+ * - `sessions.ts`     Sessions, their Turns and the Turn script
  *
  * The state lives on `globalThis`, so every route handler (each its own module
  * graph in dev) shares one store, and it survives hot reloads. Mutations last

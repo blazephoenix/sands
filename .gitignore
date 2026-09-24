@@ -39,6 +39,3 @@ next-env.d.ts
 # sqlite
 /data/*
 !/data/.gitkeep
-
-# agent scratch (tickets, notes)
-/.scratch/

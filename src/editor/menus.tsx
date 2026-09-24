@@ -2,7 +2,7 @@
 
 /**
  * The shared editor's menus. Every control lives here, in BlockNote's own menus
- * (editor-design.md), never inside a block:
+ * (docs/design/editor-design.md), never inside a block:
  * - the slash menu: a Brief group of section kinds, then BlockNote's defaults;
  *   Entry kinds only on the Entry surface;
  * - the `@` mention menu: live (non-rejected) Entries only;
