@@ -97,7 +97,7 @@ The Author's request: Passages read like a book, not one paragraph tag.
 
 - **Renderer:** `react-markdown` 10.1 (MIT, React ≥ 18), a new dependency. It never renders raw HTML by default. Allowed elements: paragraph, emphasis, strong, line break and thematic break (the scene break); anything else is unwrapped to its text, so a stray heading or list from the Writer shows as plain prose.
 - **Where:** the story pane, and each Draft in the harness pane, so the Author judges Drafts as the Player would read them.
-- **Reveal:** paragraph by paragraph, each fading in, instead of word by word. Word-by-word across inline Markdown (a word half in italics) is fiddly and gains little; the Author can ask to keep word-by-word inside each paragraph.
+- **Reveal: unchanged.** Today each word fades in from a blur over 0.5 s, the next starting 0.04 s later, so about twelve words are in motion at once and the Passage sweeps in phrase by phrase (`TextGenerateEffect`). That stays: a step in the Markdown pipeline wraps every word in its own span, italics included, and the same stagger runs over the spans in reading order across paragraphs. Click, Space or Esc still shows the whole Passage at once, and reduced motion shows it at once.
 - **The Judge reads the Markdown source.** Asterisks do not change a Rule's meaning; nothing to strip.
 
 ## 4. Not changed
