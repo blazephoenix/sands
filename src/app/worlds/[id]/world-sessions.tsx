@@ -19,9 +19,10 @@ import {
   ItemTitle,
 } from "@/components/ui/item"
 import { Skeleton } from "@/components/ui/skeleton"
-import { sessionHref, withScenario } from "@/components/worlds/world-links"
+import { sessionHref } from "@/components/worlds/world-links"
 import type { SessionSummary } from "@/domain/api"
 import { playerTurnCount, type Ending } from "@/domain/session"
+import { formatDayAndTime } from "@/lib/time"
 
 const STATE: Record<
   Ending,
@@ -32,13 +33,6 @@ const STATE: Record<
   death: { label: "Ending: death", variant: "outline" },
   removed: { label: "Ending: removed", variant: "outline" },
 }
-
-const STARTED = new Intl.DateTimeFormat(undefined, {
-  day: "numeric",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-})
 
 /** `sessions` newest first, as `GET /api/worlds/[id]` returns them; Session numbers count from the oldest. */
 export function WorldSessions({
@@ -56,13 +50,13 @@ export function WorldSessions({
           <div key={session.id} role="listitem">
             <Item
               variant="outline"
-              render={<Link href={withScenario(sessionHref(session.id))} />}
+              render={<Link href={sessionHref(session.id)} />}
             >
               <ItemContent className="min-w-0">
                 <ItemTitle>Session {number}</ItemTitle>
                 <ItemDescription>
                   <time dateTime={session.createdAt}>
-                    Started {STARTED.format(new Date(session.createdAt))}
+                    Started {formatDayAndTime(session.createdAt)}
                   </time>
                   {" · "}
                   {turns === 1 ? "1 Turn played" : `${turns} Turns played`}

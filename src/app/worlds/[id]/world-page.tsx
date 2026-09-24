@@ -7,7 +7,7 @@
  * belongs: its Brief while in draft or drafting, the setup review in review.
  *
  * States: loading (Skeleton rows; also while sending the Author on), not
- * found, error with Retry (`?scenario=request-error`), no Sessions yet, list.
+ * found, error with Retry, no Sessions yet, list.
  */
 import * as React from "react"
 import Link from "next/link"
@@ -38,11 +38,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import {
-  sessionHref,
-  withScenario,
-  worldHref,
-} from "@/components/worlds/world-links"
+import { sessionHref, worldHref } from "@/components/worlds/world-links"
 import type { GetWorldResponse } from "@/domain/api"
 import { api, ApiError, isAbortError } from "@/lib/api-client"
 import { useSingleKeyShortcut } from "@/lib/keyboard"
@@ -85,9 +81,7 @@ export function WorldPage({ worldId }: { worldId: string }) {
   // A World that isn't playable yet opens where the Author left off.
   const world = load.state === "ready" ? load.data.world : null
   const elsewhere =
-    world && world.setupStatus !== "ready"
-      ? withScenario(worldHref(world))
-      : null
+    world && world.setupStatus !== "ready" ? worldHref(world) : null
   React.useEffect(() => {
     if (elsewhere) router.replace(elsewhere)
   }, [elsewhere, router])
@@ -146,10 +140,7 @@ function LoadError({
             <EmptyDescription>{error.message}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            <Button
-              nativeButton={false}
-              render={<Link href={withScenario("/")} />}
-            >
+            <Button nativeButton={false} render={<Link href={"/"} />}>
               Go to your Worlds
             </Button>
           </EmptyContent>
@@ -187,7 +178,7 @@ function PlayableWorld({ data }: { data: GetWorldResponse }) {
     try {
       const { session } = await api.createSession({ worldId: world.id })
       // Stays busy until the Session page takes over; its Opening starts there.
-      router.push(withScenario(sessionHref(session.id)))
+      router.push(sessionHref(session.id))
     } catch (error) {
       setStartError(asApiError(error, "The Session did not start. Try again."))
       setStarting(false)

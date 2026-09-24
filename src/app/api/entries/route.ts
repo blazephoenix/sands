@@ -7,15 +7,14 @@ import {
   createEntryRequestSchema,
   type CreateEntryResponse,
 } from "@/domain/api"
-import { createEntry } from "@/fixtures/entries"
+import { createEntry } from "@/codex/entries"
+import { getDb } from "@/db/client"
 import { handle, readJson } from "@/server/http"
-import { scenarioGate } from "@/server/scenarios"
 
 export const POST = handle(async (request: Request) => {
-  const blocked = await scenarioGate(request)
-  if (blocked) return blocked
   const body = await readJson(request, createEntryRequestSchema)
-  return Response.json(createEntry(body) satisfies CreateEntryResponse, {
-    status: 201,
-  })
+  return Response.json(
+    createEntry(getDb(), body) satisfies CreateEntryResponse,
+    { status: 201 }
+  )
 })

@@ -1,7 +1,7 @@
 /**
  * The domain contracts: zod schemas and their types, named in CONTEXT.md
- * vocabulary. The fixture store fills them today and the engine fills them
- * later; the UI and the route contracts do not change.
+ * vocabulary. The database (`src/db/`) stores exactly these, and the route
+ * contracts and the UI are built on them.
  */
 export * from "./brief"
 export * from "./entry"

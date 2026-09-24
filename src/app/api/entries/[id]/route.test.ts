@@ -1,16 +1,19 @@
-import { beforeEach, describe, expect, it } from "vitest"
+import { afterAll, beforeEach, describe, expect, it } from "vitest"
 
 import { getWorldResponseSchema, patchEntryResponseSchema } from "@/domain/api"
-import { SESSION_IDS } from "@/fixtures/ids"
-import { resetStore } from "@/fixtures/store"
-import { WORLD_IDS } from "@/fixtures/worlds"
+import { copyId, startSession } from "@/sessions/start-session"
+import { closeDb, getDb } from "@/db/client"
+import { storeLondonWorld } from "@/test/db"
 
 import { GET } from "../../worlds/[id]/route"
 import { PATCH } from "./route"
 
+// DB_URL is `:memory:` under test (vitest.config.ts): each test starts with a fresh, migrated database.
 beforeEach(() => {
-  resetStore()
+  closeDb()
+  storeLondonWorld(getDb(), { id: "w-review", prefix: "wc", variant: "review" })
 })
+afterAll(closeDb)
 
 const params = (id: string) => ({ params: Promise.resolve({ id }) })
 
@@ -44,32 +47,41 @@ describe("PATCH /api/entries/[id] returns fresh solvability, and GET /api/worlds
       passed: false,
       gaps: [{ code: "missing_clue", entryId: "wc-c2" }],
     })
-    expect((await getWorld(WORLD_IDS.review)).world.solvability).toEqual(
-      body.solvability
-    )
+    const stored = await getWorld("w-review")
+    expect(stored.world.solvability).toEqual(body.solvability)
+    expect(stored.entries.find((e) => e.id === "wc-c2")).toEqual(body.entry)
 
     const restored = patchEntryResponseSchema.parse(
       (await patch("wc-c2", { action: "restore", status: "proposed" })).body
     )
     expect(restored.solvability?.passed).toBe(true)
-    expect((await getWorld(WORLD_IDS.review)).world.solvability).toEqual(
+    expect((await getWorld("w-review")).world.solvability).toEqual(
       restored.solvability
     )
   })
 
-  it("answers null solvability for a Session copy, as before", async () => {
-    const { status, body } = await patch(`${SESSION_IDS.midPlay}.mk-c2`, {
+  it("answers null solvability for a Session copy", async () => {
+    const { session } = startSession(getDb(), {
+      worldId: "w-review",
+      mode: "harness",
+    })
+    const { status, body } = await patch(copyId(session.id, "wc-c2"), {
       action: "accept",
     })
     expect(status).toBe(200)
     expect(patchEntryResponseSchema.parse(body).solvability).toBeNull()
   })
 
-  it("still refuses a locked Entry with 409 and leaves the stored result alone", async () => {
-    const before = (await getWorld(WORLD_IDS.review)).world.solvability
+  it("refuses a locked Entry with 409 and leaves the stored result alone", async () => {
+    const before = (await getWorld("w-review")).world.solvability
     const { status, body } = await patch("wc-yard", { action: "reject" })
     expect(status).toBe(409)
     expect(body.error.code).toBe("conflict")
-    expect((await getWorld(WORLD_IDS.review)).world.solvability).toEqual(before)
+    expect((await getWorld("w-review")).world.solvability).toEqual(before)
+  })
+
+  it("answers 404 for an unknown Entry and 422 for a request off the contract", async () => {
+    expect((await patch("nope", { action: "accept" })).status).toBe(404)
+    expect((await patch("wc-c2", { action: "shred" })).status).toBe(422)
   })
 })

@@ -4,9 +4,6 @@
  * every failure becomes an `ApiError` whose message says what happened and
  * what to do.
  *
- * Dev scenarios: when the page URL carries `?scenario=...`, every call
- * forwards it as the `x-sands-scenario` header (see src/fixtures/scenarios.ts).
- *
  *   const { world } = await api.getWorld(id)
  *   for await (const event of api.streamSetup(id, { signal })) { ... }
  */
@@ -30,7 +27,6 @@ import {
 } from "@/domain/api"
 import { setupEventSchema, turnEventSchema } from "@/domain/events"
 import { getSessionResponseSchema } from "@/domain/session-view"
-import { SCENARIO_HEADER, SCENARIO_QUERY } from "@/fixtures/scenarios"
 
 export class ApiError extends Error {
   constructor(
@@ -57,12 +53,6 @@ export function isAbortError(error: unknown) {
   )
 }
 
-/** The scenarios forced on the current page (`?scenario=`), forwarded to every API call. */
-export function currentScenario(): string | null {
-  if (typeof window === "undefined") return null
-  return new URL(window.location.href).searchParams.get(SCENARIO_QUERY)
-}
-
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
   body?: unknown
@@ -78,8 +68,6 @@ async function send(
 ): Promise<Response> {
   const headers: Record<string, string> = { accept }
   if (body !== undefined) headers["content-type"] = "application/json"
-  const scenario = currentScenario()
-  if (scenario) headers[SCENARIO_HEADER] = scenario
 
   let response: Response
   try {

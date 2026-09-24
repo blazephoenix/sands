@@ -3,20 +3,21 @@
  * result), its template Entries and its Sessions. Shared by every page.
  */
 import type { GetWorldResponse } from "@/domain/api"
-import { getWorld, listWorldEntries, sessionSummaries } from "@/fixtures/worlds"
+import { getDb } from "@/db/client"
+import { listWorldEntries } from "@/db/entries"
+import { listSessionSummaries } from "@/db/sessions"
+import { getWorld } from "@/db/worlds"
 import { handle } from "@/server/http"
-import { scenarioGate } from "@/server/scenarios"
 
 type Context = { params: Promise<{ id: string }> }
 
-export const GET = handle(async (request: Request, { params }: Context) => {
-  const blocked = await scenarioGate(request)
-  if (blocked) return blocked
+export const GET = handle(async (_request: Request, { params }: Context) => {
   const { id } = await params
-  const world = getWorld(id)
+  const db = getDb()
+  const world = getWorld(db, id)
   return Response.json({
     world,
-    entries: listWorldEntries(world.id),
-    sessions: sessionSummaries(world.id),
+    entries: listWorldEntries(db, world.id),
+    sessions: listSessionSummaries(db, world.id),
   } satisfies GetWorldResponse)
 })

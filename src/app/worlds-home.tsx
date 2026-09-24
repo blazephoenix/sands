@@ -5,8 +5,7 @@
  * changed and how many Sessions it has, and "New World", which creates a World
  * and opens its Brief.
  *
- * States: loading (Skeleton rows), empty (`?scenario=empty`), error
- * (`?scenario=request-error`, with Retry), list.
+ * States: loading (Skeleton rows), empty, error (with Retry), list.
  */
 import * as React from "react"
 import Link from "next/link"
@@ -51,14 +50,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { SetupStatusBadge } from "@/components/worlds/setup-status-badge"
-import {
-  briefHref,
-  withScenario,
-  worldHref,
-} from "@/components/worlds/world-links"
+import { briefHref, worldHref } from "@/components/worlds/world-links"
 import type { WorldSummary } from "@/domain/api"
 import { api, ApiError, isAbortError } from "@/lib/api-client"
 import { useSingleKeyShortcut } from "@/lib/keyboard"
+import { formatDateTime, fromNow, nowMs } from "@/lib/time"
 
 const NEW_WORLD_SHORTCUT = "n"
 
@@ -106,7 +102,7 @@ export function WorldsHome() {
     setCreateError(null)
     try {
       const { world } = await api.createWorld()
-      router.push(withScenario(briefHref(world.id)))
+      router.push(briefHref(world.id))
     } catch (error) {
       setCreateError(asApiError(error, "The World was not created. Try again."))
       setCreating(false)
@@ -233,10 +229,7 @@ function WorldList({ worlds }: { worlds: WorldSummary[] }) {
       <ItemGroup className="gap-2">
         {worlds.map((world) => (
           <div key={world.id} role="listitem">
-            <Item
-              variant="outline"
-              render={<Link href={withScenario(worldHref(world))} />}
-            >
+            <Item variant="outline" render={<Link href={worldHref(world)} />}>
               <ItemContent className="min-w-0">
                 <ItemTitle
                   className={world.name ? undefined : "text-muted-foreground"}
@@ -246,9 +239,9 @@ function WorldList({ worlds }: { worlds: WorldSummary[] }) {
                 <ItemDescription>
                   <time
                     dateTime={world.updatedAt}
-                    title={new Date(world.updatedAt).toLocaleString()}
+                    title={formatDateTime(world.updatedAt)}
                   >
-                    Updated {relativeTime(world.updatedAt, now)}
+                    Updated {fromNow(world.updatedAt, now)}
                   </time>
                   {" · "}
                   {world.sessionCount === 1
@@ -296,28 +289,10 @@ function WorldListSkeleton() {
 
 /** The current time, refreshed every minute, so "Updated 5 minutes ago" stays true. */
 function useNow() {
-  const [now, setNow] = React.useState(() => Date.now())
+  const [now, setNow] = React.useState(nowMs)
   React.useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 60_000)
+    const timer = window.setInterval(() => setNow(nowMs()), 60_000)
     return () => window.clearInterval(timer)
   }, [])
   return now
-}
-
-const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
-  ["year", 365 * 24 * 60 * 60 * 1000],
-  ["month", 30 * 24 * 60 * 60 * 1000],
-  ["week", 7 * 24 * 60 * 60 * 1000],
-  ["day", 24 * 60 * 60 * 1000],
-  ["hour", 60 * 60 * 1000],
-  ["minute", 60 * 1000],
-]
-
-function relativeTime(iso: string, now: number) {
-  const diff = Date.parse(iso) - now
-  const format = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" })
-  for (const [unit, ms] of RELATIVE_UNITS) {
-    if (Math.abs(diff) >= ms) return format.format(Math.round(diff / ms), unit)
-  }
-  return "just now"
 }

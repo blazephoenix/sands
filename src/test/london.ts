@@ -1,40 +1,225 @@
 /**
- * Entries: fixture data and store operations.
+ * Test data: the 1888 London case (docs/requirements.md §2) as a Brief
+ * document, its validated Brief and the Codex setup would draft for it.
+ * Used only by tests, never loaded by the app.
  *
- * The London Codex for a World, in two variants:
+ * The Codex comes in two variants:
  * - `review`: what setup drafted, mostly `proposed`, with Jev flags the Author
  *   has not dealt with yet, and one Entry already rejected.
  * - `ready`: the same Codex after review: accepted, edited and rejected Entries.
- * Author Entries (from the Brief) are `locked` in both. Session copies and
- * play Entries are built in `sessions.ts`.
- *
- * Every change to a World template Entry re-runs the solvability check
- * (spec §7.2, §8 step 4) and stores the result on the World, so
- * `GET /api/worlds/[id]` returns it and Start follows it.
+ * Author Entries (from the Brief) are `locked` in both.
  */
-import type {
-  CreateEntryRequest,
-  PatchEntryRequest,
-  PatchEntryResponse,
-} from "@/domain/api"
-import type { SolvabilityResult } from "@/domain/world"
-import { checkSolvability } from "@/setup/solvability"
+import { documentToBrief } from "@/brief/from-document"
 import {
-  entryContentSchema,
-  entrySchema,
-  type Entry,
-  type EntryData,
-  type EntryKind,
-  type EntrySource,
-  type EntryStatus,
-  type JevFlag,
+  briefSection,
+  headingBlock,
+  paragraphBlock,
+  sequentialIds,
+} from "@/brief/to-document"
+import type { Brief } from "@/domain/brief"
+import type {
+  Entry,
+  EntryData,
+  EntryKind,
+  EntrySource,
+  EntryStatus,
+  JevFlag,
 } from "@/domain/entry"
+import type { SandsBlock } from "@/editor/schema-config"
+import { dayjs } from "@/lib/time"
 
-import { getStore, newId, nowIso, StoreError } from "./store"
-import { fixtureTime, WORLD_IDS } from "./ids"
-import { getWorld, listWorldEntries, saveWorld } from "./worlds"
+const EPOCH = "2026-09-21T09:00:00.000Z"
 
-type Variant = "review" | "ready"
+/** A fixed timestamp `minutes` after the test epoch. */
+export function testTime(minutes: number) {
+  return dayjs(EPOCH).add(minutes, "minute").toISOString()
+}
+
+/**
+ * The 1888 London Brief as a Brief editor document. `prefix` keeps block ids
+ * unique per World. Custom fields and Hidden fields included: Max Rober's
+ * backstory and motive are the Hidden truth.
+ */
+export function londonBriefDocument(prefix: string): SandsBlock[] {
+  const ids = sequentialIds(`${prefix}-b`)
+  const id = (name: string) => `${prefix}-${name}`
+  return [
+    ...briefSection(
+      "setting",
+      { place: "London", period: "Autumn 1888" },
+      { ids, blockId: id("setting") }
+    ),
+    ...briefSection(
+      "character",
+      {
+        name: "Jacob Flannery",
+        role: "Detective, called over from New York for a special case",
+        age: "38",
+        personality:
+          "Weary and sharp-eyed. Drinks more than he admits, and knows it.\nPatient with witnesses, impatient with rank.",
+        backstory:
+          "Three merchants have been killed in London in as many weeks. Scotland Yard has sent for an outsider with a reputation for difficult cases.\nHe left a daughter in Brooklyn and writes to her every Sunday.",
+        aliases: ["The American", "Flannery"],
+      },
+      { ids, blockId: id("jacob"), isPlayer: true }
+    ),
+    ...briefSection(
+      "character",
+      {
+        name: "Geoffrey James",
+        role: "Police captain, Scotland Yard",
+        age: "54",
+        personality:
+          "Gruff, proud of the Yard, protective of his men. Wants the case closed by Friday.",
+        backstory:
+          "Twenty-six years on the force. Resents that the Home Office sent for an American.",
+        aliases: ["Captain James", "the Captain"],
+      },
+      { ids, blockId: id("geoffrey") }
+    ),
+    ...briefSection(
+      "character",
+      {
+        name: "Amanda Hopkins",
+        role: "Second in command",
+        age: "41",
+        personality: "Precise, dry-humoured, trusts evidence over rank.",
+        backstory:
+          "Kept the case files of all three killings. She suspects the victims were connected by trade.",
+        aliases: ["Hopkins"],
+      },
+      { ids, blockId: id("amanda") }
+    ),
+    ...briefSection(
+      "character",
+      {
+        name: "Thomas Whitlock",
+        role: "Draper, first victim",
+        age: "52",
+        personality: "Genial and careless with money.",
+        backstory: "Found in his shop on Whitechapel High Street.",
+      },
+      { ids, blockId: id("whitlock") }
+    ),
+    ...briefSection(
+      "character",
+      {
+        name: "Edmund Carrow",
+        role: "Tea merchant, second victim",
+        age: "47",
+        personality: "Pious in public, ruthless in business.",
+        backstory:
+          "Found at dawn outside his warehouse near Spitalfields Market.",
+      },
+      { ids, blockId: id("carrow") }
+    ),
+    ...briefSection(
+      "character",
+      {
+        name: "Silas Pembury",
+        role: "Ship's chandler, third victim",
+        age: "60",
+        personality: "Suspicious of everyone, kept meticulous accounts.",
+        backstory: "Found on the quay at St Katharine Docks.",
+      },
+      { ids, blockId: id("pembury") }
+    ),
+    ...briefSection(
+      "character",
+      {
+        name: "Max Rober",
+        role: "Clerk at a shipping office",
+        age: "21",
+        personality:
+          "Quiet, polite and meticulous. A cold fury under the courtesy.",
+        backstory:
+          "Son of Josiah Rober, a wool merchant who threw him and his mother out when he was fifteen. His mother died that winter.\nHe kills merchants as revenge against his father, and against every merchant who reminds him of him.",
+        aliases: ["the clerk"],
+      },
+      {
+        ids,
+        blockId: id("max"),
+        hiddenFields: ["backstory"],
+        keyFacts: [
+          {
+            label: "Motive",
+            text: "Revenge against his father, a merchant.",
+            hidden: true,
+          },
+        ],
+      }
+    ),
+    ...briefSection(
+      "location",
+      {
+        name: "Scotland Yard",
+        description:
+          "Great Scotland Yard, Whitehall. Gaslit corridors, damp coats, a captain who wants results.",
+      },
+      { ids, blockId: id("yard") }
+    ),
+    ...briefSection(
+      "arc",
+      {
+        name: "Introduction",
+        description:
+          "Jacob lands in London, meets the police and learns the state of the case.",
+        exitConditions: ["Jacob has read the case file and met Captain James."],
+      },
+      { ids, blockId: id("arc-1") }
+    ),
+    ...briefSection(
+      "arc",
+      {
+        name: "Midpoint",
+        description:
+          "The investigation begins. The Player discovers evidence and backstories.",
+      },
+      { ids, blockId: id("arc-2") }
+    ),
+    ...briefSection(
+      "arc",
+      { name: "End", description: "The killer is caught." },
+      { ids, blockId: id("arc-3") }
+    ),
+    ...briefSection(
+      "ending",
+      { condition: "The killer is caught and arrested." },
+      { ids, blockId: id("ending") }
+    ),
+    ...briefSection(
+      "voice",
+      {
+        guidelines:
+          "Close third person on Jacob. Short sentences. Fog, not gore: the killings are never shown on the page.",
+        samplePassages:
+          "The river smelled of coal and something older. Jacob turned up his collar and did not look at the body until he had to.",
+      },
+      { ids, blockId: id("voice") }
+    ),
+    headingBlock(id("notes"), "Notes for the Writer"),
+    paragraphBlock(
+      ids(),
+      "The Yard is under pressure from the newspapers. Every constable has an opinion about the Irish dockers; none of them is right."
+    ),
+  ]
+}
+
+/** A Brief document and the validated Brief it converts to. Throws if the test data breaks §7.1. */
+export function londonBrief(prefix: string): {
+  briefDoc: SandsBlock[]
+  brief: Brief
+} {
+  const briefDoc = londonBriefDocument(prefix)
+  const { validation, issues } = documentToBrief(briefDoc)
+  if (!validation.success)
+    throw new Error(
+      `The London Brief test data is invalid: ${issues.map((i) => i.message).join(" ")}`
+    )
+  return { briefDoc, brief: validation.brief }
+}
+
+export type Variant = "review" | "ready"
 
 type Spec<K extends EntryKind> = {
   kind: K
@@ -531,7 +716,7 @@ export function londonEntries(
     }
     const status =
       typeof spec.status === "string" ? spec.status : spec.status[variant]
-    const created = fixtureTime(variant === "ready" ? 30 + index : 1470 + index)
+    const created = testTime(variant === "ready" ? 30 + index : 1470 + index)
     return {
       id: id(spec.key),
       worldId,
@@ -551,158 +736,7 @@ export function londonEntries(
       updatedAt:
         status === "proposed" || status === "locked"
           ? created
-          : fixtureTime(variant === "ready" ? 90 : 1500),
+          : testTime(variant === "ready" ? 90 : 1500),
     } as Entry
   })
-}
-
-export function seedEntries(): Entry[] {
-  // Session copies and play Entries are seeded by sessions.ts, alongside their Sessions.
-  return [
-    ...londonEntries(WORLD_IDS.ready, "mk", "ready"),
-    ...londonEntries(WORLD_IDS.review, "wc", "review"),
-  ]
-}
-
-// Operations
-
-export function getEntry(id: string): Entry {
-  const entry = getStore().entries.get(id)
-  if (!entry)
-    throw new StoreError(
-      "not_found",
-      `There is no Entry "${id}". Reload to see the current Codex.`
-    )
-  return entry
-}
-
-export function listSessionEntries(sessionId: string): Entry[] {
-  return [...getStore().entries.values()].filter(
-    (entry) => entry.sessionId === sessionId
-  )
-}
-
-export function saveEntry(entry: Entry): Entry {
-  const parsed = entrySchema.parse(entry)
-  getStore().entries.set(parsed.id, parsed)
-  return parsed
-}
-
-/**
- * Re-runs the solvability check over a World's template Entries and stores
- * the result on the World. Only a World past setup has a result to keep: a
- * World in draft has no Entries yet, and while setup runs (drafting) setup
- * owns the check. For those, the stored result comes back unchanged.
- */
-export function recheckSolvability(worldId: string): SolvabilityResult | null {
-  const world = getWorld(worldId)
-  if (
-    !world.brief ||
-    (world.setupStatus !== "review" && world.setupStatus !== "ready")
-  )
-    return world.solvability
-  const checkedAt = nowIso()
-  const solvability: SolvabilityResult = {
-    ...checkSolvability({
-      arcs: world.brief.arcs,
-      entries: listWorldEntries(world.id),
-    }),
-    checkedAt,
-  }
-  saveWorld({ ...world, solvability, updatedAt: checkedAt })
-  return solvability
-}
-
-/**
- * Accept, reject, restore, edit or mark-seen one Entry (World template or
- * Session copy). Locked Entries come from the Brief and cannot change.
- *
- * `solvability` in the result: for a World template Entry, the World's result
- * re-checked after this change and stored (mark-seen changes nothing the check
- * reads, so it returns the stored result); for a Session copy, null, since
- * Session edits take effect from the next Turn.
- */
-export function patchEntry(
-  id: string,
-  request: PatchEntryRequest
-): PatchEntryResponse {
-  const entry = getEntry(id)
-  if (entry.status === "locked") {
-    throw new StoreError(
-      "conflict",
-      `${entry.name || "This Entry"} comes from the Brief and is locked. Change it in the Brief instead.`
-    )
-  }
-  const updatedAt = nowIso()
-  let next: Entry
-  switch (request.action) {
-    case "accept":
-      next = { ...entry, status: "accepted", updatedAt }
-      break
-    case "reject":
-      next = { ...entry, status: "rejected", updatedAt }
-      break
-    case "restore":
-      next = { ...entry, status: request.status, updatedAt }
-      break
-    case "edit": {
-      if (request.content.kind !== entry.kind) {
-        throw new StoreError(
-          "invalid",
-          `This Entry is a ${entry.kind.replaceAll("_", " ")}, not a ${request.content.kind.replaceAll("_", " ")}.`
-        )
-      }
-      next = {
-        ...entry,
-        ...request.content,
-        status: "edited",
-        updatedAt,
-      } as Entry
-      break
-    }
-    case "mark-seen":
-      next = { ...entry, seenAt: entry.seenAt ?? updatedAt }
-      break
-  }
-  const saved = saveEntry(next)
-  if (saved.sessionId !== null) return { entry: saved, solvability: null }
-  const solvability =
-    request.action === "mark-seen"
-      ? getWorld(saved.worldId).solvability
-      : recheckSolvability(saved.worldId)
-  return { entry: saved, solvability }
-}
-
-/** Stores an Entry the Author added in the Entry editor; a World Entry re-checks solvability, as `patchEntry` does. */
-export function createEntry(request: CreateEntryRequest): PatchEntryResponse {
-  const world = getWorld(request.worldId)
-  if (request.sessionId !== null) {
-    const session = getStore().sessions.get(request.sessionId)
-    if (!session || session.worldId !== world.id) {
-      throw new StoreError(
-        "not_found",
-        `There is no Session "${request.sessionId}" in this World.`
-      )
-    }
-  }
-  const content = entryContentSchema.parse(request.content)
-  const now = nowIso()
-  const saved = saveEntry({
-    ...content,
-    id: newId("entry"),
-    worldId: world.id,
-    sessionId: request.sessionId,
-    templateId: null,
-    source: "author",
-    sourceTurn: null,
-    status: "accepted",
-    jevFlags: [],
-    seenAt: null,
-    createdAt: now,
-    updatedAt: now,
-  } as Entry)
-  return {
-    entry: saved,
-    solvability: saved.sessionId === null ? recheckSolvability(world.id) : null,
-  }
 }

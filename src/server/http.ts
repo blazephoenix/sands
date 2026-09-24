@@ -5,7 +5,7 @@
 import { z } from "zod"
 
 import type { ApiErrorBody } from "@/domain/api"
-import { FixtureError, StoreError } from "@/fixtures/store"
+import { StoreError } from "@/db/errors"
 
 export class HttpError extends Error {
   constructor(
@@ -68,8 +68,6 @@ export function handle<Args extends unknown[]>(
         return apiError(error.status, error.code, error.message)
       if (error instanceof StoreError)
         return apiError(STORE_STATUS[error.code], error.code, error.message)
-      // A broken fixture is a developer error: let Next.js show it in full.
-      if (error instanceof FixtureError) throw error
       console.error("[sands] unhandled route error", error)
       return apiError(
         500,

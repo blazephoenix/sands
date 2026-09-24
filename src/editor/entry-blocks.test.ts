@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest"
 
 import { ENTRY_KINDS, entryContentOf, type Entry } from "@/domain/entry"
-import { londonEntries } from "@/fixtures/entries"
+import { londonEntries } from "@/test/london"
 
 import {
   documentToEntries,
@@ -54,7 +54,7 @@ function withField(
 }
 
 describe("Entries <-> Entry sections", () => {
-  it("covers all nine kinds in the fixture Codex", () => {
+  it("covers all nine kinds in the London Codex", () => {
     expect(new Set(entries.map((e) => e.kind))).toEqual(new Set(ENTRY_KINDS))
   })
 

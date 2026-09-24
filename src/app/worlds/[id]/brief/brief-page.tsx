@@ -61,7 +61,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { SetupStatusBadge } from "@/components/worlds/setup-status-badge"
-import { setupReviewHref, withScenario } from "@/components/worlds/world-links"
+import { setupReviewHref } from "@/components/worlds/world-links"
 import { documentToBrief } from "@/brief/from-document"
 import type { BriefBlockType } from "@/brief/fields"
 import type { SaveBriefRequest } from "@/domain/api"
@@ -95,6 +95,7 @@ import {
   type SetupRun,
 } from "./setup-progress"
 import { WorldName } from "./world-name"
+import { dayjs, formatTimeWithSeconds, nowMs } from "@/lib/time"
 
 export const RUN_SETUP_SHORTCUT = "Mod-Enter"
 
@@ -150,10 +151,7 @@ export function BriefPage({ worldId }: { worldId: string }) {
               <EmptyDescription>{load.error.message}</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <Button
-                render={<Link href={withScenario("/")} />}
-                nativeButton={false}
-              >
+              <Button render={<Link href={"/"} />} nativeButton={false}>
                 Go to your Worlds
               </Button>
             </EmptyContent>
@@ -242,7 +240,8 @@ function initialContent(world: World): InitialContent {
     restored: false,
     staleBackup: backup !== null,
   }
-  if (!backup || backup.at <= Date.parse(world.updatedAt)) return fromServer
+  if (!backup || backup.at <= dayjs(world.updatedAt).valueOf())
+    return fromServer
   const same =
     backup.name === world.name &&
     JSON.stringify(backup.briefDoc) === JSON.stringify(world.briefDoc)
@@ -411,7 +410,7 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
     writeBriefBackup(worldId, {
       name: draft.name,
       briefDoc: draft.briefDoc,
-      at: Date.now(),
+      at: nowMs(),
     })
   }, [draft, worldId])
 
@@ -565,7 +564,7 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
     setConfirmKey((k) => k + 1)
     setSaveAnnouncement(
       saved
-        ? `Brief saved at ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}.`
+        ? `Brief saved at ${formatTimeWithSeconds(nowMs())}.`
         : `Not saved. ${statusMessage(autosave.getStatus())}`
     )
   }
@@ -621,7 +620,7 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
         signal: controller.signal,
       })) {
         // Anchor the ticking clock to the server's stream clock, so a running step never overshoots its final time.
-        const receivedAt = Date.now()
+        const receivedAt = nowMs()
         setStreamStartedAt((start) => start ?? receivedAt - event.at)
         setRun((current) => reduceSetupEvent(current, event))
         if (event.type === "result") {
@@ -629,7 +628,7 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
           setWorld(event.world)
           clearBriefBackup(worldId)
           window.setTimeout(
-            () => router.push(withScenario(setupReviewHref(worldId))),
+            () => router.push(setupReviewHref(worldId)),
             SUCCESS_PAUSE_MS
           )
         }
@@ -718,7 +717,7 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
         {locked ? (
           world.setupStatus === "drafting" ? null : (
             <Button
-              render={<Link href={withScenario(setupReviewHref(worldId))} />}
+              render={<Link href={setupReviewHref(worldId)} />}
               nativeButton={false}
             >
               Open setup review

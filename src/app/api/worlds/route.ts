@@ -1,6 +1,5 @@
 /**
  * GET /api/worlds: the Worlds home list (not in spec §5.2).
- * The `empty` scenario answers with no Worlds.
  *
  * POST /api/worlds: create a World in `draft` from a Brief document, or from
  * the new-Brief template when none is given (spec §7.1).
@@ -10,23 +9,24 @@ import {
   type CreateWorldResponse,
   type ListWorldsResponse,
 } from "@/domain/api"
-import { createWorld, worldSummaries } from "@/fixtures/worlds"
+import { getDb } from "@/db/client"
+import { listWorldSummaries } from "@/db/worlds"
+import { createWorld } from "@/worlds/worlds"
 import { handle, readJson } from "@/server/http"
-import { hasScenario, scenarioGate } from "@/server/scenarios"
 
-export const GET = handle(async (request: Request) => {
-  const blocked = await scenarioGate(request)
-  if (blocked) return blocked
-  const worlds = hasScenario(request, "empty") ? [] : worldSummaries()
-  return Response.json({ worlds } satisfies ListWorldsResponse)
+/** Read the database on every request; never prerender the list at build. */
+export const dynamic = "force-dynamic"
+
+export const GET = handle(async () => {
+  return Response.json({
+    worlds: listWorldSummaries(getDb()),
+  } satisfies ListWorldsResponse)
 })
 
 export const POST = handle(async (request: Request) => {
-  const blocked = await scenarioGate(request)
-  if (blocked) return blocked
   const body = await readJson(request, createWorldRequestSchema)
   return Response.json(
-    { world: createWorld(body) } satisfies CreateWorldResponse,
+    { world: createWorld(getDb(), body) } satisfies CreateWorldResponse,
     { status: 201 }
   )
 })

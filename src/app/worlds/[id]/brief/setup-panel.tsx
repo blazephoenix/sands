@@ -28,6 +28,7 @@ import {
   type SetupRun,
   type StepState,
 } from "./setup-progress"
+import { nowMs } from "@/lib/time"
 
 function formatElapsed(ms: number) {
   const seconds = Math.max(0, ms) / 1000
@@ -38,10 +39,10 @@ function formatElapsed(ms: number) {
 
 /** Milliseconds since `start`, refreshed while `running`. */
 function useElapsed(start: number | null, running: boolean) {
-  const [now, setNow] = React.useState(() => Date.now())
+  const [now, setNow] = React.useState(nowMs)
   React.useEffect(() => {
     if (!running) return
-    const timer = window.setInterval(() => setNow(Date.now()), 100)
+    const timer = window.setInterval(() => setNow(nowMs()), 100)
     return () => window.clearInterval(timer)
   }, [running])
   return start === null ? 0 : now - start

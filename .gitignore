@@ -39,3 +39,7 @@ next-env.d.ts
 # sqlite
 /data/*
 !/data/.gitkeep
+
+# Claude Code worktrees and any pnpm store an install drops beside them
+/.claude/worktrees/
+/.claude/.pnpm-store/
