@@ -9,18 +9,15 @@ import type { PlayerState } from "@/domain/session"
 import { ENGINE_CONFIG } from "./config"
 
 /**
- * The state a Session starts in, from its Codex. The start Location is the
- * live Location marked `isStart`, else the first live Location. Null when the
- * Codex has no live Location to start in.
+ * The state a Session starts in, from its Codex: at the live Location marked
+ * `isStart`. Null when there is none; solvability reports that as the
+ * `no_start_location` Gap, so a solvable World always has one.
  */
 export function initialState(entries: readonly Entry[]): PlayerState | null {
-  const locations = entries.filter(
-    (entry) => entry.kind === "location" && isLiveEntry(entry)
+  const start = entries.find(
+    (entry) =>
+      entry.kind === "location" && isLiveEntry(entry) && entry.data.isStart
   )
-  const start =
-    locations.find(
-      (entry) => entry.kind === "location" && entry.data.isStart
-    ) ?? locations[0]
   return start ? startingState(start.id) : null
 }
 
