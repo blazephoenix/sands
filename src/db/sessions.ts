@@ -60,7 +60,7 @@ export function getSession(db: Db, id: string): Session {
   if (!row)
     throw new StoreError(
       "not_found",
-      `There is no Session "${id}". Start a new one from its World.`
+      `There is no Session "${id}". It or its World may have been deleted; go back to your Worlds.`
     )
   return sessionFromRow(row)
 }
