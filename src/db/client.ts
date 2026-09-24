@@ -3,7 +3,13 @@
  *
  * `getDb()` opens `DB_URL` once per server process, with WAL and foreign keys
  * on, and applies any pending migrations from `src/db/migrations/` before
- * the first query, so `pnpm dev` needs no manual step. The handle lives on
+ * the first query, so `pnpm dev` needs no manual step. It also returns any
+ * World a stopped server left `drafting` to `draft`
+ * (`releaseInterruptedSetups`): setup runs only inside the server process,
+ * so no run survives a restart. This assumes one process runs setups against
+ * a database. A second process opening the same file (a future Replay
+ * runner, spec §12) would release a run the server is still making; that run
+ * then fails at its store step with a conflict and stores nothing. The handle lives on
  * `globalThis`, so every route handler (each its own module graph in dev)
  * shares it and it survives hot reloads. A migration added while the dev
  * server runs is applied on its next start.
@@ -22,6 +28,8 @@ import type { RunResult } from "better-sqlite3"
 import { drizzle } from "drizzle-orm/better-sqlite3"
 import { migrate } from "drizzle-orm/better-sqlite3/migrator"
 import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core"
+
+import { releaseInterruptedSetups } from "./worlds"
 
 /** The database or a transaction inside it. */
 export type Db = BaseSQLiteDatabase<"sync", RunResult>
@@ -63,6 +71,12 @@ export function getDb(): Db {
   if (current?.url === url) return current.db
   current?.db.$client.close()
   const db = openDatabase(url)
+  const released = releaseInterruptedSetups(db)
+  if (released > 0) {
+    console.info(
+      `[sands] returned ${released} World(s) left drafting by a stopped server to draft`
+    )
+  }
   globalThis.__sandsDb = { url, db }
   return db
 }

@@ -397,7 +397,7 @@ Each rule has a feedback template. A Rule question the draft fails at p ≥ 0.8 
 - A turn's state is saved only when a passage ships.
 - A Grok or Jev failure on the critical path retries once, then the turn fails with a visible error and no state change. **A passage Jev did not judge is never shipped.**
 - A background failure is recorded in the turn's log (`background_status = failed`); play continues. Arc and pacing checks run again on the next turn.
-- Setup failures leave the world in `draft` with the error shown; the author can retry.
+- Setup failures leave the world in `draft` with the error shown; the author can retry. A setup cut off by the server stopping leaves the world `drafting`; when the server next opens the database, every `drafting` world returns to `draft`, since setup runs only inside the server process (#3). This assumes one process runs setups against a database file.
 
 ---
 
