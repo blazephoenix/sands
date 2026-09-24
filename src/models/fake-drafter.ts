@@ -22,13 +22,9 @@ import {
   type DrafterResult,
 } from "./drafter"
 
-export type FakeDrafterOutput = unknown
-
 export interface FakeDrafterOptions {
   /** Answers by call name: one answer for every call, or one per call in order. */
-  outputs?: Readonly<Record<string, FakeDrafterOutput | FakeDrafterOutput[]>>
-  /** The model id the fake reports. */
-  model?: string
+  outputs?: Readonly<Record<string, unknown>>
 }
 
 export interface FakeDrafterCall {
@@ -37,7 +33,8 @@ export interface FakeDrafterCall {
 }
 
 export class FakeDrafter implements Drafter {
-  readonly model: string
+  /** The model id the fake reports. */
+  readonly model = "fake-drafter"
   /** Every successful call, oldest first. */
   readonly calls: FakeDrafterCall[] = []
   readonly #options: FakeDrafterOptions
@@ -45,7 +42,6 @@ export class FakeDrafter implements Drafter {
 
   constructor(options: FakeDrafterOptions = {}) {
     this.#options = options
-    this.model = options.model ?? "fake-drafter"
   }
 
   /** The calls of one name, oldest first. */

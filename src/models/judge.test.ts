@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vitest"
 
 import { FakeJudge } from "./fake-judge"
 import { choice, JudgeError, noul } from "./judge"
-import { TypeSafeJudge, type JudgeLogger } from "./typesafe-judge"
+import type { ModelLogger } from "./logger"
+import { TypeSafeJudge } from "./typesafe-judge"
 
 const state = { drafts: ["Nell set down her basket of violets."] }
 
@@ -110,7 +111,7 @@ describe("TypeSafeJudge", () => {
           headers: { "content-type": "application/json" },
         })
     )
-    const logger: JudgeLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
+    const logger: ModelLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
     const judge = new TypeSafeJudge({
       model,
       logger,

@@ -19,15 +19,10 @@ import {
   type JudgeRequest,
   type JudgeResult,
 } from "./judge"
+import { consoleLogger, type ModelLogger } from "./logger"
 
 /** Aliases resolve to a versioned id, so a different reported id is expected. */
 const ALIASES = new Set(["jev-latest", "jev-preview"])
-
-export interface JudgeLogger {
-  info(message: string): void
-  warn(message: string): void
-  error(message: string): void
-}
 
 export interface TypeSafeJudgeOptions {
   /**
@@ -42,7 +37,7 @@ export interface TypeSafeJudgeOptions {
   maxRetries?: number
   /** Timeout per attempt in milliseconds. SDK default: 10 000. */
   timeoutMs?: number
-  logger?: JudgeLogger
+  logger?: ModelLogger
   /** Passed to the SDK client; tests use it to inject `fetch` and `apiKey`. */
   client?: TypeSafeClientConfig
 }
@@ -50,7 +45,7 @@ export interface TypeSafeJudgeOptions {
 export class TypeSafeJudge implements Judge {
   readonly model: string
   readonly #client: TypeSafeClient
-  readonly #logger: JudgeLogger
+  readonly #logger: ModelLogger
 
   constructor(options: TypeSafeJudgeOptions = {}) {
     this.#client = new TypeSafeClient({
@@ -110,10 +105,4 @@ export class TypeSafeJudge implements Judge {
       latencyMs,
     }
   }
-}
-
-const consoleLogger: JudgeLogger = {
-  info: (message) => console.info(message),
-  warn: (message) => console.warn(message),
-  error: (message) => console.error(message),
 }

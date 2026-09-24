@@ -20,30 +20,29 @@ import {
   type DrafterRequest,
   type DrafterResult,
 } from "./drafter"
-import type { JudgeLogger } from "./typesafe-judge"
+import { consoleLogger, type ModelLogger } from "./logger"
 
-type Reasoning = Parameters<typeof generateText>[0]["reasoning"]
+/**
+ * How much the model reasons before answering: `low`. At the provider's
+ * default (`medium`) a tiny call took 4.6 s, and setup's calls are far larger
+ * (research §3: at `low`, the World call took 21 s and Story logic 28 s).
+ */
+const REASONING = "low"
 
 export interface OpenAIDrafterOptions {
   /** Defaults to `openai(DRAFTER_MODEL)`. Tests pass a mock model. */
   model?: LanguageModel
-  /**
-   * How much the model reasons before answering. Default `low`: at the
-   * provider's default (`medium`) a tiny call took 4.6 s, and setup's calls
-   * are far larger (research §3).
-   */
-  reasoning?: Reasoning
   /** Retries after the first attempt. Default 1, as spec §13 retries a model failure once. */
   maxRetries?: number
   /** Timeout per call in milliseconds. Default 180 000: setup's calls take tens of seconds. */
   timeoutMs?: number
-  logger?: JudgeLogger
+  logger?: ModelLogger
 }
 
 export class OpenAIDrafter implements Drafter {
   readonly #model: LanguageModel
   readonly #options: OpenAIDrafterOptions
-  readonly #logger: JudgeLogger
+  readonly #logger: ModelLogger
 
   constructor(options: OpenAIDrafterOptions = {}) {
     this.#options = options
@@ -85,7 +84,7 @@ export class OpenAIDrafter implements Drafter {
         instructions: request.instructions,
         prompt: request.prompt,
         output: Output.object({ schema: request.schema, name: request.call }),
-        reasoning: this.#options.reasoning ?? "low",
+        reasoning: REASONING,
         maxRetries: this.#options.maxRetries ?? 1,
         timeout: this.#options.timeoutMs ?? 180_000,
         abortSignal: options.signal,
@@ -115,10 +114,4 @@ export class OpenAIDrafter implements Drafter {
       latencyMs,
     }
   }
-}
-
-const consoleLogger: JudgeLogger = {
-  info: (message) => console.info(message),
-  warn: (message) => console.warn(message),
-  error: (message) => console.error(message),
 }

@@ -5,7 +5,7 @@ import { z } from "zod"
 import { DrafterError } from "./drafter"
 import { FakeDrafter } from "./fake-drafter"
 import { OpenAIDrafter } from "./openai-drafter"
-import type { JudgeLogger } from "./typesafe-judge"
+import type { ModelLogger } from "./logger"
 
 const schema = z.object({ names: z.array(z.string()) })
 const request = {
@@ -72,7 +72,7 @@ function mockModel(text: string) {
   })
 }
 
-function logger(): JudgeLogger & { lines: string[] } {
+function logger(): ModelLogger & { lines: string[] } {
   const lines: string[] = []
   return {
     lines,
