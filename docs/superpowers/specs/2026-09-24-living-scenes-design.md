@@ -74,7 +74,7 @@ The Player character says only what the Player's input says or clearly implies, 
 
 `WRITER_INSTRUCTIONS` opens with how to write, then keeps the eight rules:
 
-- Write like a novel: paragraph lengths follow the scene (a one-line paragraph for a beat, longer ones for description); dialogue on its own lines, each speaker a new paragraph.
+- Write like a novel, in Markdown: paragraphs separated by a blank line, their lengths following the scene (a one-line paragraph for a beat, longer ones for description); dialogue on its own lines, each speaker a new paragraph; *italics* for emphasis, thoughts and titles; `* * *` for a scene break. No headings, lists or tables.
 - In every Passage someone other than the Player character acts or speaks, or the world changes; end on something the Player can respond to.
 - Make a way onward visible: at least one of the exits, or a person who could be spoken to.
 - Concrete, specific detail over atmosphere.
@@ -91,9 +91,14 @@ The Session page already shows clickable suggestions after the Opening (`FirstAc
 - **Shown under the latest Passage after every Turn**, not only the Opening, while the Player has not started typing. A click fills the input; it does not send.
 - Same component and look as today, so no prototype round; the Author can ask for one.
 
-### 3.8 The story pane keeps paragraphs
+### 3.8 Passages render as Markdown
 
-A Passage renders as one `<p>` per paragraph (split on blank lines); the word-by-word reveal keeps the breaks.
+The Author's request: Passages read like a book, not one paragraph tag.
+
+- **Renderer:** `react-markdown` 10.1 (MIT, React ≥ 18), a new dependency. It never renders raw HTML by default. Allowed elements: paragraph, emphasis, strong, line break and thematic break (the scene break); anything else is unwrapped to its text, so a stray heading or list from the Writer shows as plain prose.
+- **Where:** the story pane, and each Draft in the harness pane, so the Author judges Drafts as the Player would read them.
+- **Reveal:** paragraph by paragraph, each fading in, instead of word by word. Word-by-word across inline Markdown (a word half in italics) is fiddly and gains little; the Author can ask to keep word-by-word inside each paragraph.
+- **The Judge reads the Markdown source.** Asterisks do not change a Rule's meaning; nothing to strip.
 
 ## 4. Not changed
 
@@ -103,8 +108,8 @@ A Passage renders as one `<p>` per paragraph (split on blank lines); the word-by
 
 ## 5. Testing
 
-- **Unit:** exits in the Directive; the Momentum question on every Draft and its 0.25 threshold; the new Knowledge and Location questions and `known_people` in the Judge state; Agency's new criterion; the suggestions function; paragraph splitting in the story pane.
-- **Real run, once, after it is built:** one Opening and three Turns in the Rajesh Khanna World. Pass: most Turns ship in one or two Rounds, Momentum fails only static Drafts, and the Passages read with paragraphs and dialogue. About 2 Grok calls and 1 Jev call per Round.
+- **Unit:** exits in the Directive; the Momentum question on every Draft and its 0.25 threshold; the new Knowledge and Location questions and `known_people` in the Judge state; Agency's new criterion; the suggestions function; the Passage Markdown component (allowed elements, a stray heading unwrapped, no raw HTML).
+- **Real run, once, after it is built:** one Opening and three Turns in the Rajesh Khanna World. Pass: most Turns ship in one or two Rounds, Momentum fails only static Drafts, and the Passages read as Markdown with paragraphs and dialogue. About 2 Grok calls and 1 Jev call per Round.
 
 ## 6. Where it lands
 
