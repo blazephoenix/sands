@@ -29,6 +29,8 @@ export const solvabilityGapSchema = z.object({
   code: z.enum([
     /** No live Decisive action wins the story. */
     "no_winning_action",
+    /** No live Location is the start location: the Player has nowhere to begin. */
+    "no_start_location",
     "missing_clue",
     "red_herring_required",
     "unreachable_clue",

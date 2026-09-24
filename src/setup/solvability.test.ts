@@ -259,11 +259,60 @@ describe("reaching a Clue by Location", () => {
     )
     expect(gaps.map((g) => [g.code, g.entryId, g.message])).toEqual([
       [
+        "no_start_location",
+        null,
+        "There is no start Location: the Player has nowhere to begin. Set Start location to yes on a Location.",
+      ],
+      [
         "unreachable_clue",
         "c1",
         "C1 sits at St Katharine Docks, but no Location is the start location. Set Start location to yes on one.",
       ],
     ])
+  })
+})
+
+describe("the start Location", () => {
+  it("fails a World with no Location at all, even when every Clue is revealed by a character", () => {
+    const input = world()
+    const entries = input.entries
+      .filter((e) => e.kind !== "location")
+      .map((e) =>
+        e.id === "c1"
+          ? { ...e, data: { ...e.data, locationId: null, knownBy: ["nell"] } }
+          : e
+      ) as Entry[]
+    const knows = entry("knowledge", "k-c1", "Nell found the page", {
+      characterId: "nell",
+      fact: "",
+      minBand: "low",
+      clueId: "c1",
+    })
+    expect(
+      checkSolvability({ ...input, entries: [...entries, knows] })
+    ).toEqual({
+      passed: false,
+      gaps: [
+        {
+          code: "no_start_location",
+          message:
+            "There is no start Location: the Player has nowhere to begin. Set Start location to yes on a Location.",
+          entryId: null,
+          arcIndex: null,
+        },
+      ],
+    })
+  })
+
+  it("points at a removed start Location, so the Author can restore it", () => {
+    const { gaps } = checkSolvability(withStatus(world(), "yard", "rejected"))
+    expect(gaps[0]).toEqual({
+      code: "no_start_location",
+      message:
+        "There is no start Location: the Player has nowhere to begin. Restore Scotland Yard, or set Start location to yes on another Location.",
+      entryId: "yard",
+      arcIndex: null,
+    })
   })
 })
 

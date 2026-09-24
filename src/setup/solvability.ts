@@ -5,6 +5,8 @@
  *
  * The World is solvable when:
  * - some live Decisive action wins the story (On success is win);
+ * - some live Location is the start location, so the Player has somewhere
+ *   to begin (#3), whether or not a Clue lies at a Location;
  * - every live Decisive action has enough usable Clues: all it lists in
  *   Requires, or Clues needed (`requiresCount`, spec §6) of them when set. A
  *   Clue is usable when it exists (is not rejected), is not a red herring, and
@@ -24,8 +26,8 @@
  *
  * Each gap is a sentence or two the Author can act on, and names the Entry to
  * jump to: the Clue, the Decisive action when the Clue does not exist, or a
- * rejected Entry that restoring would fix (a winning Decisive action, or an
- * Exit condition of the Arc).
+ * rejected Entry that restoring would fix (a winning Decisive action, the
+ * start Location, or an Exit condition of the Arc).
  */
 import { isLiveEntry, type Entry, type EntryOfKind } from "@/domain/entry"
 import type { SolvabilityGap, SolvabilityResult } from "@/domain/world"
@@ -229,6 +231,21 @@ export function checkSolvability(input: SolvabilityInput): SolvabilityCheck {
     gap(
       "no_winning_action",
       `Nothing in this World wins the story. ${fix}`,
+      removed?.id ?? null
+    )
+  }
+
+  if (starts.length === 0) {
+    const removed = input.entries.find(
+      (entry): entry is EntryOfKind<"location"> =>
+        entry.kind === "location" && entry.data.isStart
+    )
+    const fix = removed
+      ? `Restore ${removed.name.trim() || "the start Location"}, or set Start location to yes on another Location.`
+      : "Set Start location to yes on a Location."
+    gap(
+      "no_start_location",
+      `There is no start Location: the Player has nowhere to begin. ${fix}`,
       removed?.id ?? null
     )
   }
