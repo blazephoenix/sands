@@ -220,6 +220,41 @@ describe("the Solvability retry loop (spec §8 step 3)", () => {
     })
   })
 
+  it("spends a retry on a Clue at a Location the World call left unreachable, since the Story logic call can move it", async () => {
+    const island = {
+      ...londonWorldDraft,
+      locations: [
+        ...londonWorldDraft.locations,
+        {
+          name: "The Island",
+          description: "No boat goes there.",
+          connections: [],
+        },
+      ],
+    }
+    const stranded = {
+      ...londonStoryDraft,
+      clues: [
+        { ...londonStoryDraft.clues[0], location: "The Island" },
+        londonStoryDraft.clues[1],
+      ],
+    }
+    const fake = new FakeDrafter({
+      outputs: {
+        world_call: island,
+        story_logic_call: [stranded, londonStoryDraft],
+      },
+    })
+    const { events, last } = await setUp({ drafter: fake })
+
+    expect(events.find((e) => e.type === "gaps")).toMatchObject({
+      gaps: [{ code: "unreachable_clue" }],
+    })
+    expect(fake.callsTo("world_call")).toHaveLength(1)
+    expect(fake.callsTo("story_logic_call")).toHaveLength(2)
+    expect(last).toMatchObject({ type: "result" })
+  })
+
   it("feeds a name that matches no Entry back as a Gap, and never stores it", async () => {
     const strangerKnows = {
       ...londonStoryDraft,
