@@ -286,7 +286,7 @@ A Session never starts blank. As soon as it is created, the harness plays its **
 5. **Write (Grok, two drafts in parallel).** Input: brief YAML (hidden fields marked), codex slice (§9.3), voice guidance, last 4 passages, player input, directive. Target length about 150 words. Use a fast non-reasoning Grok model (exact model chosen by the day-1 latency test; configurable via env).
 6. **Jev call 2 — judge both drafts in one request.** All rule questions (§10) for each draft, plus one discovery `noul` per allowed reveal and per discoverable clue ("did this draft reveal it?"), plus the unplanned-clue check (§10).
    - If one or both drafts pass, ship the passing draft with the lower highest-violation score.
-   - If both fail, build feedback from the failed rules and write two new drafts. Maximum 3 rounds. After round 3, ship the draft with the lowest highest-violation score and set `flagged`.
+   - If both fail, build feedback from the clearly failed rules (§10.4) and write two new drafts. Maximum 3 rounds. After round 3, ship the draft with the lowest highest-violation score and set `flagged`.
    - Discovery answers for the shipped draft update `clues_found` and `knowledge_revealed`. Revealed knowledge that carries a clue (`clue_id`) also finds that clue, as the solvability check assumes. A found clue that a decisive action requires gives +5 reputation (recovery).
 7. **Commit and return.** Write the turn row with state and log; return the passage.
 
@@ -351,7 +351,7 @@ Verified against https://docs.typesafe.ai and the installed `@typesafe-ai/sdk` 0
 | Character drift | Per character named in the draft (by name or alias match in code): "Does anything {name} says or does contradict their personality or backstory?" |
 | Arc | "Does the draft depict events from `later_arcs`?" and "Does the draft contradict `current_arc`?" (split per §10.1: one condition per question) |
 | Location | "Is the draft set somewhere other than the current location?", "Does the draft contradict the current location's entry?" and "Does the draft introduce a named place a character could travel to that is not in `codex`?" (Detail inside a location, such as a back office, is description and allowed.) |
-| Knowledge | "Does a character reveal information that is not in `allowed_reveals` or `knowledge_revealed`?" and "Does the narration reveal or imply `hidden_truth` beyond what `clues_found` supports?" |
+| Knowledge | "Does a character reveal information that is not in `allowed_reveals` or `knowledge_revealed`?" and "Does the narration reveal or imply `hidden_truth` beyond what `clues_found` supports?" **Information** means a fact about a character: what they look like, carry, did, saw, know, or where they are or went. Manner, mood, weather and scenery are not information. The criteria spell this out, because the Writer embellishes Allowed reveals with such facts (smoke test, §9.5). |
 | Unplanned clue | "Does the draft present evidence pointing to `hidden_truth` that is not one of the discoverable or found clues?" (Replaces the blocking part of `docs/requirements.md` §8 step 8.) |
 | Outcome | "Does the draft contradict `outcome`?" |
 | Agency | "Does the player character say or do more than `player_input`?" |
@@ -365,7 +365,7 @@ Action classification and pacing are covered in §9.1 step 2 and §9.2 step 10.
 
 ### 10.4 Retry feedback
 
-Each rule has a feedback template. A failure becomes one line to the writer, e.g.: *"Agency (0.82): the draft has Jacob speak beyond the player's input. Rewrite without adding his words or actions."*
+Each rule has a feedback template. A Rule question the draft fails at p ≥ 0.8 becomes one line to the writer, e.g.: *"Agency (0.82): the draft has the player character speak beyond the player's input. Rewrite without adding their words or actions."* Failures between 0.5 and 0.8 still fail the draft but add no line: the smoke test (§9.5) showed a draft that breaks one Rule often scores above 0.5 on unrelated Rules, and a wrong line tells the writer to fix something it did not do. If no failure reaches 0.8, the next Round is written with no feedback lines. The harness pane still shows every Rule answer.
 
 ---
 
@@ -424,6 +424,7 @@ Each rule has a feedback template. A failure becomes one line to the writer, e.g
 | Writer's recent passages | 4 |
 | Drafts per round / max rounds | 2 / 3 |
 | Jev noul fail / Unsure band | p ≥ 0.5 / 0.35–0.65 |
+| Retry feedback floor | p ≥ 0.8 |
 | Jev choice confidence floor | 0.6 |
 | Passage length target | ~150 words |
 

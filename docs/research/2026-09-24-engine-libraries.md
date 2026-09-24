@@ -147,7 +147,7 @@ No Rule was missed at the 0.5 threshold, so the proposals below target the weake
 | Reputation | Most false alarms; "contradict `reputation_band`" is abstract | Two concrete Nouls per Band from its guidance. For normal: "Does any character treat Jacob with open contempt (insults, jeering, refusing a fair question)?" and "Does any character treat Jacob with special deference (gifts, flattery, favours)?" |
 | Voice | False alarms; "depart from `voice`" is abstract | One Noul per guideline, e.g. `{guideline: "Third person, past tense", question: "Does drafts[i] break guideline?"}`. Setup would split the Author's Voice into guidelines. |
 | Knowledge (narration) | Fired on dialogue: literal reading of "narration" | "Leaving aside what characters say aloud, does the narrator state or hint at `hidden_truth` beyond `clues_found`?" |
-| Knowledge (character) | Unsure on clean Drafts; catches embellishments | Define "information" in the criteria. New facts about a suspect's appearance, belongings or movements count; manner, weather and scenery do not. Whether embellishment counts is the Author's policy. |
+| Knowledge (character) | Unsure on clean Drafts; catches embellishments | Define "information" in the criteria. Decided 2026-09-24 (spec §10.3): a new fact about any character counts (what they look like, carry, did, saw, know, or where they are or went); manner, mood, weather and scenery do not. The game is genre-agnostic, so the criteria must not assume suspects. |
 
 ### Writer Drafts through the Judge (the production shape)
 
@@ -205,8 +205,8 @@ Sources: [orm.drizzle.team](https://orm.drizzle.team/docs), the installed `drizz
 ## Plan impact for #3 and #4
 
 - **#4, Rules:** split the compound questions (Arc, Location). Move Character drift, Codex and Reputation to structured instructions that carry the relevant Entry or Band behaviours, as proposed above. Test each Rule's questions against a few real Drafts before tuning thresholds.
-- **#4, Retry feedback (§10.4):** build feedback only from the Rules the Draft clearly fails, for example the top two by p or those at 0.8 and above, not every Rule at 0.5 or more. The spillover would otherwise tell the Writer to fix things it did not do.
-- **#4, Writer and Knowledge:** both real Drafts embellished the Allowed reveal. The Directive should give the reveal as the exact fact to convey and forbid new details about suspects or evidence. The Author should also decide whether descriptive detail counts as information. Without both, expect most Turns to need Round 2 (+3.7 s).
+- **#4, Retry feedback (§10.4):** build feedback only from the Rules the Draft clearly fails. Decided 2026-09-24 (spec §10.4): only failures at p ≥ 0.8 become feedback lines. The spillover would otherwise tell the Writer to fix things it did not do.
+- **#4, Writer and Knowledge:** both real Drafts embellished the Allowed reveal. The Directive should give the reveal as the exact fact to convey and forbid new facts about any character; spec §10.3 now defines information as such facts. Without both, expect most Turns to need Round 2 (+3.7 s).
 - **#4, name matching:** Character drift and the Codex slice match names in code. Drafts use first names ("Jacob", "Nell"), which the fixture aliases do not include. The matcher needs given names and surnames, or the Drafter should add them as aliases.
 - **#4, Background work:** use a per-Session promise map plus `background_status`, with `after` only for lifetime; see §5.
 - **#4, glossary drift:** `engine/config.ts` still says `ruleFlaggedBand` and `flagged` for the Unsure band; rename it when the Rules land.
