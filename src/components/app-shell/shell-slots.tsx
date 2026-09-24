@@ -24,7 +24,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { worldHref } from "@/components/worlds/world-links"
-import type { SetupStatus } from "@/domain/world"
+import { worldDisplayName, type SetupStatus } from "@/domain/world"
 
 type Slots = {
   breadcrumbs: HTMLElement | null
@@ -117,7 +117,7 @@ export function worldCrumbs(
   page: "Brief" | "Setup" | { session: string }
 ): Crumb[] {
   const worldCrumb: Crumb = {
-    label: world.name || "Untitled World",
+    label: worldDisplayName(world.name),
     href: worldHref(world),
   }
   return [worldCrumb, { label: typeof page === "string" ? page : page.session }]

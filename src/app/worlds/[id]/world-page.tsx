@@ -18,6 +18,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { PlayIcon, SearchXIcon, TriangleAlertIcon } from "lucide-react"
 
+import { requestWorldsHomeFocus } from "@/app/worlds-home-focus"
 import { ShellActions, ShellBreadcrumbs } from "@/components/app-shell"
 import { ShortcutKeys } from "@/components/shortcut-keys"
 import {
@@ -45,12 +46,11 @@ import {
 import { toast } from "@/components/ui/toast"
 import {
   DeleteWorldDialog,
-  requestWorldsHomeFocus,
   WorldActionsMenu,
 } from "@/components/worlds/delete-world"
-import { worldDisplayName } from "@/components/worlds/delete-world-copy"
 import { sessionHref, worldHref } from "@/components/worlds/world-links"
 import type { GetWorldResponse } from "@/domain/api"
+import { worldDisplayName } from "@/domain/world"
 import { api, ApiError, isAbortError } from "@/lib/api-client"
 import { useSingleKeyShortcut } from "@/lib/keyboard"
 

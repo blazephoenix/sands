@@ -3,11 +3,7 @@
  * Remove is an Entry's restorable review status, and deleting a World is
  * permanent.
  */
-
-/** A World's name as the UI shows it: "Untitled World" when it has none. */
-export function worldDisplayName(name: string) {
-  return name || "Untitled World"
-}
+import { worldDisplayName } from "@/domain/world"
 
 /** The dialog's title, naming the World, and what goes with it. */
 export function deleteWorldCopy(world: { name: string; sessionCount: number }) {
@@ -16,11 +12,10 @@ export function deleteWorldCopy(world: { name: string; sessionCount: number }) {
     parts.push(
       `its ${world.sessionCount} ${world.sessionCount === 1 ? "Session" : "Sessions"}`
     )
-  const last = "every Entry"
+  const name = worldDisplayName(world.name)
   return {
-    title: world.name
-      ? `Delete “${world.name}”?`
-      : `Delete ${worldDisplayName(world.name)}?`,
-    description: `This deletes ${parts.join(", ")} and ${last}. This cannot be undone.`,
+    // Quoted only when it is the Author's own name.
+    title: `Delete ${world.name ? `“${name}”` : name}?`,
+    description: `This deletes ${parts.join(", ")} and every Entry. This cannot be undone.`,
   }
 }

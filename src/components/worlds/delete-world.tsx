@@ -42,10 +42,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import type { SetupStatus } from "@/domain/world"
+import { worldDisplayName, type SetupStatus } from "@/domain/world"
 import { api, ApiError } from "@/lib/api-client"
 
-import { deleteWorldCopy, worldDisplayName } from "./delete-world-copy"
+import { deleteWorldCopy } from "./delete-world-copy"
 
 /** What the menu and the dialog need to know about a World. */
 export type DeletableWorld = {
@@ -238,23 +238,4 @@ export function DeleteWorldDialog({
       </AlertDialogContent>
     </AlertDialog>
   )
-}
-
-/**
- * Hands focus from the World page to the Worlds home after a delete there:
- * the home focuses its list (or its Empty state) once it has loaded.
- * Module state survives the client-side navigation between the two pages;
- * a full reload drops it, which is fine.
- */
-let focusWorldsHomeOnArrival = false
-
-export function requestWorldsHomeFocus() {
-  focusWorldsHomeOnArrival = true
-}
-
-/** True once after `requestWorldsHomeFocus`; the Worlds home calls it when its list is ready. */
-export function takeWorldsHomeFocusRequest() {
-  const requested = focusWorldsHomeOnArrival
-  focusWorldsHomeOnArrival = false
-  return requested
 }

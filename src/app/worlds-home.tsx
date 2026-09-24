@@ -50,16 +50,17 @@ import {
 } from "@/components/ui/tooltip"
 import {
   DeleteWorldDialog,
-  takeWorldsHomeFocusRequest,
   WorldActionsMenu,
 } from "@/components/worlds/delete-world"
-import { worldDisplayName } from "@/components/worlds/delete-world-copy"
 import { SetupStatusBadge } from "@/components/worlds/setup-status-badge"
 import { briefHref, worldHref } from "@/components/worlds/world-links"
 import type { WorldSummary } from "@/domain/api"
+import { worldDisplayName } from "@/domain/world"
 import { api, ApiError, isAbortError } from "@/lib/api-client"
 import { useSingleKeyShortcut } from "@/lib/keyboard"
 import { formatDateTime, fromNow, nowMs } from "@/lib/time"
+
+import { takeWorldsHomeFocusRequest } from "./worlds-home-focus"
 
 const NEW_WORLD_SHORTCUT = "n"
 
