@@ -414,7 +414,7 @@ Each rule has a feedback template. A failure becomes one line to the writer, e.g
 | Jev choice confidence floor | 0.6 |
 | Passage length target | ~150 words |
 
-Environment: `XAI_API_KEY`, `WRITER_MODEL`, `OPENAI_API_KEY`, `DRAFTER_MODEL`, `TYPESAFE_API_KEY` (the name the TypeSafe SDK reads), `JEV_BASE_URL` (endpoint provided by the user at repo setup), `JEV_MODEL` (default `jev-1.13.0`), `DB_URL`.
+Environment: `XAI_API_KEY`, `WRITER_MODEL`, `OPENAI_API_KEY`, `DRAFTER_MODEL`, `TYPESAFE_API_KEY`, `TYPESAFE_BASE_URL` (`https://api.typesafe.ai`, also the SDK's default) and `TYPESAFE_DEFAULT_MODEL` (`jev-1.13.0`, pinned; `jev-latest` points to it today). All three are the names the TypeSafe SDK reads, so the client needs no configuration in code, `DB_URL`.
 
 ---
 
@@ -455,7 +455,7 @@ Domain vocabulary is defined in `CONTEXT.md`. Where the requirements use other w
 ### Open items
 
 1. **Re-verify §10 against the official Jev docs.** The Jev facts in this spec (endpoint path, question conventions, thresholds, `jev-1.13.0`) came from third-party sites during brainstorming. Load the `typesafe-ai` skill and check them against https://docs.typesafe.ai (API, JavaScript SDK, primitives, confidence) before planning the Judge.
-2. **Jev endpoint:** the Author will provide it (`JEV_BASE_URL`).
+2. **Jev endpoint:** resolved. `https://api.typesafe.ai` (`POST /v1/systemone`), per https://docs.typesafe.ai/api.
 3. **Writer and Drafter model names:** chosen by the day-1 latency test (`WRITER_MODEL`, `DRAFTER_MODEL`).
 
 ### Next step
