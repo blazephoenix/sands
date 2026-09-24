@@ -5,6 +5,7 @@
  * what to do.
  *
  *   const { world } = await api.getWorld(id)
+ *   await api.deleteWorld(id)
  *   for await (const event of api.streamSetup(id, { signal })) { ... }
  */
 import { z } from "zod"
@@ -151,6 +152,14 @@ export async function apiFetch<S extends z.ZodType>(
   return parseContract(schema, data, path)
 }
 
+/** A route call that answers 204 with no body. Throws `ApiError`. */
+export async function apiSend(
+  path: string,
+  options: RequestOptions = {}
+): Promise<void> {
+  await send(path, options, "application/json")
+}
+
 /**
  * Reads an NDJSON body, yielding each event parsed with `schema`. The stream
  * must end with a `result` or `error` event; if the connection drops first, it
@@ -256,6 +265,10 @@ export const api = {
       body,
       ...options,
     }),
+
+  /** DELETE /api/worlds/[id]: the World for good, with its Sessions, Turns and Entries. 409 while setup runs. */
+  deleteWorld: (id: string, signal?: AbortSignal) =>
+    apiSend(`/api/worlds/${enc(id)}`, { method: "DELETE", signal }),
 
   patchEntry: (id: string, body: PatchEntryRequest, signal?: AbortSignal) =>
     apiFetch(`/api/entries/${enc(id)}`, patchEntryResponseSchema, {
