@@ -443,19 +443,19 @@ describe("winning the story", () => {
   })
 
   it("points at a removed winning Decisive action, so the Author can restore it", () => {
-    expect(
-      checkSolvability(withStatus(world(), "arrest", "rejected"))
-    ).toEqual({
-      passed: false,
-      gaps: [
-        {
-          ...NOTHING_WINS,
-          message:
-            "Nothing in this World wins the story. Restore Arrest Max Rober, or add a Decisive action whose On success is win.",
-          entryId: "arrest",
-        },
-      ],
-    })
+    expect(checkSolvability(withStatus(world(), "arrest", "rejected"))).toEqual(
+      {
+        passed: false,
+        gaps: [
+          {
+            ...NOTHING_WINS,
+            message:
+              "Nothing in this World wins the story. Restore Arrest Max Rober, or add a Decisive action whose On success is win.",
+            entryId: "arrest",
+          },
+        ],
+      }
+    )
   })
 })
 
