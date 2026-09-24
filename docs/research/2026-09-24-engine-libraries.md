@@ -167,6 +167,17 @@ These are the two Grok Drafts from the latency call, with 2 Drafts in the state 
 - **A one-Round Turn:** Reading (not measured; a 3-choice call should cost less than the 30-question call) + Writer 3.2 s + Judge 0.55 s ≈ 4 s. Each extra Round adds about 3.7 s, so three Rounds come to about 11.5 s.
 - **Drafter:** 4.6 s is for a tiny extraction at the default reasoning effort (`medium` per the provider docs). Setup's World and Story logic calls produce much more output and will be much slower. `providerOptions.openai.reasoningEffort: "low"` is documented for GPT-5.6 models but was not measured.
 
+**Setup, measured 2026-09-24 (#3, one real run through `POST /api/worlds/[id]/setup`).** A small Brief (2 characters, 1 Location, 2 Arcs), Drafter at `reasoning: "low"`:
+
+| Call | Model reported | Size | Latency |
+|---|---|---|---|
+| World call | `gpt-5.6-sol` | 970 in, 1,039 out (276 reasoning) tokens | 20,573 ms |
+| Story logic call | `gpt-5.6-sol` | 2,120 in, 1,424 out (494 reasoning) tokens | 27,575 ms |
+| Judge validation | `jev-1.13.0` | 46 questions (23 drafted Entries), 11,850 input tokens | 1,367 ms |
+| Whole setup, wall clock | | solvable on the first attempt, 27 Entries stored | **49.5 s** |
+
+The Drafter dominates, and output tokens drive it: about 20 ms per output token at low effort. A Story logic retry would add about 29 s (the call plus validation), so a run that needs both retries would take about 1 min 50 s. The World call drafted 5 new Locations where its instructions asked for 3 to 4.
+
 ## 4. AI SDK 7
 
 Sources: the bundled docs in `node_modules/ai/docs/` (also at https://ai-sdk.dev/docs), `node_modules/@ai-sdk/xai/docs/01-xai.mdx`, `node_modules/@ai-sdk/openai/docs/03-openai.mdx`, and `node_modules/ai/dist/index.d.ts`.
@@ -178,7 +189,10 @@ Sources: the bundled docs in `node_modules/ai/docs/` (also at https://ai-sdk.dev
 - **Two parallel Writer calls.** Two `generateText` promises under `Promise.all` ran concurrently: 3,175 ms wall clock against 2,922 and 3,175 ms each. The SDK needs no batching API for this.
 - **Retries and timeouts.** `maxRetries` defaults to 2; set it to 1 to match §13. `timeout` takes milliseconds or `{ totalMs, stepMs, firstChunkMs }`, and `abortSignal` is supported. (`03-ai-sdk-core/25-settings.mdx`)
 - **Model version.** `result.response.modelId` is the id that served the call; log it the way the Judge logs Jev's. `result.usage.outputTokenDetails.reasoningTokens` separates reasoning. In 7.0, `usage` covers all steps. (`index.d.ts` `LanguageModelResponseMetadata`; migration guide "Multi-Step Result Shape")
-- **Fakes.** `MockLanguageModelV4` from `ai/test` returns a scripted `doGenerate` result. The smoke test's `--dry-run` uses it for the Writer and Drafter. (`03-ai-sdk-core/55-testing.mdx`)
+- **Fakes.** `MockLanguageModelV4` from `ai/test` returns a scripted `doGenerate` result. The smoke test's `--dry-run` uses it for the Writer and Drafter. (`03-ai-sdk-core/55-testing.mdx`) Its `doGenerateCalls` records each call's options: `responseFormat` (`{type: "json", schema, name}` from `Output.object`), the prompt with the instructions as its system message, and `reasoning`.
+- **Reasoning effort.** `generateText` takes a top-level `reasoning` (`'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'`), which each provider maps to its own setting (for OpenAI, `reasoningEffort`); `providerOptions` take precedence when both are set. (`03-ai-sdk-core/25-settings.mdx`, `26-reasoning.mdx`) The Drafter uses `reasoning: "low"`; measured in §3.
+- **Zod integers in strict schemas.** Zod 4's `.int()` becomes `"type": "integer"` with `minimum: -9007199254740991` and `maximum: 9007199254740991` in the JSON schema the SDK sends (probe: `asSchema(schema).jsonSchema`). The Drafter schemas use plain `z.number()` and round in code, so strict mode never has to accept the bounds. `.nullable()` becomes `"type": ["string", "null"]` (or `anyOf` with `null`), and every property is listed in `required` with `additionalProperties: false`.
+- **Keys are read late.** `openai(id)` does not read `OPENAI_API_KEY` until the first call, while `new TypeSafeClient()` throws at once without `TYPESAFE_API_KEY` (SDK `missingApiKey`). The OpenAI Drafter checks `DRAFTER_MODEL` and `OPENAI_API_KEY` in its constructor, so setup refuses to start (503) rather than failing after a paid call.
 
 ## 5. Next 16: Background work and long streams
 
@@ -210,9 +224,20 @@ Sources: [orm.drizzle.team](https://orm.drizzle.team/docs), the installed `drizz
 - **#4, name matching:** Character drift and the Codex slice match names in code. Drafts use first names (in the test World, "Jacob" and "Nell"), which the test aliases do not include. The matcher needs given names and surnames, or the Drafter should add them as aliases.
 - **#4, Background work:** use a per-Session promise map plus `background_status`, with `after` only for lifetime; see §5.
 - **#4, glossary drift:** `engine/config.ts` still says `ruleFlaggedBand` and `flagged` for the Unsure band; rename it when the Rules land.
-- **#3, Drafter:** use `Output.object` with `.nullable()`, never `.optional()` (strict schemas). Give the extraction the full Codex name list, not the slice: the smoke Drafter proposed "Carrow", a character the test World's Brief already has. Expect the setup calls to take tens of seconds at default effort, and consider `reasoningEffort`.
-- **#3, Judge validation:** two Nouls per drafted Entry fit easily in one call (about 20 Entries is about 40 questions).
+- **#3, Drafter (done):** use `Output.object` with `.nullable()`, never `.optional()` (strict schemas). Give the extraction the full Codex name list, not the slice: the smoke Drafter proposed "Carrow", a character the test World's Brief already has. Expect the setup calls to take tens of seconds at default effort, and consider `reasoningEffort`.
+- **#3, Judge validation (done):** two Nouls per drafted Entry fit easily in one call. Measured: 23 Entries, 46 questions, 11,850 input tokens, 1.4 s (§3). Each Entry sits in its question's structured instructions, so the tokens grow with the Entries, not only with the state.
 - **#2 and #4, storage:** synchronous transactions and `SQLITE_CONSTRAINT_UNIQUE` handling, as above.
+
+## Real API calls made for #3 (setup)
+
+One real setup run on 2026-09-24, through the dev server, with SDK retries left at their setup defaults (one retry each; none happened):
+
+| Service | Calls | Why |
+|---|---|---|
+| OpenAI (`gpt-5.6-sol`) | 2 | The World call and the Story logic call |
+| TypeSafe (Jev) | 1 | Judge validation of the 23 drafted Entries |
+
+No call failed, and solvability passed on the first attempt, so no retry was made. Every test uses the fake Drafter and the fake Judge.
 
 ## Real API calls made for this research
 
