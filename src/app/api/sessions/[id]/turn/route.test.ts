@@ -15,10 +15,14 @@ import { POST } from "./route"
 
 // The route's real models, replaced with fakes: no test calls a paid model.
 vi.mock("@/engine/models", async () => {
+  const { FakeDrafter } = await import("@/models/fake-drafter")
   const { FakeJudge } = await import("@/models/fake-judge")
   const { FakeWriter } = await import("@/models/fake-writer")
   return {
     turnModels: () => ({
+      drafter: new FakeDrafter({
+        outputs: { new_characters: { characters: [] } },
+      }),
       writer: new FakeWriter(),
       judge: new FakeJudge({
         answers: {
@@ -31,9 +35,17 @@ vi.mock("@/engine/models", async () => {
   }
 })
 
+// `after` needs a request scope, which a test has not: keep its callbacks to run by hand.
+const afterCallbacks = vi.hoisted(() => [] as (() => unknown)[])
+vi.mock("next/server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/server")>()),
+  after: (callback: () => unknown) => afterCallbacks.push(callback),
+}))
+
 // DB_URL is `:memory:` under test (vitest.config.ts): each test starts with a fresh, migrated database.
 let sessionId: string
 beforeEach(() => {
+  afterCallbacks.length = 0
   vi.spyOn(console, "info").mockImplementation(() => {})
   closeDb()
   storeLondonWorld(getDb(), { id: "w", prefix: "mk", variant: "ready" })
@@ -75,6 +87,17 @@ describe("POST /api/sessions/[id]/turn", () => {
       turn: { idx: 0, playerInput: null },
     })
     expect(listTurns(getDb(), sessionId)).toHaveLength(1)
+  })
+
+  it("keeps the Turn's Background work alive after the response, and it finishes", async () => {
+    const streamed = await events(await playTurn(sessionId, null))
+    expect(streamed.at(-1)).toMatchObject({
+      type: "result",
+      turn: { backgroundStatus: "pending" },
+    })
+    expect(afterCallbacks).toHaveLength(1)
+    await afterCallbacks[0]()
+    expect(listTurns(getDb(), sessionId)[0].backgroundStatus).toBe("done")
   })
 
   it("writes one Opening when two tabs ask for it at once", async () => {

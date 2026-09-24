@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it } from "vitest"
 import type { OpenDatabase } from "@/db/client"
 import { getEntry, listWorldEntries, updateEntry } from "@/db/entries"
 import { StoreError } from "@/db/errors"
+import { insertTurn, listTurns } from "@/db/sessions"
 import { getWorld } from "@/db/worlds"
+import { getSessionView } from "@/sessions/session-view"
+import { openingTurn } from "@/test/turns"
 import { checkSolvability } from "@/setup/solvability"
 import { storeLondonWorld, testDb } from "@/test/db"
 
@@ -223,11 +226,15 @@ describe("solvability after every change to a World Entry (spec §7.2, §8 step 
 })
 
 describe("changes to a Session's Codex", () => {
-  it("leave the World's result alone and answer null", () => {
+  it("leave the World's result alone and answer the Session's own", () => {
     const { session } = startSession(db, { worldId: READY, mode: "harness" })
     const before = getWorld(db, READY)
     const copy = copyId(session.id, "mk-c2")
-    expect(patchEntry(db, copy, { action: "reject" }).solvability).toBeNull()
+    expect(patchEntry(db, copy, { action: "reject" }).solvability).toEqual({
+      passed: true,
+      gaps: [],
+      checkedAt: expect.any(String),
+    })
     expect(getWorld(db, READY)).toEqual(before)
     expect(getEntry(db, "mk-c2").status).toBe("accepted")
   })
@@ -256,7 +263,7 @@ describe("changes to a Session's Codex", () => {
         data: {},
       },
     })
-    expect(solvability).toBeNull()
+    expect(solvability?.passed).toBe(true)
     expect(entry.sessionId).toBe(session.id)
     expect(listWorldEntries(db, READY).map((e) => e.id)).not.toContain(entry.id)
   })
@@ -276,5 +283,85 @@ describe("changes to a Session's Codex", () => {
         },
       })
     ).toThrow(expect.objectContaining({ code: "not_found" }))
+  })
+})
+
+describe("Codex edits in play (spec §7.2)", () => {
+  /** A Session of the ready World whose latest Turn leaves the Player at `location`, having found `found`. */
+  function inPlay(location: string, found: string[] = []) {
+    const { session } = startSession(db, { worldId: READY, mode: "harness" })
+    const at = (key: string) => copyId(session.id, `mk-${key}`)
+    const opening = openingTurn(session.id, at(location))
+    insertTurn(db, {
+      ...opening,
+      state: { ...opening.state, cluesFound: found.map(at) },
+    })
+    return { session, at }
+  }
+
+  it("re-checks the Session's Solvability on every edit and shows a Gap, but still saves the edit", () => {
+    const { session, at } = inPlay("yard")
+    // The arrest needs any three of C1-C4.
+    expect(
+      patchEntry(db, at("c2"), { action: "reject" }).solvability?.passed
+    ).toBe(true)
+
+    const { entry, solvability } = patchEntry(db, at("c4"), {
+      action: "reject",
+    })
+
+    expect(entry.status).toBe("rejected")
+    expect(getEntry(db, at("c4")).status).toBe("rejected")
+    expect(solvability?.passed).toBe(false)
+    expect(solvability?.gaps.map((gap) => gap.entryId)).toEqual([
+      at("c2"),
+      at("c4"),
+    ])
+    expect(solvability?.gaps[1].message).toMatch(/C4/)
+    expect(getSessionView(db, session.id).solvability).toMatchObject({
+      passed: false,
+      gaps: solvability?.gaps,
+    })
+  })
+
+  it("keeps a Clue already found: it stays found, and still counts towards a Decisive action", () => {
+    const { session, at } = inPlay("yard", ["c2"])
+    patchEntry(db, at("c4"), { action: "reject" })
+
+    const { solvability } = patchEntry(db, at("c2"), { action: "reject" })
+
+    expect(solvability?.passed).toBe(true)
+    expect(listTurns(db, session.id).at(-1)?.state.cluesFound).toEqual([
+      at("c2"),
+    ])
+  })
+
+  it("refuses to remove the Location the Player stands in, saying why, and changes nothing", () => {
+    const { at } = inPlay("whitechapel")
+
+    expect(() =>
+      patchEntry(db, at("whitechapel"), { action: "reject" })
+    ).toThrow(
+      expect.objectContaining({
+        code: "conflict",
+        message: expect.stringMatching(
+          /The Player is at Whitechapel High Street/
+        ),
+      })
+    )
+    expect(getEntry(db, at("whitechapel")).status).toBe("accepted")
+  })
+
+  it("reaches Clues from where the Player stands, not from the start Location", () => {
+    // At the Docks, C2 lies where the Player stands. From Scotland Yard, only
+    // Whitechapel led there, so removing it would leave two of three Clues.
+    const { at } = inPlay("docks")
+
+    const { entry, solvability } = patchEntry(db, at("whitechapel"), {
+      action: "reject",
+    })
+
+    expect(entry.status).toBe("rejected")
+    expect(solvability).toMatchObject({ passed: true, gaps: [] })
   })
 })

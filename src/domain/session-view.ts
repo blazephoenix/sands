@@ -7,7 +7,7 @@ import { z } from "zod"
 
 import { entrySchema } from "./entry"
 import { sessionSchema, turnSchema } from "./session"
-import { worldSchema } from "./world"
+import { solvabilityResultSchema, worldSchema } from "./world"
 
 export const getSessionResponseSchema = z.object({
   session: sessionSchema,
@@ -19,5 +19,7 @@ export const getSessionResponseSchema = z.object({
   turns: z.array(turnSchema),
   /** This Session's copies of its World's Entries, plus Entries invented in play (rejected ones included). */
   entries: z.array(entrySchema),
+  /** Whether the Session can still be won as its Codex stands, from where the Player is (spec §7.2). */
+  solvability: solvabilityResultSchema,
 })
 export type GetSessionResponse = z.infer<typeof getSessionResponseSchema>

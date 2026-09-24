@@ -5,10 +5,15 @@
  * the shared Entry editor, with filters by source and status. Edits and status
  * changes save through `PATCH /api/entries/[id]` and apply from the next Turn.
  * Entries the Writer invented in play carry "new, Turn N" until seen here.
+ *
+ * Every change re-checks the Session's solvability (spec §7.2): a Gap shows
+ * as a warning above the Entries, and the change is saved all the same. The
+ * Location the Player stands in cannot be removed.
  */
 import * as React from "react"
-import { FilterXIcon } from "lucide-react"
+import { FilterXIcon, TriangleAlertIcon } from "lucide-react"
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Empty,
@@ -21,7 +26,7 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "@/components/ui/toast"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import type { PatchEntryRequest } from "@/domain/api"
+import type { PatchEntryRequest, PatchEntryResponse } from "@/domain/api"
 import {
   entryContentOf,
   type Entry,
@@ -29,6 +34,7 @@ import {
   type EntrySource,
   type EntryStatus,
 } from "@/domain/entry"
+import { turnLabel } from "@/domain/session"
 import type { GetSessionResponse } from "@/domain/session-view"
 import {
   EntryEditor,
@@ -165,6 +171,19 @@ export function CodexPane({
       })),
     [update]
   )
+  /** A saved change: the Entry as stored, and the Session's solvability re-checked after it. */
+  const setSaved = React.useCallback(
+    ({ entry, solvability }: PatchEntryResponse) =>
+      update((current) => ({
+        ...current,
+        entries: mergeEntries(current.entries, [entry]),
+        solvability: solvability ?? current.solvability,
+      })),
+    [update]
+  )
+
+  /** Where the Player stands after the latest Turn: that Location cannot be removed. */
+  const playerLocationId = data.turns.at(-1)?.state.locationId ?? null
 
   // Seen: play Entries shown here are marked seen on the server. Their marker stays until the pane closes.
   const marking = React.useRef(new Set<string>())
@@ -188,7 +207,7 @@ export function CodexPane({
     (info: EntryBlockInfo) => {
       const entry = byId.get(info.entryId)
       return entry && isNew(entry, openedAt) && entry.sourceTurn !== null
-        ? `new, Turn ${entry.sourceTurn + 1}`
+        ? `new, ${turnLabel({ idx: entry.sourceTurn })}`
         : null
     },
     [byId, openedAt]
@@ -210,8 +229,9 @@ export function CodexPane({
       setEntry({ ...entry, status: next } as Entry)
       api
         .patchEntry(entry.id, request)
-        .then(({ entry: saved }) => {
-          setEntry(saved)
+        .then((response) => {
+          const saved = response.entry
+          setSaved(response)
           toast.add({
             id: toastId,
             title: `${name} ${verb}`,
@@ -227,8 +247,8 @@ export function CodexPane({
                     )
                     api
                       .patchEntry(entry.id, undo)
-                      .then(({ entry: restored }) => {
-                        setEntry(restored)
+                      .then((restored) => {
+                        setSaved(restored)
                         toast.add({
                           id: toastId,
                           title: `${name} is back as it was`,
@@ -260,7 +280,7 @@ export function CodexPane({
           })
         })
     },
-    [byId, setEntry]
+    [byId, setEntry, setSaved]
   )
 
   const entryActions = React.useCallback(
@@ -301,22 +321,29 @@ export function CodexPane({
               undoTo
             ),
         },
-        {
-          id: "remove",
-          label: "Remove",
-          destructive: true,
-          run: () =>
-            changeStatus(
-              info,
-              { action: "reject" },
-              "rejected",
-              "removed",
-              undoTo
-            ),
-        },
+        info.entryId === playerLocationId
+          ? {
+              id: "remove",
+              label: "Remove (the Player is here)",
+              disabled: true,
+              run: () => {},
+            }
+          : {
+              id: "remove",
+              label: "Remove",
+              destructive: true,
+              run: () =>
+                changeStatus(
+                  info,
+                  { action: "reject" },
+                  "rejected",
+                  "removed",
+                  undoTo
+                ),
+            },
       ]
     },
-    [changeStatus]
+    [changeStatus, playerLocationId]
   )
 
   // Edits: saved per Entry once typing pauses. The page keeps the edited copy, so nothing typed is lost on failure.
@@ -338,12 +365,13 @@ export function CodexPane({
       const toastId = `codex-saved-${id}`
       api
         .patchEntry(id, { action: "edit", content })
-        .then(({ entry }) => {
+        .then((response) => {
+          const { entry } = response
           // A newer edit may have arrived meanwhile; it saves on its own.
           if (pending.current.get(id)?.content === content) {
             pending.current.delete(id)
             localEntries.current.delete(id)
-            setEntry(entry)
+            setSaved(response)
           }
           toast.add({
             id: toastId,
@@ -365,7 +393,7 @@ export function CodexPane({
           })
         })
     },
-    [localEntries, setEntry]
+    [localEntries, setSaved]
   )
   React.useEffect(() => {
     retry.current = save
@@ -386,10 +414,11 @@ export function CodexPane({
             sessionId: data.session.id,
             content,
           })
-          .then(({ entry }) => {
+          .then((response) => {
+            const { entry } = response
             editorRef.current?.assignEntryId(change.blockId, entry.id)
             setAdded((ids) => new Set([...ids, entry.id]))
-            setEntry(entry)
+            setSaved(response)
             toast.add({
               title: `${entry.name || "Entry"} added`,
               description: "It applies from the next Turn.",
@@ -428,7 +457,15 @@ export function CodexPane({
         timer: setTimeout(() => save(id), SAVE_DELAY_MS),
       })
     },
-    [byId, data.session.id, data.world.id, localEntries, save, setEntry]
+    [
+      byId,
+      data.session.id,
+      data.world.id,
+      localEntries,
+      save,
+      setEntry,
+      setSaved,
+    ]
   )
 
   // Closing the pane saves what is still waiting.
@@ -504,6 +541,42 @@ export function CodexPane({
           </FieldLabel>
         </Field>
       </div>
+
+      {data.solvability.passed ? null : (
+        <div className="border-b px-4 py-3">
+          <Alert>
+            <TriangleAlertIcon aria-hidden />
+            <AlertTitle>
+              This Session can&apos;t be won as its Codex stands
+            </AlertTitle>
+            <AlertDescription>
+              <p>Your changes are saved. Fix these Gaps to keep it winnable:</p>
+              <ul className="flex list-disc flex-col gap-1 pl-4">
+                {data.solvability.gaps.map((gap) => (
+                  <li
+                    key={`${gap.code}-${gap.entryId}-${gap.arcIndex}-${gap.message}`}
+                  >
+                    {gap.entryId &&
+                    editorEntries.some((entry) => entry.id === gap.entryId) ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          editorRef.current?.focusEntry(gap.entryId!)
+                        }
+                        className="inline rounded-sm text-left underline underline-offset-3 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                      >
+                        {gap.message}
+                      </button>
+                    ) : (
+                      gap.message
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
 
       <div className="min-h-0 flex-1 overflow-y-auto py-2">
         {editorEntries.length === 0 ? (

@@ -134,6 +134,18 @@ export function insertTurn(
   }
 }
 
+/** Turns whose Background work is pending: of one Session, or of every Session. */
+export function listPendingBackgroundTurns(db: Db, sessionId?: string): Turn[] {
+  const pending = eq(turns.backgroundStatus, "pending")
+  return db
+    .select()
+    .from(turns)
+    .where(sessionId ? and(pending, eq(turns.sessionId, sessionId)) : pending)
+    .orderBy(asc(turns.sessionId), asc(turns.idx))
+    .all()
+    .map(turnFromRow)
+}
+
 /** Replaces a stored Turn (same id), e.g. to merge background results into it (ADR-0006). */
 export function updateTurn(db: Db, turn: Turn): Turn {
   const { id, sessionId, idx, ...row } = turnToRow(turn)

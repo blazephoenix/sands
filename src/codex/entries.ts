@@ -5,8 +5,14 @@
  *
  * Every change to a World template Entry re-runs the solvability check and
  * stores the result on the World, so `GET /api/worlds/[id]` returns it and
- * Start follows it. Session copies answer null: their edits take effect from
- * the next Turn.
+ * Start follows it.
+ *
+ * A change to a Session's Codex (edits in play, spec §7.2) takes effect from
+ * the next Turn. It re-checks the Session's solvability from where the Player
+ * stands and what they have found, and answers the result so the Codex pane
+ * can warn of a Gap; the change saves either way. Clues already found stay
+ * found (they live in the Turns' state, which no Codex change touches). Only
+ * the Location the Player stands in cannot be removed.
  */
 import type {
   CreateEntryRequest,
@@ -16,6 +22,7 @@ import type {
 import {
   ENTRY_KIND_LABELS,
   entryContentSchema,
+  isLiveEntry,
   type Entry,
 } from "@/domain/entry"
 import { hasFinishedSetup, type SolvabilityResult } from "@/domain/world"
@@ -23,11 +30,12 @@ import type { Db } from "@/db/client"
 import {
   getEntry,
   insertEntries,
+  listSessionEntries,
   listWorldEntries,
   updateEntry,
 } from "@/db/entries"
 import { StoreError } from "@/db/errors"
-import { getSession } from "@/db/sessions"
+import { getSession, listTurns } from "@/db/sessions"
 import { getWorld, updateWorld } from "@/db/worlds"
 import { newId } from "@/lib/ids"
 import { nowIso } from "@/lib/time"
@@ -57,13 +65,65 @@ export function recheckSolvability(
   return solvability
 }
 
+/** Where the Player stands and what they have found: after the latest Turn, or at the start before the Opening. */
+function progressOf(db: Db, sessionId: string, entries: readonly Entry[]) {
+  const latest = listTurns(db, sessionId).at(-1)
+  if (latest)
+    return {
+      locationId: latest.state.locationId,
+      cluesFound: latest.state.cluesFound,
+    }
+  const start = entries.find(
+    (e) => e.kind === "location" && isLiveEntry(e) && e.data.isStart
+  )
+  return start ? { locationId: start.id, cluesFound: [] } : null
+}
+
+/**
+ * A Session's solvability as its Codex stands, from where the Player stands
+ * and with the Clues they have found (spec §7.2). Not stored: it is cheap to
+ * check whenever it is asked for.
+ */
+export function sessionSolvability(
+  db: Db,
+  sessionId: string
+): SolvabilityResult {
+  const session = getSession(db, sessionId)
+  const brief = getWorld(db, session.worldId).brief
+  const entries = listSessionEntries(db, sessionId)
+  return {
+    ...checkSolvability({
+      arcs: brief?.arcs ?? [],
+      entries,
+      play: progressOf(db, sessionId, entries) ?? undefined,
+    }),
+    checkedAt: nowIso(),
+  }
+}
+
+/** Refuses to remove the Location the Player stands in: the next Turn would start nowhere. */
+function assertNotWhereThePlayerIs(db: Db, entry: Entry) {
+  if (entry.sessionId === null || entry.kind !== "location") return
+  const here = progressOf(
+    db,
+    entry.sessionId,
+    listSessionEntries(db, entry.sessionId)
+  )
+  if (here?.locationId !== entry.id) return
+  const name = entry.name.trim() || "this Location"
+  throw new StoreError(
+    "conflict",
+    `The Player is at ${name} now, so it cannot be removed. It can be removed once the Player has moved on.`
+  )
+}
+
 /**
  * Accept, reject, restore, edit or mark-seen one Entry (World template or
  * Session copy). Locked Entries come from the Brief and cannot change.
  *
  * `solvability` in the result: for a World template Entry, the World's result
  * re-checked after this change and stored (mark-seen changes nothing the check
- * reads, so it returns the stored result); for a Session copy, null.
+ * reads, so it returns the stored result); for a Session copy, the Session's.
  */
 export function patchEntry(
   db: Db,
@@ -85,6 +145,7 @@ export function patchEntry(
         next = { ...entry, status: "accepted", updatedAt }
         break
       case "reject":
+        assertNotWhereThePlayerIs(tx, entry)
         next = { ...entry, status: "rejected", updatedAt }
         break
       case "restore":
@@ -112,7 +173,11 @@ export function patchEntry(
         break
     }
     const saved = updateEntry(tx, next)
-    if (saved.sessionId !== null) return { entry: saved, solvability: null }
+    if (saved.sessionId !== null)
+      return {
+        entry: saved,
+        solvability: sessionSolvability(tx, saved.sessionId),
+      }
     const solvability =
       request.action === "mark-seen"
         ? getWorld(tx, saved.worldId).solvability
@@ -121,7 +186,7 @@ export function patchEntry(
   })
 }
 
-/** Stores an Entry the Author added in the Entry editor (source author, status accepted); a World Entry re-checks solvability. */
+/** Stores an Entry the Author added in the Entry editor (source author, status accepted), and re-checks the World's or the Session's solvability. */
 export function createEntry(
   db: Db,
   request: CreateEntryRequest
@@ -158,7 +223,9 @@ export function createEntry(
     return {
       entry: saved,
       solvability:
-        saved.sessionId === null ? recheckSolvability(tx, world.id) : null,
+        saved.sessionId === null
+          ? recheckSolvability(tx, world.id)
+          : sessionSolvability(tx, saved.sessionId),
     }
   })
 }

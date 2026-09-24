@@ -12,11 +12,19 @@
  *   for a Session that has Turns, a Player input for one that has none, or
  *   another request is playing its Turn right now (the claim, ADR-0014).
  * - 503 when the models are not configured.
+ *
+ * The shipped Turn's Background work (spec §9.2) outlives the response. The
+ * next Turn waits for it through `backgroundWorkFor`; `after()` holds it only
+ * to keep it alive on a host that stops work once the response is sent
+ * (research §5).
  */
+import { after } from "next/server"
+
 import { getDb } from "@/db/client"
 import { countTurns, getSession } from "@/db/sessions"
 import { turnRequestSchema } from "@/domain/api"
 import type { TurnEvent } from "@/domain/events"
+import { backgroundWorkFor } from "@/engine/background"
 import { turnModels } from "@/engine/models"
 import { runTurn } from "@/engine/turn"
 import { claimTurn } from "@/engine/turn-claims"
@@ -72,6 +80,12 @@ export const POST = handle(async (request: Request, { params }: Context) => {
         ? "This Session's Opening is being written in another tab or request. Wait for it, then reload."
         : "A Turn is already being played in this Session. Wait for it to finish."
     )
+  let streamEnded = () => {}
+  const streamed = new Promise<void>((resolve) => (streamEnded = resolve))
+  after(async () => {
+    await streamed
+    await backgroundWorkFor(id)
+  })
   try {
     return ndjsonResponse<TurnEvent>(
       async (emit, elapsed, signal) => {
@@ -83,12 +97,14 @@ export const POST = handle(async (request: Request, { params }: Context) => {
           )
         } finally {
           release()
+          streamEnded()
         }
       },
       { request }
     )
   } catch (error) {
     release()
+    streamEnded()
     throw error
   }
 })

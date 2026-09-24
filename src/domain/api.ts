@@ -119,7 +119,11 @@ export type PatchEntryRequest = z.infer<typeof patchEntryRequestSchema>
  * template Entry, re-checked (`src/setup/solvability.ts`) and stored on the
  * World, so `GET /api/worlds/[id]` returns the same result; `mark-seen`
  * returns the stored result unchanged, and so does a World not yet past
- * setup. Null for Session copies, whose edits take effect from the next Turn.
+ * setup (null before setup). For a Session copy, whose edits take effect from
+ * the next Turn: the Session's result, checked from where the Player stands
+ * (spec §7.2), which the Codex pane shows as a warning.
+ *
+ * 409 when removing the Location the Player stands in.
  */
 export const patchEntryResponseSchema = z.object({
   entry: entrySchema,
