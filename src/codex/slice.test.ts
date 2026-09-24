@@ -39,6 +39,15 @@ describe("finding the Entries a text names", () => {
     expect(named("He will say james is fine.")).toEqual([])
   })
 
+  it("ignores a placeholder alias an Entry was stored with", () => {
+    const entries = codex().map((e) =>
+      e.id === "mk-nell" && e.kind === "npc"
+        ? { ...e, data: { ...e.data, aliases: ["None"] } }
+        : e
+    ) as Entry[]
+    expect(ids(namedEntries("There was none to be had.", entries))).toEqual([])
+  })
+
   it("never matches a removed Entry", () => {
     expect(named("Abberline and Tower Bridge.")).toEqual([])
   })

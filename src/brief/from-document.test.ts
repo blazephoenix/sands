@@ -140,6 +140,31 @@ describe("document -> Brief: sections and fields", () => {
     ])
   })
 
+  it("reads a placeholder like None, N/A or a dash as an empty list, not as an item", () => {
+    for (const placeholder of [
+      "None",
+      "none.",
+      "N/A",
+      "n.a.",
+      "-",
+      "—",
+      "nil",
+    ]) {
+      const { draft } = convert([
+        sectionHeading("character", "c", { name: "Rajesh", isPlayer: true }),
+        fieldParagraph("c1", "Aliases", placeholder),
+        sectionHeading("ending", "e"),
+      ])
+      expect(draft.characters[0].aliases).toEqual([])
+    }
+    const { draft } = convert([
+      sectionHeading("character", "c", { name: "Rajesh", isPlayer: true }),
+      fieldParagraph("c1", "Aliases", "Kaka, none"),
+      sectionHeading("ending", "e"),
+    ])
+    expect(draft.characters[0].aliases).toEqual(["Kaka"])
+  })
+
   it("points each field at its paragraph", () => {
     const { fieldBlockIds } = convert(
       valid([

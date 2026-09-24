@@ -16,6 +16,7 @@ import {
   type EntryOfKind,
 } from "@/domain/entry"
 import type { PlayerState } from "@/domain/session"
+import { isPlaceholderItem } from "@/editor/inline-text"
 
 const LETTER_OR_DIGIT = "[\\p{L}\\p{N}]"
 
@@ -54,8 +55,10 @@ function patternsFor(entry: Entry): RegExp[] {
   const patterns: RegExp[] = []
   if (entry.name.trim()) patterns.push(wholeWords(entry.name, false))
   if (isPerson(entry)) {
+    // Entries stored before placeholders were dropped may still hold "None".
     for (const alias of entry.data.aliases)
-      if (alias.trim()) patterns.push(wholeWords(alias, false))
+      if (alias.trim() && !isPlaceholderItem(alias))
+        patterns.push(wholeWords(alias, false))
     for (const part of nameParts(entry.name))
       patterns.push(wholeWords(part, true))
   }

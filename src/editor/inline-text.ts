@@ -72,9 +72,19 @@ export function paragraphsOf(text: string): string[] {
     .filter(Boolean)
 }
 
+/**
+ * Words an Author types to mean "nothing here": "None", "N/A", "nil", a dash.
+ * In a list field such an item is not an item; kept, "None" as an alias
+ * would make every "none" in a Passage name the character.
+ */
+export function isPlaceholderItem(item: string): boolean {
+  const word = item.trim().toLowerCase().replace(/[.\s]/gu, "")
+  return /^(none|nil|null|na|n\/a|nothing|-+|—|–)$/u.test(word)
+}
+
 export function splitList(text: string, mode: "lines" | "comma"): string[] {
   return text
     .split(mode === "lines" ? /\n+/u : /[,\n]/u)
     .map((item) => item.trim())
-    .filter(Boolean)
+    .filter((item) => item && !isPlaceholderItem(item))
 }
