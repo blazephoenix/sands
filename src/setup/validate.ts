@@ -164,8 +164,8 @@ export async function validateEntries(
   const flags = new Map<string, JevFlag[]>()
   for (const [id, answer] of Object.entries(result.answers)) {
     const { entryId, question, prompt } = asked.get(id)!
-    const { failed, flagged } = ruleVerdict(answer.noul)
-    if (!failed && !flagged) continue
+    const { failed, unsure } = ruleVerdict(answer.noul)
+    if (!failed && !unsure) continue
     flags.set(entryId, [
       ...(flags.get(entryId) ?? []),
       {

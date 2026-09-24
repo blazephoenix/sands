@@ -9,9 +9,11 @@ export const ENGINE_CONFIG = {
   reputationRange: [0, 100] as const,
   /** high >= 70, normal 30-69, low < 30. */
   bands: { high: 70, normal: 30 },
-  offScriptPenalty: -10,
-  wrongTargetPenalty: -15,
-  prematurePenalty: -20,
+  /** Every penalty is a positive number subtracted from Reputation. */
+  offScriptPenalty: 10,
+  /** Defaults for a Decisive action; each action carries its own. */
+  wrongTargetPenalty: 15,
+  prematurePenalty: 20,
   recovery: 5,
   offScriptThreshold: 4,
   offScriptWarningsAt: [2, 3] as const,
@@ -20,9 +22,11 @@ export const ENGINE_CONFIG = {
   writerRecentPassages: 4,
   draftsPerRound: 2,
   maxRounds: 3,
-  /** A Rule fails at p >= 0.5 and is flagged (uncertain) for 0.35 <= p < 0.65. */
+  /** A Rule fails at p >= 0.5 and is Unsure for 0.35 <= p < 0.65. Ours, not Jev's. */
   ruleFailAt: 0.5,
-  ruleFlaggedBand: [0.35, 0.65] as const,
+  ruleUnsureBand: [0.35, 0.65] as const,
+  /** Only a Rule failure at p >= 0.8 becomes a line of Retry feedback (spec §10.4). */
+  retryFeedbackFloor: 0.8,
   choiceConfidenceFloor: 0.6,
   passageWords: 150,
 } as const
@@ -34,9 +38,9 @@ export function bandFor(reputation: number): Band {
 }
 
 export function ruleVerdict(probability: number) {
-  const [low, high] = ENGINE_CONFIG.ruleFlaggedBand
+  const [low, high] = ENGINE_CONFIG.ruleUnsureBand
   return {
     failed: probability >= ENGINE_CONFIG.ruleFailAt,
-    flagged: probability >= low && probability < high,
+    unsure: probability >= low && probability < high,
   }
 }

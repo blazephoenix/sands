@@ -1,0 +1,106 @@
+import { APICallError } from "ai"
+import { MockLanguageModelV4 } from "ai/test"
+import { describe, expect, it, vi } from "vitest"
+
+import { FakeWriter } from "./fake-writer"
+import { GrokWriter } from "./grok-writer"
+import type { ModelLogger } from "./logger"
+
+const request = { instructions: "Write the scene.", prompt: "Directive: …" }
+
+function generated(text: string) {
+  return {
+    content: [{ type: "text" as const, text }],
+    finishReason: { unified: "stop" as const, raw: undefined },
+    usage: {
+      inputTokens: {
+        total: 900,
+        noCache: 900,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: { total: 180, text: 180, reasoning: 0 },
+    },
+    warnings: [],
+  }
+}
+
+function logger(): ModelLogger & { lines: string[] } {
+  const lines: string[] = []
+  return {
+    lines,
+    info: (m) => lines.push(m),
+    warn: (m) => lines.push(m),
+    error: (m) => lines.push(m),
+  }
+}
+
+describe("GrokWriter", () => {
+  it("returns the Draft and logs the model id the provider reports", async () => {
+    const model = new MockLanguageModelV4({
+      modelId: "mock-grok",
+      doGenerate: async () => generated("  The fog lifted.  "),
+    })
+    const log = logger()
+    const result = await new GrokWriter({ model, logger: log }).write(request)
+    expect(result).toMatchObject({
+      text: "The fog lifted.",
+      model: "mock-grok",
+      usage: { inputTokens: 900, outputTokens: 180 },
+    })
+    expect(log.lines[0]).toMatch(
+      /^\[writer\] model=mock-grok requested=mock-grok input_tokens=900 output_tokens=180 latency_ms=\d+$/
+    )
+    expect(JSON.stringify(model.doGenerateCalls[0].prompt)).toContain(
+      request.instructions
+    )
+  })
+
+  it("retries a failed call once, then succeeds", async () => {
+    let calls = 0
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => {
+        calls += 1
+        if (calls === 1)
+          throw new APICallError({
+            message: "overloaded",
+            url: "https://api.x.ai",
+            requestBodyValues: {},
+            statusCode: 503,
+            isRetryable: true,
+          })
+        return generated("Second time.")
+      },
+    })
+    const result = await new GrokWriter({ model, logger: logger() }).write(
+      request
+    )
+    expect(result.text).toBe("Second time.")
+    expect(calls).toBe(2)
+  }, 10_000)
+
+  it("fails on an empty Draft, and refuses to start without WRITER_MODEL", async () => {
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => generated("   "),
+    })
+    await expect(
+      new GrokWriter({ model, logger: logger() }).write(request)
+    ).rejects.toThrow(/empty Draft/)
+    vi.stubEnv("WRITER_MODEL", "")
+    try {
+      expect(() => new GrokWriter()).toThrow(/WRITER_MODEL is not set/)
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+})
+
+describe("FakeWriter", () => {
+  it("answers from its script in order, throws scripted errors, and records every call", async () => {
+    const writer = new FakeWriter({ drafts: ["A", new Error("down")] })
+    expect((await writer.write(request)).text).toBe("A")
+    await expect(writer.write(request)).rejects.toThrow("down")
+    await expect(writer.write(request)).rejects.toThrow(/not expected/)
+    expect(writer.calls).toHaveLength(3)
+  })
+})

@@ -21,12 +21,16 @@ describe("the Opening rule (spec §9.0)", () => {
     },
   }
   const outcome = {
-    kind: "narrated" as const,
-    summary: "",
-    reputationDelta: 0,
-    offScriptDelta: 0,
-    deathRoll: null,
+    action: { kind: "narrated" as const, summary: "", reputationDelta: 0 },
+    penalty: {
+      kind: "none" as const,
+      summary: "",
+      reputationDelta: 0,
+      offScriptDelta: 0,
+      deathRoll: null,
+    },
     ending: "none" as const,
+    endingReason: null,
   }
 
   it("allows no Player input, reading or Outcome only for Turn 0", () => {

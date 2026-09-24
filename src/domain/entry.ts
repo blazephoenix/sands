@@ -135,8 +135,9 @@ export const decisiveActionDataSchema = z.object({
   /** When set, any `requiresCount` of `requires` suffice; otherwise all are needed. */
   requiresCount: z.number().int().min(1).nullable(),
   onSuccess: z.enum(["win", "none"]),
-  wrongTargetPenalty: z.number().int(),
-  prematurePenalty: z.number().int(),
+  /** Positive: subtracted from Reputation. */
+  wrongTargetPenalty: z.number().int().min(0),
+  prematurePenalty: z.number().int().min(0),
 })
 
 export const entryDataSchemas = {
