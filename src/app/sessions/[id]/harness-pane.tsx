@@ -534,17 +534,23 @@ function TurnLog({
   turn,
   names,
   arcName,
-  defaultOpen,
+  open,
+  onOpenChange,
 }: {
   turn: Turn
   names: Names
   arcName: (index: number) => string
-  defaultOpen: boolean
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }) {
   const { log } = turn
   const { reading, outcome } = log
   return (
-    <Collapsible defaultOpen={defaultOpen} className="group/turn flex flex-col">
+    <Collapsible
+      open={open}
+      onOpenChange={onOpenChange}
+      className="group/turn flex flex-col"
+    >
       <CollapsibleTrigger className="flex w-full items-start gap-2 rounded-md px-1 py-2 text-left outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50">
         <ChevronRightIcon
           aria-hidden
@@ -670,6 +676,9 @@ export function HarnessPane({ data }: { data: GetSessionResponse }) {
   )
   const turns = [...data.turns].reverse()
   const latest = turns[0]
+  // Controlled, so a new Turn can open itself: the latest Turn is open and
+  // older ones closed, unless the Author opened or closed one by hand.
+  const [toggled, setToggled] = React.useState<Record<string, boolean>>({})
 
   if (!latest) {
     return (
@@ -703,7 +712,10 @@ export function HarnessPane({ data }: { data: GetSessionResponse }) {
             turn={turn}
             names={names}
             arcName={arcName}
-            defaultOpen={turn.id === latest.id}
+            open={toggled[turn.id] ?? turn.id === latest.id}
+            onOpenChange={(open) =>
+              setToggled((current) => ({ ...current, [turn.id]: open }))
+            }
           />
         ))}
       </section>
