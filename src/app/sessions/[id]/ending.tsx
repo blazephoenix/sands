@@ -73,7 +73,7 @@ const ENDINGS: Record<
     icon: DoorClosedIcon,
     title: () => "Removed from the story",
     description: (player) =>
-      `${player} has lost the standing to go on. The story ends here.`,
+      `${player} has pushed too far. The story ends here.`,
   },
 }
 

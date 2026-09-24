@@ -29,14 +29,29 @@ import {
 import type { SandsBlock } from "@/editor/schema-config"
 import { api, ApiError } from "@/lib/api-client"
 
-const WORLD_ID = "w-whitechapel"
-
 type Load =
   | { state: "loading" }
   | { state: "error"; error: ApiError }
   | { state: "ready"; data: GetWorldResponse }
 
-export function EditorPlayground() {
+/** The World named by `?world=`, else the most recently updated one. */
+async function loadWorld(
+  worldId: string | null,
+  signal: AbortSignal
+): Promise<GetWorldResponse> {
+  if (worldId) return api.getWorld(worldId, signal)
+  const { worlds } = await api.listWorlds(signal)
+  const latest = worlds[0]
+  if (!latest)
+    throw new ApiError(
+      404,
+      "not_found",
+      "There are no Worlds yet. Create one from the Worlds home, then come back."
+    )
+  return api.getWorld(latest.id, signal)
+}
+
+export function EditorPlayground({ worldId }: { worldId: string | null }) {
   const [load, setLoad] = React.useState<Load>({ state: "loading" })
   const [attempt, setAttempt] = React.useState(0)
   const [readOnly, setReadOnly] = React.useState(false)
@@ -44,8 +59,7 @@ export function EditorPlayground() {
 
   React.useEffect(() => {
     const controller = new AbortController()
-    api
-      .getWorld(WORLD_ID, controller.signal)
+    loadWorld(worldId, controller.signal)
       .then((data) => setLoad({ state: "ready", data }))
       .catch((error: unknown) => {
         if (error instanceof ApiError && error.code === "aborted") return
@@ -58,7 +72,7 @@ export function EditorPlayground() {
         })
       })
     return () => controller.abort()
-  }, [attempt])
+  }, [worldId, attempt])
 
   return (
     <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6 px-4 py-6">
@@ -91,9 +105,10 @@ export function EditorPlayground() {
           Editor playground
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          The Brief and the Codex of “Whitechapel, 1888”, in the shared editor.
-          Type / for sections, select text for the Hidden eye, press Ctrl+/ (⌘/
-          on a Mac) for the block menu, type @ in an Entry field to mention one.
+          The Brief and the Codex of one World, in the shared editor: the one
+          named by ?world= in the address, else the most recently updated. Type
+          / for sections, select text for the Hidden eye, press Ctrl+/ (⌘/ on a
+          Mac) for the block menu, type @ in an Entry field to mention one.
           Edits stay in this page.
         </p>
       </div>

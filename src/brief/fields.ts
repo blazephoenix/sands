@@ -47,6 +47,15 @@ export type BriefBlockSpec = {
   fields: FieldSpec[]
 }
 
+/** Hints for a character's fields, shared by Brief characters and Codex characters and NPCs. */
+export const PERSON_PLACEHOLDERS = {
+  role: "Their place in the story.",
+  age: "How old they are.",
+  personality: "How they think, speak and act.",
+  backstory: "What happened to them before the story.",
+  aliases: "Other names they go by, comma-separated.",
+} as const
+
 export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
   setting: {
     type: "setting",
@@ -56,8 +65,8 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
     named: false,
     namePlaceholder: "",
     fields: [
-      { key: "place", label: "Place", placeholder: "Where the story happens" },
-      { key: "period", label: "Period", placeholder: "When it happens" },
+      { key: "place", label: "Place", placeholder: "Where the story happens." },
+      { key: "period", label: "Period", placeholder: "When it happens." },
     ],
   },
   character: {
@@ -71,25 +80,25 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
       {
         key: "role",
         label: "Role",
-        placeholder: "Their place in the story",
+        placeholder: PERSON_PLACEHOLDERS.role,
       },
-      { key: "age", label: "Age", placeholder: "How old they are" },
+      { key: "age", label: "Age", placeholder: PERSON_PLACEHOLDERS.age },
       {
         key: "personality",
         label: "Personality",
-        placeholder: "How they think, speak and act",
+        placeholder: PERSON_PLACEHOLDERS.personality,
       },
       {
         key: "backstory",
         label: "Backstory",
-        placeholder: "What happened to them before the story",
+        placeholder: PERSON_PLACEHOLDERS.backstory,
       },
       {
         key: "aliases",
         label: "Aliases",
         aliases: ["Alias"],
         list: "comma",
-        placeholder: "Other names they go by, comma-separated",
+        placeholder: PERSON_PLACEHOLDERS.aliases,
       },
     ],
   },
@@ -104,7 +113,7 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
       {
         key: "description",
         label: "Description",
-        placeholder: "What happens in this part of the story",
+        placeholder: "What happens in this part of the story.",
       },
       {
         key: "exitConditions",
@@ -128,7 +137,7 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
         key: "condition",
         label: "Condition",
         aliases: ["Win condition"],
-        placeholder: "What must happen for the story to be won",
+        placeholder: "What must happen for the story to be won.",
       },
     ],
   },
@@ -143,7 +152,7 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
       {
         key: "description",
         label: "Description",
-        placeholder: "What the place is like, and who is found there",
+        placeholder: "What the place is like, and who is found there.",
       },
     ],
   },
@@ -160,13 +169,13 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
         key: "guidelines",
         label: "Guidelines",
         aliases: ["Guideline"],
-        placeholder: "Point of view, tense, rhythm, what to avoid",
+        placeholder: "Point of view, tense, rhythm and what to avoid.",
       },
       {
         key: "samplePassages",
         label: "Sample passage",
         aliases: ["Sample passages"],
-        placeholder: "A few lines written the way the story should sound",
+        placeholder: "A few lines written the way the story should sound.",
       },
     ],
   },

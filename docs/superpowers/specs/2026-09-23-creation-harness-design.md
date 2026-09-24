@@ -25,7 +25,7 @@ The MVP passes if a viewer can see:
 
 ## 2. Core principles
 
-1. **Jev recognizes, code decides.** Jev turns prose and free text into facts (intent, classification, "was this clue revealed?", "was this rule violated?"). Plain code applies rules to those facts (arrest succeeds or fails, reputation changes, arc advances, ending reached). No model ever writes state.
+1. **Jev recognizes, code decides.** Jev turns prose and free text into facts (intent, classification, "was this clue revealed?", "was this rule violated?"). Plain code applies rules to those facts (a decisive action succeeds or fails, reputation changes, arc advances, ending reached). No model ever writes state.
 2. **Nothing unapproved reaches the player.** A passage appears in the story pane only after Jev passes it.
 3. **Everything that decides an outcome is a pure function.** The resolver, solvability check, directive builder and ending check take data in and return data out, with no I/O. Randomness uses a seeded generator so replays reproduce outcomes.
 4. **Only authored places exist.** Places come from the brief or from setup (reviewed by the author). During play, the AI may invent **characters only**.
@@ -244,7 +244,7 @@ A BlockNote custom block has flat typed props plus one content area; a Character
 
 1. **Parse.** Convert and validate the brief. Create `locked` entries with source `author`: characters, any locations, any exit conditions. Arcs and the ending stay in `brief_json`.
 2. **Draft** (Drafter, structured output, two sequential calls):
-   1. **World call:** 3–4 real, period-accurate locations with descriptions and connections (if the brief has none), supporting NPCs, exit conditions for arcs that lack them. The start location is the brief's location if given, else the first drafted location.
+   1. **World call:** 3–4 locations that fit the setting (real and period-accurate when the setting is historical) with descriptions and connections (if the brief has none), supporting NPCs, exit conditions for arcs that lack them. The start location is the brief's location if given, else the first drafted location.
    2. **Story logic call** (sees call 1's output): clues (location or holder, what each reveals, `points_to_hidden`, `red_herring`), knowledge entries, decisive actions derived from the ending.
    The Drafter refers to things by name; code resolves names to ids. An unresolved name is a validation error.
 3. **Validate.**
@@ -277,7 +277,7 @@ A Session never starts blank. As soon as it is created, the harness plays its **
    - **question:** the target may reveal only knowledge entries with `min_band` at or below the current band that are not yet revealed ("allowed reveals").
    - **examine:** clues at the current location that are not yet found become "discoverable."
    - **decisive action:** correct target and requirements met → success (may trigger `win`); correct target, requirements unmet → fail, `premature_penalty` (default −20); wrong target → fail, `wrong_target_penalty` (default −15).
-   - **off_script:** −10 reputation, +1 off-script count. Warnings at counts 2 and 3 are added to the directive so a character with standing over the player character warns them in the story.
+   - **off_script:** −10 reputation, +1 off-script count. Warnings at counts 2 and 3 are added to the directive so a character the player character answers to warns them in the story.
    - **reckless:** seeded death roll with the current arc's odds. Lethal → `death`.
    - **on_script / tangential:** no penalty.
    - **removed:** reputation ≤ 0 or off-script count ≥ 4 after this turn's changes → `removed`.

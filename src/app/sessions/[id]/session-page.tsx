@@ -71,10 +71,7 @@ import {
 import { useTestMode } from "./test-mode"
 import { useSession } from "./use-session"
 
-const SUGGESTIONS = [
-  "I look around.",
-  "I ask the nearest person what is going on.",
-]
+const SUGGESTIONS = ["I look around.", "I wait and listen."]
 
 export function SessionPage({ sessionId }: { sessionId: string }) {
   const session = useSession(sessionId)

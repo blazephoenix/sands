@@ -12,6 +12,7 @@
  * - `enum`: one of `values`.
  * - `arc`: a 1-based Arc number.
  */
+import { PERSON_PLACEHOLDERS } from "@/brief/fields"
 import type { EntryKind } from "@/domain/entry"
 
 export type EntryFieldType =
@@ -44,27 +45,32 @@ const person: EntryFieldSpec[] = [
     key: "role",
     label: "Role",
     type: "text",
-    placeholder: "Their place in the story",
+    placeholder: PERSON_PLACEHOLDERS.role,
   },
-  { key: "age", label: "Age", type: "text", placeholder: "How old they are" },
+  {
+    key: "age",
+    label: "Age",
+    type: "text",
+    placeholder: PERSON_PLACEHOLDERS.age,
+  },
   {
     key: "personality",
     label: "Personality",
     type: "text",
-    placeholder: "How they think, speak and act",
+    placeholder: PERSON_PLACEHOLDERS.personality,
   },
   {
     key: "backstory",
     label: "Backstory",
     type: "text",
-    placeholder: "What happened to them before the story",
+    placeholder: PERSON_PLACEHOLDERS.backstory,
   },
   {
     key: "aliases",
     label: "Aliases",
     aliases: ["Alias"],
     type: "list",
-    placeholder: "Other names they go by",
+    placeholder: PERSON_PLACEHOLDERS.aliases,
   },
 ]
 
@@ -144,7 +150,7 @@ export const ENTRY_FIELDS: Record<EntryKind, EntryFieldSpec[]> = {
       label: "Condition",
       type: "text",
       placeholder:
-        "A checkable statement, such as: the Player has visited the harbour",
+        "A checkable statement, such as: the Player character has visited the harbour.",
     },
   ],
   knowledge: [
@@ -187,7 +193,7 @@ export const ENTRY_FIELDS: Record<EntryKind, EntryFieldSpec[]> = {
       key: "verb",
       label: "Verb",
       type: "text",
-      placeholder: "The action, such as arrest, duel or confess to",
+      placeholder: "The action, such as arrest, duel or confess to.",
     },
     {
       key: "correctTargetId",

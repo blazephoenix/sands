@@ -1,5 +1,5 @@
 /**
- * Test data: the 1888 London case (docs/requirements.md §2) as a Brief
+ * Test data: the 1888 London case (the appendix of docs/requirements.md) as a Brief
  * document, its validated Brief and the Codex setup would draft for it.
  * Used only by tests, never loaded by the app.
  *

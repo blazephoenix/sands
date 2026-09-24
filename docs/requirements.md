@@ -132,8 +132,8 @@ Code manages all of it. The model never writes state.
    - **Move:** only to a location in the codex.
    - **Question:** the NPC reveals only what their knowledge allows at the current reputation band.
    - **A decisive action on the wrong target:** costs reputation.
-   - **A decisive action before its required clues are found:** fails and costs reputation.
-   - **A decisive action once its required clues are found:** succeeds, and this can satisfy the final arc.
+   - **A decisive action on the correct target before its required clues are found:** fails and costs reputation.
+   - **A decisive action on the correct target once its required clues are found:** succeeds, and this can satisfy the final arc.
    - **`off-script`:** costs reputation and adds 1 to the off-script count.
    - **`reckless`:** a chance of death, weighted by arc and state. A lethal result ends the game.
    - **`on-script` and `tangential`:** no penalty. The model describes what happens.
@@ -167,7 +167,7 @@ There's no turn limit. Arcs and endings drive the game.
 
 ### Reputation in the story
 
-Reputation has to be visible in the prose, not just in a number. At low reputation, NPCs are curt, someone with standing over the player character issues warnings, and characters refuse to talk. The writer gets the reputation band each turn, and Jev checks that NPC behavior matches it.
+Reputation has to be visible in the prose, not just in a number. At low reputation, NPCs are curt, a character the player character answers to issues warnings, and characters refuse to talk. The writer gets the reputation band each turn, and Jev checks that NPC behavior matches it.
 
 ---
 
@@ -268,7 +268,7 @@ Voice input, saves, accounts, multiple concurrent worlds, importing briefs from 
 ## 15. Open decisions
 
 - Starting reputation, the size of each penalty, band thresholds and the off-script threshold. Pick defaults and tune them in playtesting.
-- Whether on-script actions such as finding a clue a decisive action requires can raise reputation, so the player can recover.
+- Whether on-script actions such as finding a clue a decisive action requires, or making a correct deduction, can raise reputation, so the player can recover.
 - The window N for the pacing check.
 - Death odds for reckless actions, per arc.
 - How many recent passages the writer sees.

@@ -210,7 +210,7 @@ Sources: [orm.drizzle.team](https://orm.drizzle.team/docs), the installed `drizz
 - **#4, name matching:** Character drift and the Codex slice match names in code. Drafts use first names (in the test World, "Jacob" and "Nell"), which the test aliases do not include. The matcher needs given names and surnames, or the Drafter should add them as aliases.
 - **#4, Background work:** use a per-Session promise map plus `background_status`, with `after` only for lifetime; see §5.
 - **#4, glossary drift:** `engine/config.ts` still says `ruleFlaggedBand` and `flagged` for the Unsure band; rename it when the Rules land.
-- **#3, Drafter:** use `Output.object` with `.nullable()`, never `.optional()` (strict schemas). Give the extraction the full Codex name list, not the slice: the smoke Drafter proposed "Carrow", a dead merchant from the Brief. Expect the setup calls to take tens of seconds at default effort, and consider `reasoningEffort`.
+- **#3, Drafter:** use `Output.object` with `.nullable()`, never `.optional()` (strict schemas). Give the extraction the full Codex name list, not the slice: the smoke Drafter proposed "Carrow", a character the test World's Brief already has. Expect the setup calls to take tens of seconds at default effort, and consider `reasoningEffort`.
 - **#3, Judge validation:** two Nouls per drafted Entry fit easily in one call (about 20 Entries is about 40 questions).
 - **#2 and #4, storage:** synchronous transactions and `SQLITE_CONSTRAINT_UNIQUE` handling, as above.
 
