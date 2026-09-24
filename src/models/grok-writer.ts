@@ -5,8 +5,9 @@
  * a fast non-reasoning Grok. Server-only: the key must never reach a browser.
  *
  * Every call logs the model id the provider reports (`response.modelId`),
- * the way the Judge logs Jev's version. The SDK retries a failed call once
- * (spec §13); a second failure fails the Turn.
+ * the way the Judge logs Jev's version. A failed call is retried once (spec
+ * §13): the SDK retries transport failures, and an empty Draft is asked for
+ * once more here. A second failure fails the Turn.
  */
 import { xai } from "@ai-sdk/xai"
 import { generateText, type LanguageModel } from "ai"
@@ -67,6 +68,20 @@ export class GrokWriter implements Writer {
     request: WriterRequest,
     options: { signal?: AbortSignal } = {}
   ): Promise<WriterResult> {
+    const first = await this.#call(request, options)
+    if (first.text) return first
+    this.#logger.warn(
+      `[writer] ${this.requestedModel} returned an empty Draft; asking once more`
+    )
+    const second = await this.#call(request, options)
+    if (second.text) return second
+    throw new WriterError("The Writer returned an empty Draft twice.")
+  }
+
+  async #call(
+    request: WriterRequest,
+    options: { signal?: AbortSignal }
+  ): Promise<WriterResult> {
     const started = performance.now()
     let result
     try {
@@ -95,8 +110,11 @@ export class GrokWriter implements Writer {
       `[writer] model=${result.response.modelId} requested=${this.requestedModel} ` +
         `input_tokens=${usage.inputTokens} output_tokens=${usage.outputTokens} latency_ms=${latencyMs}`
     )
-    const text = result.text.trim()
-    if (!text) throw new WriterError("The Writer returned an empty Draft.")
-    return { text, model: result.response.modelId, usage, latencyMs }
+    return {
+      text: result.text.trim(),
+      model: result.response.modelId,
+      usage,
+      latencyMs,
+    }
   }
 }

@@ -18,7 +18,7 @@ import type { CodexSlice } from "@/codex/slice"
 import { namedEntries } from "@/codex/slice"
 import { hiddenTruth, type Brief } from "@/domain/brief"
 import {
-  isLiveEntry,
+  liveOfKinds,
   type Band,
   type Entry,
   type EntryOfKind,
@@ -34,10 +34,12 @@ import {
 import { ENGINE_CONFIG, ruleVerdict } from "@/engine/config"
 import type { Directive } from "@/engine/direct"
 import { noul, type JudgeJson, type NoulQuestion } from "@/models/judge"
-import { entryForJudge } from "@/setup/validate"
+import { entryForScene } from "@/codex/for-models"
 
-/** Marks the Hidden truth wherever the Judge or the Writer reads an Entry. */
+/** Marks the Hidden truth wherever the Judge reads an Entry. */
 export const JUDGE_HIDDEN_MARKER = "[HIDDEN]"
+
+type Json = { [key: string]: JudgeJson }
 
 /** Everything the Rules need to know about one Turn's scene. */
 export type SceneContext = {
@@ -66,52 +68,6 @@ export type RuleQuestion = {
   feedback: string
 }
 
-type Json = { [key: string]: JudgeJson }
-
-const TYPED_HIDDEN_KEYS = ["role", "age", "personality", "backstory"] as const
-
-/**
- * An Entry as a model reads it, with its Hidden fields marked. References to
- * removed Entries are left out, so a removed name never reaches the Writer.
- */
-export function entryForScene(
-  entry: Entry,
-  byId: ReadonlyMap<string, Entry>,
-  marker: string
-): Json {
-  const live = new Map([...byId].filter(([, e]) => isLiveEntry(e)))
-  const shown = entryForJudge(entry, live)
-  if (entry.kind !== "character" && entry.kind !== "npc") return shown
-  const hidden = new Set(entry.data.hiddenFields)
-  for (const key of TYPED_HIDDEN_KEYS) {
-    const value = shown[key]
-    if (hidden.has(key) && typeof value === "string" && value.trim())
-      shown[key] = `${marker} ${value}`
-  }
-  if (Array.isArray(shown.key_facts)) {
-    shown.key_facts = entry.keyFacts.map((fact) => {
-      const label = fact.split(":")[0]?.trim() ?? ""
-      return hidden.has(label) ? `${marker} ${fact}` : fact
-    })
-  }
-  if (entry.data.isPlayer) shown.player_character = true
-  return shown
-}
-
-function liveByKind<K extends Entry["kind"]>(
-  entries: readonly Entry[],
-  kinds: readonly K[]
-) {
-  return entries.filter(
-    (e): e is EntryOfKind<K> =>
-      (kinds as readonly string[]).includes(e.kind) && isLiveEntry(e)
-  )
-}
-
-function playerName(context: SceneContext) {
-  return context.directive.playerCharacter
-}
-
 /** The Judge state of spec §10.2 for one Round. */
 export function judgeState(context: SceneContext, drafts: readonly string[]) {
   const { brief, entries, state, directive } = context
@@ -123,7 +79,7 @@ export function judgeState(context: SceneContext, drafts: readonly string[]) {
     .filter((k): k is EntryOfKind<"knowledge"> => k?.kind === "knowledge")
   return {
     drafts: [...drafts],
-    player_character: playerName(context),
+    player_character: directive.playerCharacter,
     player_input:
       context.playerInput ??
       "(none: this is the Opening, before the Player acts)",
@@ -146,7 +102,7 @@ export function judgeState(context: SceneContext, drafts: readonly string[]) {
     codex: context.slice.writer.map((e) =>
       entryForScene(e, byId, JUDGE_HIDDEN_MARKER)
     ),
-    known_places: liveByKind(entries, ["location"]).map((l) => l.name),
+    known_places: liveOfKinds(entries, ["location"]).map((l) => l.name),
     rejected_names: context.slice.rejectedNames,
     allowed_reveals: directive.allowedReveals,
     discoverable_clues: directive.discoverableClues,
@@ -176,7 +132,6 @@ export function voiceGuidelines(brief: Brief): string[] {
     .flatMap((v) => v.guidelines.split(/\n+|(?<=[.!?])\s+(?=\p{Lu})/u))
     .map((g) => g.trim())
     .filter(Boolean)
-    .slice(0, 8)
 }
 
 const REPUTATION_QUESTIONS: Record<
@@ -255,7 +210,7 @@ export function ruleQuestions(
   }
 
   // Character drift: per character the Draft names, never the Player character.
-  const people = liveByKind(entries, ["character", "npc"])
+  const people = liveOfKinds(entries, ["character", "npc"])
   for (const person of namedEntries(draft, people)) {
     if (person.kind !== "character" && person.kind !== "npc") continue
     if (person.data.isPlayer) continue
@@ -431,7 +386,7 @@ export function ruleQuestions(
   }
 
   // Codex: per Entry the Draft names, and removed names.
-  const things = liveByKind(entries, [
+  const things = liveOfKinds(entries, [
     "location",
     "character",
     "npc",

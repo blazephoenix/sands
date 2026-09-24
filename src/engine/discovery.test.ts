@@ -59,6 +59,16 @@ describe("Discovery (spec §9.1 step 6)", () => {
     expect(discovery[0]).toMatchObject({ revealed: false, reputationDelta: 0 })
   })
 
+  it("gives no recovery once the Session has ended this Turn, so the saved Reputation fits the Ending", () => {
+    const { state: after } = applyDiscovery(
+      state({ reputation: 0, ending: "removed" }),
+      codex(),
+      [clue("mk-c4", 0.9)]
+    )
+    expect(after.cluesFound).toEqual(["mk-c4"])
+    expect(after.reputation).toBe(0)
+  })
+
   it("never finds a Clue twice, and keeps Reputation in range", () => {
     const { state: after } = applyDiscovery(
       state({ reputation: 98, cluesFound: ["mk-c3"] }),

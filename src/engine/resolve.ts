@@ -11,14 +11,14 @@
  * An Ending the intent already decided (a win) stands.
  */
 import {
-  isLiveEntry,
+  liveOfKinds,
   type Band,
   type Entry,
   type EntryOfKind,
 } from "@/domain/entry"
 import type { Classification, Outcome, PlayerState } from "@/domain/session"
 
-import { bandFor, ENGINE_CONFIG } from "./config"
+import { bandFor, clampReputation, ENGINE_CONFIG } from "./config"
 import { checkEnding, type EndingCheck } from "./endings"
 
 /** The kind of action the Judge read. A Decisive action carries its verb. */
@@ -53,6 +53,11 @@ export type Resolution = {
   discoverableClues: EntryOfKind<"clue">[]
   /** The off-script count to warn at in the story this Turn (2 or 3), or null. */
   warning: number | null
+  /**
+   * The Band this Turn is played in: before its penalty, which takes effect
+   * from the next Turn. Reveals and the characters' behaviour both use it.
+   */
+  band: Band
 }
 
 /** What resolving the intent adds to the Outcome. */
@@ -70,21 +75,6 @@ const BAND_RANK: Record<Band, number> = { low: 0, normal: 1, high: 2 }
 type Action = NonNullable<Outcome["action"]>
 type Penalty = Outcome["penalty"]
 
-function live<K extends Entry["kind"]>(
-  entries: readonly Entry[],
-  kinds: readonly K[]
-) {
-  return entries.filter(
-    (entry): entry is EntryOfKind<K> =>
-      (kinds as readonly string[]).includes(entry.kind) && isLiveEntry(entry)
-  )
-}
-
-function clampReputation(value: number) {
-  const [low, high] = ENGINE_CONFIG.reputationRange
-  return Math.min(high, Math.max(low, value))
-}
-
 const nothingFound = {
   allowedReveals: [],
   discoverableClues: [],
@@ -95,7 +85,7 @@ function resolveMove(input: ResolveInput, state: PlayerState): Acted {
   const { target } = input
   const location =
     target.kind === "entry"
-      ? live(input.entries, ["location"]).find((l) => l.id === target.id)
+      ? liveOfKinds(input.entries, ["location"]).find((l) => l.id === target.id)
       : undefined
   if (!location) {
     return {
@@ -124,7 +114,7 @@ function resolveQuestion(input: ResolveInput, state: PlayerState): Acted {
   const { target } = input
   const person =
     target.kind === "entry"
-      ? live(input.entries, ["character", "npc"]).find(
+      ? liveOfKinds(input.entries, ["character", "npc"]).find(
           (c) => c.id === target.id && !c.data.isPlayer
         )
       : undefined
@@ -141,7 +131,7 @@ function resolveQuestion(input: ResolveInput, state: PlayerState): Acted {
   }
   const band = BAND_RANK[bandFor(state.reputation)]
   const revealed = new Set(state.knowledgeRevealed[person.id] ?? [])
-  const allowedReveals = live(input.entries, ["knowledge"]).filter(
+  const allowedReveals = liveOfKinds(input.entries, ["knowledge"]).filter(
     (k) =>
       k.data.characterId === person.id &&
       BAND_RANK[k.data.minBand] <= band &&
@@ -164,7 +154,7 @@ function resolveQuestion(input: ResolveInput, state: PlayerState): Acted {
 
 function resolveExamine(input: ResolveInput, state: PlayerState): Acted {
   const found = new Set(state.cluesFound)
-  const discoverableClues = live(input.entries, ["clue"]).filter(
+  const discoverableClues = liveOfKinds(input.entries, ["clue"]).filter(
     (c) => c.data.locationId === state.locationId && !found.has(c.id)
   )
   return {
@@ -192,7 +182,7 @@ function resolveDecisive(
   state: PlayerState,
   verb: string
 ): Acted {
-  const actions = live(input.entries, ["decisive_action"]).filter((a) =>
+  const actions = liveOfKinds(input.entries, ["decisive_action"]).filter((a) =>
     sameVerb(a.data.verb, verb)
   )
   const { target } = input
@@ -206,11 +196,12 @@ function resolveDecisive(
       : "no one in the story"
 
   if (!onTarget) {
-    const penalty = actions[0]?.data.wrongTargetPenalty ?? 0
+    const penalty =
+      actions[0]?.data.wrongTargetPenalty ?? ENGINE_CONFIG.wrongTargetPenalty
     return {
       action: {
         kind: "decisive_wrong_target",
-        summary: `The attempt to ${verb} ${targetName} fails: it is the wrong target.`,
+        summary: `Trying to ${verb} ${targetName} fails: it is the wrong target.`,
         reputationDelta: -penalty,
       },
       state,
@@ -226,7 +217,7 @@ function resolveDecisive(
     return {
       action: {
         kind: "decisive_premature",
-        summary: `The attempt to ${verb} ${targetName} fails: it comes too early, with ${have} of the ${need} Clues it needs.`,
+        summary: `Trying to ${verb} ${targetName} fails: it comes too early, with ${have} of the ${need} Clues it needs.`,
         reputationDelta: -onTarget.data.prematurePenalty,
       },
       state,
@@ -237,7 +228,7 @@ function resolveDecisive(
   return {
     action: {
       kind: "decisive_success",
-      summary: `The attempt to ${verb} ${targetName} succeeds.`,
+      summary: `Trying to ${verb} ${targetName} succeeds.`,
       reputationDelta: 0,
     },
     state,
@@ -331,6 +322,7 @@ export function resolve(input: ResolveInput): Resolution {
       allowedReveals: [],
       discoverableClues: [],
       warning: null,
+      band: bandFor(before.reputation),
     }
   }
 
@@ -371,5 +363,6 @@ export function resolve(input: ResolveInput): Resolution {
     allowedReveals: acted.allowedReveals,
     discoverableClues: acted.discoverableClues,
     warning,
+    band: bandFor(before.reputation),
   }
 }

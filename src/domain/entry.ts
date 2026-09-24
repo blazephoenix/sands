@@ -287,6 +287,24 @@ export function isLiveEntry(entry: Pick<Entry, "status">) {
   return entry.status !== "rejected"
 }
 
+/** The live Entries of the given kinds, in Codex order. */
+export function liveOfKinds<K extends EntryKind>(
+  entries: readonly Entry[],
+  kinds: readonly K[]
+): EntryOfKind<K>[] {
+  return entries.filter(
+    (entry): entry is EntryOfKind<K> =>
+      (kinds as readonly EntryKind[]).includes(entry.kind) && isLiveEntry(entry)
+  )
+}
+
+/** The live Player character, if the Codex has one. */
+export function playerCharacterOf(
+  entries: readonly Entry[]
+): EntryOfKind<"character"> | undefined {
+  return liveOfKinds(entries, ["character"]).find((c) => c.data.isPlayer)
+}
+
 /** The Entry ids an Entry refers to through its kind-specific data. */
 export function referencedEntryIds(entry: Entry): string[] {
   switch (entry.kind) {

@@ -9,11 +9,11 @@
 import { stringify } from "yaml"
 
 import { briefForPrompt } from "@/brief/to-prompt"
+import { entryForScene } from "@/codex/for-models"
 import type { CodexSlice } from "@/codex/slice"
 import type { Brief } from "@/domain/brief"
 import type { Entry } from "@/domain/entry"
 import type { WriterRequest } from "@/models/writer"
-import { entryForScene } from "@/rules/rules"
 
 import { ENGINE_CONFIG } from "./config"
 import { renderDirective, type Directive } from "./direct"
@@ -23,7 +23,7 @@ export const WRITER_HIDDEN_MARKER = "SECRET — never state or imply:"
 
 export const WRITER_INSTRUCTIONS = `You are the Writer of an interactive story. An Author wrote a locked Brief; a Player acts as the Player character; code decides what each action achieves. You write the next Passage: about ${ENGINE_CONFIG.passageWords} words of prose, in the Voice the Brief asks for, if it gives one.
 
-A judge checks every Passage against these rules, and a Passage that breaks one is thrown away:
+A judge checks every Draft you write against these rules, and a Draft that breaks one is thrown away:
 - Never contradict the Brief or the Codex.
 - Narrate what the Directive says happened. Code decided it; do not change it.
 - The Player character says and does only what the Player's input says. Add none of their words, choices or actions.

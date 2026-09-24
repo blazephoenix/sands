@@ -348,6 +348,8 @@ Verified against https://docs.typesafe.ai and the installed `@typesafe-ai/sdk` 0
 
 ### 10.3 Rules (asked once per draft)
 
+The wordings below include the rewordings the smoke test proposed (research §2) for Character drift, Codex, Reputation, Voice and the Knowledge narration question, and a Location question checked against `known_places`. They were applied with #4 on 2026-09-24 and **have not yet been checked against real Drafts**; tune or revert each after the first real Turns.
+
 | Rule | Question(s) |
 |---|---|
 | Character drift | Per non-player character named in the draft (matched in code by full name, alias, given name or surname), with their entry beside the question: "Does anything `character.name` says or does go against `character.personality` or `character.backstory`?" The `false` criterion: behaviour the entry allows is not drift. |

@@ -12,6 +12,7 @@ import type { Brief } from "@/domain/brief"
 import {
   ENTRY_KIND_LABELS,
   isLiveEntry,
+  playerCharacterOf,
   type Entry,
   type EntryOfKind,
 } from "@/domain/entry"
@@ -99,7 +100,7 @@ export function readingQuestions(input: ReadingInput) {
     "The action is aimed at a person, place or thing that is not in this list."
 
   const byId = new Map(input.entries.map((e) => [e.id, e]))
-  const player = live.find((e) => e.kind === "character" && e.data.isPlayer)
+  const player = playerCharacterOf(input.entries)
   const arc = input.brief.arcs[input.state.arcIndex]
   const state: { [key: string]: JudgeJson } = {
     player_input: input.playerInput,
@@ -156,11 +157,8 @@ export function readReading(
 ): Reading {
   const verb = answers.intent.choice
   const intent: Intent =
-    verb === "move" ||
-    verb === "examine" ||
-    verb === "question" ||
-    verb === "other"
-      ? { kind: verb }
+    verb in BASIC_INTENTS || verb === "other"
+      ? { kind: verb as keyof typeof BASIC_INTENTS | "other" }
       : { kind: "decisive", verb }
   const picked = answers.target.choice
   const id = targets.get(picked)

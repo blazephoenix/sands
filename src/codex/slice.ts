@@ -9,7 +9,12 @@
  * match and never reach the Writer; the Judge gets only their names, to catch
  * a Draft that brings one back.
  */
-import { isLiveEntry, type Entry, type EntryOfKind } from "@/domain/entry"
+import {
+  isLiveEntry,
+  playerCharacterOf,
+  type Entry,
+  type EntryOfKind,
+} from "@/domain/entry"
 import type { PlayerState } from "@/domain/session"
 
 const LETTER_OR_DIGIT = "[\\p{L}\\p{N}]"
@@ -101,8 +106,8 @@ export function codexSlice(input: CodexSliceInput): CodexSlice {
     else if (entry.data.connections.includes(here)) picked.add(entry.id)
   }
 
-  for (const entry of live)
-    if (isPerson(entry) && entry.data.isPlayer) picked.add(entry.id)
+  const player = playerCharacterOf(live)
+  if (player) picked.add(player.id)
 
   const people = live.filter(isPerson)
   for (const text of input.texts)

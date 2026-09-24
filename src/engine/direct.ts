@@ -10,6 +10,7 @@
 import type { Brief } from "@/domain/brief"
 import {
   isLiveEntry,
+  playerCharacterOf,
   type Band,
   type Entry,
   type EntryOfKind,
@@ -81,15 +82,12 @@ export function buildDirective(input: DirectiveInput): Directive {
   const { brief, entries, state, resolution } = input
   const live = entries.filter(isLiveEntry)
   const byId = new Map(entries.map((entry) => [entry.id, entry]))
-  const player =
-    live.find(
-      (e): e is EntryOfKind<"character"> =>
-        e.kind === "character" && e.data.isPlayer
-    )?.name ?? "The Player character"
+  const player = playerCharacterOf(entries)?.name ?? "The Player character"
   const location = byId.get(state.locationId)
   const arc = brief.arcs[state.arcIndex]
   const met = new Set(input.metExitConditionIds)
-  const band = bandFor(state.reputation)
+  // The Band the Turn is played in, as the resolver revealed by it.
+  const band = resolution?.band ?? bandFor(state.reputation)
   const ending = state.ending === "none" ? null : state.ending
 
   return {

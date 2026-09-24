@@ -16,8 +16,9 @@
  *   first. A Writer or Judge failure (after the model client's one retry,
  *   spec §13) ends the stream with an error and changes nothing.
  * - **Background work** (spec §9.2: new characters, Exit conditions, pacing)
- *   lands with #5. Until then a Turn has none: it is stored `done` with empty
- *   results, so nothing waits on it.
+ *   lands with #5. Until then none runs: a Turn is stored `done` with empty
+ *   results and no background time (`backgroundMs: null`), which the
+ *   harness pane shows as "no Background work ran", so nothing waits on it.
  */
 import { codexSlice } from "@/codex/slice"
 import type { Db } from "@/db/client"
@@ -60,7 +61,7 @@ import { resolve, type Resolution } from "./resolve"
 import { deathRollFor } from "./rng"
 import { writerRequest } from "./writer-prompt"
 
-/** Until Background work lands (#5): nothing ran, so nothing is pending. */
+/** Until Background work lands (#5): none ran, so nothing is pending. */
 const NO_BACKGROUND_WORK: BackgroundResults = {
   newEntryIds: [],
   arcCheck: [],
@@ -95,6 +96,11 @@ function reason(error: unknown) {
   const line = text.split("\n")[0].trim()
   return line.length > 200 ? `${line.slice(0, 197)}...` : line
 }
+
+/** The Judge's id for Draft `draft`'s Rule question `n`, and for its Discovery question `n`. */
+const ruleKey = (draft: number, rule: string, n: number) =>
+  `d${draft}_${rule}_${n}`
+const discoveryKey = (draft: number, n: number) => `d${draft}_disc_${n}`
 
 /** One Draft's questions, verdict and Discovery answers, before it is logged. */
 type Judged = {
@@ -255,7 +261,7 @@ export async function runTurn(
     }
     const passages = turns.map((t) => t.passage)
 
-    // 3. Rounds: write two Drafts, judge both in one call, ship or retry.
+    // 3. Rounds: write two Drafts, judge both in one call, then ship one or write another Round.
     const rounds: { feedback: string[]; drafts: Judged[] }[] = []
     let feedback: string[] = []
     let shipped: { id: string; flagged: boolean } | null = null
@@ -292,8 +298,8 @@ export async function runTurn(
       }))
       const questions = Object.fromEntries(
         asked.flatMap(({ questions: rules, discovery }, i) => [
-          ...rules.map((q, n) => [`d${i}_${q.rule}_${n}`, q.question]),
-          ...discovery.map((q, n) => [`d${i}_disc_${n}`, q.question]),
+          ...rules.map((q, n) => [ruleKey(i, q.rule, n), q.question]),
+          ...discovery.map((q, n) => [discoveryKey(i, n), q.question]),
         ])
       )
       const answered = await modelStep(
@@ -317,9 +323,9 @@ export async function runTurn(
           discovery,
           verdict: readDraft(
             rules,
-            rules.map((q, n) => noul(`d${i}_${q.rule}_${n}`))
+            rules.map((q, n) => noul(ruleKey(i, q.rule, n)))
           ),
-          discoveryAnswers: discovery.map((_, n) => noul(`d${i}_disc_${n}`)),
+          discoveryAnswers: discovery.map((_, n) => noul(discoveryKey(i, n))),
         })
       )
       rounds.push({ feedback, drafts })

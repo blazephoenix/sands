@@ -218,6 +218,14 @@ describe("a Decisive action", () => {
     ).toBe("win")
   })
 
+  it("falls back to the default wrong-target penalty when no action has the verb", () => {
+    const { outcome } = play({ kind: "decisive", verb: "duel" }, entry("max"))
+    expect(outcome.action).toMatchObject({
+      kind: "decisive_wrong_target",
+      reputationDelta: -ENGINE_CONFIG.wrongTargetPenalty,
+    })
+  })
+
   it("uses the action's own penalties", () => {
     const entries = codex().map((e) =>
       e.kind === "decisive_action"

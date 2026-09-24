@@ -37,6 +37,12 @@ export function bandFor(reputation: number): Band {
   return "low"
 }
 
+/** Reputation kept within its range. */
+export function clampReputation(value: number) {
+  const [low, high] = ENGINE_CONFIG.reputationRange
+  return Math.min(high, Math.max(low, value))
+}
+
 export function ruleVerdict(probability: number) {
   const [low, high] = ENGINE_CONFIG.ruleUnsureBand
   return {

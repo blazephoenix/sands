@@ -45,7 +45,6 @@ import {
   type Classification,
   type Draft,
   type Outcome,
-  type PenaltyKind,
   type Round,
   type Turn,
   type TurnLog as TurnLogData,
@@ -70,12 +69,6 @@ const ACTION_LABELS: Record<ActionResult, string> = {
   decisive_premature: "Decisive action too early",
   decisive_wrong_target: "Decisive action, wrong target",
   narrated: "Narrated",
-}
-
-const PENALTY_LABELS: Record<PenaltyKind, string> = {
-  none: "No penalty",
-  off_script: "Off-script",
-  reckless: "Reckless",
 }
 
 type Names = (id: string) => string
@@ -384,6 +377,16 @@ function Background({
   arcName: (index: number) => string
 }) {
   const results = turn.log.background
+  if (
+    turn.backgroundStatus === "done" &&
+    turn.log.timings.backgroundMs === null
+  ) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No Background work ran for this Turn.
+      </p>
+    )
+  }
   if (turn.backgroundStatus === "pending" || !results) {
     return (
       <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -509,12 +512,7 @@ function OutcomeSection({
           </span>
         )}
       </p>
-      <p className="text-sm">
-        <span className="font-medium">
-          {PENALTY_LABELS[outcome.penalty.kind]}.
-        </span>{" "}
-        {outcome.penalty.summary}
-      </p>
+      <p className="text-sm">{outcome.penalty.summary}</p>
       <p className="text-xs text-muted-foreground">
         Penalty: Reputation {signed(outcome.penalty.reputationDelta)} ·
         off-script {signed(outcome.penalty.offScriptDelta)}

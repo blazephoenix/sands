@@ -5,13 +5,15 @@
  *
  * - Revealed Knowledge is recorded under its character. Knowledge that
  *   carries a Clue also finds that Clue, as the solvability check assumes.
- * - A found Clue that some live Decisive action requires gives the recovery.
+ * - A found Clue that some live Decisive action requires gives the recovery,
+ *   unless the Session ended this Turn: the Ending was decided on the
+ *   Reputation the Outcome left, and the saved state must agree with it.
  * - An answer at p >= 0.5 counts as revealed, the Rules' fail threshold.
  */
 import { isLiveEntry, type Entry } from "@/domain/entry"
 import type { Discovery, PlayerState } from "@/domain/session"
 
-import { ENGINE_CONFIG } from "./config"
+import { clampReputation, ENGINE_CONFIG } from "./config"
 
 export type DiscoveryAnswer = Omit<Discovery, "revealed" | "reputationDelta">
 
@@ -41,7 +43,9 @@ export function applyDiscovery(
   const find = (clueId: string) => {
     if (cluesFound.includes(clueId)) return 0
     cluesFound.push(clueId)
-    return required.has(clueId) ? ENGINE_CONFIG.recovery : 0
+    return required.has(clueId) && before.ending === "none"
+      ? ENGINE_CONFIG.recovery
+      : 0
   }
 
   const discovery = answers.map((answer): Discovery => {
@@ -62,13 +66,12 @@ export function applyDiscovery(
     return { ...answer, revealed, reputationDelta }
   })
 
-  const [low, high] = ENGINE_CONFIG.reputationRange
   return {
     state: {
       ...before,
       cluesFound,
       knowledgeRevealed,
-      reputation: Math.min(high, Math.max(low, reputation)),
+      reputation: clampReputation(reputation),
     },
     discovery,
   }

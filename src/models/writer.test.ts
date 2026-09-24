@@ -79,13 +79,26 @@ describe("GrokWriter", () => {
     expect(calls).toBe(2)
   }, 10_000)
 
-  it("fails on an empty Draft, and refuses to start without WRITER_MODEL", async () => {
-    const model = new MockLanguageModelV4({
+  it("asks once more after an empty Draft, and fails on a second", async () => {
+    const texts = ["   ", "At last."]
+    const once = new MockLanguageModelV4({
+      doGenerate: async () => generated(texts.shift() ?? ""),
+    })
+    expect(
+      (await new GrokWriter({ model: once, logger: logger() }).write(request))
+        .text
+    ).toBe("At last.")
+
+    const never = new MockLanguageModelV4({
       doGenerate: async () => generated("   "),
     })
     await expect(
-      new GrokWriter({ model, logger: logger() }).write(request)
-    ).rejects.toThrow(/empty Draft/)
+      new GrokWriter({ model: never, logger: logger() }).write(request)
+    ).rejects.toThrow(/empty Draft twice/)
+    expect(never.doGenerateCalls).toHaveLength(2)
+  })
+
+  it("refuses to start without WRITER_MODEL", () => {
     vi.stubEnv("WRITER_MODEL", "")
     try {
       expect(() => new GrokWriter()).toThrow(/WRITER_MODEL is not set/)

@@ -123,6 +123,16 @@ describe("a Turn's Directive (spec §9.1 step 4)", () => {
     expect(directive.bandGuidance).toMatch(/distrust/)
   })
 
+  it("describes the Band the Turn is played in, before its penalty, as the reveals do", () => {
+    const directive = directiveFor(
+      { kind: "question" },
+      { kind: "entry", id: "mk-nell" },
+      { classification: "off_script", state: state({ reputation: 30 }) }
+    )
+    expect(directive.allowedReveals).toHaveLength(1)
+    expect(directive.band).toBe("normal")
+  })
+
   it("adds a warning at the second off-script action", () => {
     const warned = directiveFor(
       { kind: "other" },
