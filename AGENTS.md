@@ -11,6 +11,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - [docs/superpowers/specs/2026-09-23-creation-harness-design.md](docs/superpowers/specs/2026-09-23-creation-harness-design.md): the design. It and the ADRs take precedence over `docs/requirements.md`.
 - How to use these: [docs/agents/domain.md](docs/agents/domain.md). Record new terms and decisions with `/domain-modeling`.
 - [docs/design/](docs/design/): the UI bar every change must meet (`ux-bar.md`) and the shared editor's design (`editor-design.md`).
+- [docs/research/](docs/research/): checked facts about the libraries we build on (Jev, AI SDK 7, Next 16, Drizzle 0.45) and the Judge smoke test. Read the relevant section before working in `src/models/`, `src/engine/`, `src/setup/` or `src/db/`; it outranks memory and training data. Update it when you learn more instead of starting a new file.
 - Tickets are GitHub issues: [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md). There is no `.scratch/`.
 
 ## Rules
