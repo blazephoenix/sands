@@ -26,12 +26,13 @@ import type {
   JevFlag,
 } from "@/domain/entry"
 import type { SandsBlock } from "@/editor/schema-config"
+import { dayjs } from "@/lib/time"
 
 const EPOCH = "2026-09-21T09:00:00.000Z"
 
 /** A fixed timestamp `minutes` after the test epoch. */
 export function testTime(minutes: number) {
-  return new Date(Date.parse(EPOCH) + minutes * 60_000).toISOString()
+  return dayjs(EPOCH).add(minutes, "minute").toISOString()
 }
 
 /**

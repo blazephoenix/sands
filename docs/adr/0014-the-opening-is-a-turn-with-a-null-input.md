@@ -19,4 +19,4 @@ The Session page starts the Opening when it loads a Session with no Turns. On a 
 
 - "Turns played" (the World page, the Ending screen) counts every Turn but the Opening. `SessionSummary.turnCount` still counts every Turn row.
 - Turns are labelled "Opening", then "Turn 1", "Turn 2" and so on, so a Turn's number is its `idx`.
-- The claim lives in memory with the fixture store. The engine needs the same guarantee from the database: a unique `(session_id, idx)` is enough to refuse a second Turn 0.
+- The database guarantees it: `(session_id, idx)` is unique, so a second Turn 0 is refused whichever request writes second, and the refusal is a 409. The in-memory claim stays, per server process, so a second request is turned away before it spends model calls on an Opening that could never be saved.

@@ -5,7 +5,7 @@
  */
 import { saveBriefRequestSchema, type SaveBriefResponse } from "@/domain/api"
 import { getDb } from "@/db/client"
-import { saveBrief } from "@/db/worlds"
+import { saveBrief } from "@/worlds/worlds"
 import { handle, readJson } from "@/server/http"
 
 type Context = { params: Promise<{ id: string }> }

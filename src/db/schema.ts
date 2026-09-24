@@ -43,19 +43,19 @@ import {
 import { setupStatusSchema, type SolvabilityResult } from "../domain/world"
 
 /** A zod enum's values as the non-empty tuple drizzle's `enum` option wants. */
-function values<T extends string>(schema: { options: readonly T[] }) {
+function enumTuple<T extends string>(schema: { options: readonly T[] }) {
   return schema.options as unknown as [T, ...T[]]
 }
 
-const SETUP_STATUSES = values(setupStatusSchema)
-const ENTRY_SOURCES = values(entrySourceSchema)
-const ENTRY_STATUSES = values(entryStatusSchema)
-const SESSION_MODES = values(sessionSchema.shape.mode)
-const ENDINGS = values(endingSchema)
-const BACKGROUND_STATUSES = values(backgroundStatusSchema)
+const SETUP_STATUSES = enumTuple(setupStatusSchema)
+const ENTRY_SOURCES = enumTuple(entrySourceSchema)
+const ENTRY_STATUSES = enumTuple(entryStatusSchema)
+const SESSION_MODES = enumTuple(sessionSchema.shape.mode)
+const ENDINGS = enumTuple(endingSchema)
+const BACKGROUND_STATUSES = enumTuple(backgroundStatusSchema)
 
 /** `column in ('a', 'b', ...)`, for a check constraint on an enum column. */
-function oneOf(column: AnySQLiteColumn, options: readonly string[]): SQL {
+function isOneOf(column: AnySQLiteColumn, options: readonly string[]): SQL {
   const list = options.map((option) => `'${option}'`).join(", ")
   return sql`${column} in (${sql.raw(list)})`
 }
@@ -77,7 +77,7 @@ export const worlds = sqliteTable(
     updatedAt: text("updated_at").notNull(),
   },
   (t) => [
-    check("worlds_setup_status", oneOf(t.setupStatus, SETUP_STATUSES)),
+    check("worlds_setup_status", isOneOf(t.setupStatus, SETUP_STATUSES)),
     check(
       "worlds_brief_past_draft",
       sql`${t.setupStatus} = 'draft' or ${t.briefJson} is not null`
@@ -100,8 +100,8 @@ export const sessions = sqliteTable(
   },
   (t) => [
     index("sessions_world").on(t.worldId, t.createdAt),
-    check("sessions_mode", oneOf(t.mode, SESSION_MODES)),
-    check("sessions_ending", oneOf(t.ending, ENDINGS)),
+    check("sessions_mode", isOneOf(t.mode, SESSION_MODES)),
+    check("sessions_ending", isOneOf(t.ending, ENDINGS)),
   ]
 )
 
@@ -138,9 +138,9 @@ export const entries = sqliteTable(
   (t) => [
     index("entries_world_session").on(t.worldId, t.sessionId),
     index("entries_session").on(t.sessionId),
-    check("entries_kind", oneOf(t.kind, ENTRY_KINDS)),
-    check("entries_source", oneOf(t.source, ENTRY_SOURCES)),
-    check("entries_status", oneOf(t.status, ENTRY_STATUSES)),
+    check("entries_kind", isOneOf(t.kind, ENTRY_KINDS)),
+    check("entries_source", isOneOf(t.source, ENTRY_SOURCES)),
+    check("entries_status", isOneOf(t.status, ENTRY_STATUSES)),
     check(
       "entries_source_turn",
       sql`(${t.source} = 'play') = (${t.sourceTurn} is not null)`
@@ -183,7 +183,7 @@ export const turns = sqliteTable(
     ),
     check(
       "turns_background_status",
-      oneOf(t.backgroundStatus, BACKGROUND_STATUSES)
+      isOneOf(t.backgroundStatus, BACKGROUND_STATUSES)
     ),
   ]
 )

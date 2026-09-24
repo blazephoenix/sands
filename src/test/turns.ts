@@ -2,24 +2,10 @@
  * Test data: Turns that satisfy the Turn contract, the Opening and later
  * Turns alike. Used only by tests.
  */
-import type { PlayerState, Turn, TurnLog } from "@/domain/session"
-import { ENGINE_CONFIG } from "@/engine/config"
+import type { Turn, TurnLog } from "@/domain/session"
+import { startingState } from "@/engine/initial-state"
 
 import { testTime } from "./london"
-
-function state(locationId: string): PlayerState {
-  return {
-    locationId,
-    arcIndex: 0,
-    cluesFound: [],
-    knowledgeRevealed: {},
-    reputation: ENGINE_CONFIG.startingReputation,
-    offScriptCount: 0,
-    warningsGiven: [],
-    pacingNudge: { active: false, reason: null },
-    ending: "none",
-  }
-}
 
 function log(
   id: string,
@@ -81,7 +67,7 @@ export function openingTurn(sessionId: string, locationId: string): Turn {
     passage,
     flagged: false,
     log: log(id, passage, { reading: null, outcome: null }),
-    state: state(locationId),
+    state: startingState(locationId),
     backgroundStatus: "pending",
     createdAt: testTime(120),
   }
@@ -122,7 +108,7 @@ export function playerTurn(
         ending: "none",
       },
     }),
-    state: state(locationId),
+    state: startingState(locationId),
     backgroundStatus: "pending",
     createdAt: testTime(120 + idx),
   }

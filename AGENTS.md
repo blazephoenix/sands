@@ -21,4 +21,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - Package manager is **pnpm**. Use `pnpm dlx` / `pnpm exec`, never `npm` or `npx`.
 - No server actions: the client calls route handlers (ADR-0010).
+- Dates and times go through dayjs, via `src/lib/time.ts`; never the built-in `Date`.
 - Jev work: use the `typesafe-ai` skill; https://docs.typesafe.ai is the source of truth.

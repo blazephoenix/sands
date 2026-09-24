@@ -8,7 +8,8 @@ import { checkSolvability } from "@/setup/solvability"
 import { storeLondonWorld, testDb } from "@/test/db"
 
 import { createEntry, patchEntry } from "./entries"
-import { startSession } from "./start-session"
+import { copyId, startSession } from "@/sessions/start-session"
+import { dayjs } from "@/lib/time"
 
 let db: OpenDatabase
 
@@ -123,8 +124,8 @@ describe("solvability after every change to a World Entry (spec §7.2, §8 step 
   it("stamps each result with the time it was checked", () => {
     const before = getWorld(db, REVIEW).solvability!.checkedAt
     const { solvability } = patchEntry(db, C2, { action: "accept" })
-    expect(Date.parse(solvability!.checkedAt)).toBeGreaterThan(
-      Date.parse(before)
+    expect(dayjs(solvability!.checkedAt).valueOf()).toBeGreaterThan(
+      dayjs(before).valueOf()
     )
   })
 
@@ -196,7 +197,7 @@ describe("changes to a Session's Codex", () => {
   it("leave the World's result alone and answer null", () => {
     const { session } = startSession(db, { worldId: READY, mode: "harness" })
     const before = getWorld(db, READY)
-    const copy = `${session.id}.mk-c2`
+    const copy = copyId(session.id, "mk-c2")
     expect(patchEntry(db, copy, { action: "reject" }).solvability).toBeNull()
     expect(getWorld(db, READY)).toEqual(before)
     expect(getEntry(db, "mk-c2").status).toBe("accepted")
@@ -204,7 +205,7 @@ describe("changes to a Session's Codex", () => {
 
   it("record when the Author first saw an Entry, once", () => {
     const { session } = startSession(db, { worldId: READY, mode: "harness" })
-    const copy = `${session.id}.mk-nell`
+    const copy = copyId(session.id, "mk-nell")
     const seen = patchEntry(db, copy, { action: "mark-seen" }).entry.seenAt
     expect(seen).not.toBeNull()
     expect(patchEntry(db, copy, { action: "mark-seen" }).entry.seenAt).toBe(

@@ -14,6 +14,16 @@ export const setupStatusSchema = z.enum([
 ])
 export type SetupStatus = z.infer<typeof setupStatusSchema>
 
+/** Setup has started, so the Brief is locked (spec §6 `brief_json`). */
+export function isBriefLocked(world: { setupStatus: SetupStatus }) {
+  return world.setupStatus !== "draft"
+}
+
+/** Setup has finished: the World has a Codex to review, check and play. */
+export function hasFinishedSetup(world: { setupStatus: SetupStatus }) {
+  return world.setupStatus === "review" || world.setupStatus === "ready"
+}
+
 /** One reason a World is not solvable, in words the Author can act on (spec §8 step 3). */
 export const solvabilityGapSchema = z.object({
   code: z.enum([

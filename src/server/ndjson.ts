@@ -11,6 +11,8 @@
  * If `run` throws, the stream ends with an `internal` error event rather than
  * a broken connection. If the client disconnects, `signal` aborts.
  */
+import { nowMs } from "@/lib/time"
+
 export function ndjsonResponse<Event extends { type: string }>(
   run: (
     emit: (event: Event) => void,
@@ -20,8 +22,8 @@ export function ndjsonResponse<Event extends { type: string }>(
   init: { request?: Request } = {}
 ): Response {
   const encoder = new TextEncoder()
-  const started = Date.now()
-  const elapsed = () => Date.now() - started
+  const started = nowMs()
+  const elapsed = () => nowMs() - started
   const controller = new AbortController()
   init.request?.signal.addEventListener("abort", () => controller.abort())
 

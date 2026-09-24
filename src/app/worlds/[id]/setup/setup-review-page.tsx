@@ -72,7 +72,11 @@ import {
 
 import { EntryCard } from "./entry-card"
 import { REVIEW_ROW_ATTR, ReviewSidebar } from "./review-sidebar"
-import { sessionHref, worldPageHref } from "@/components/worlds/world-links"
+import {
+  briefHref,
+  sessionHref,
+  worldPageHref,
+} from "@/components/worlds/world-links"
 import { SolvabilityBanner } from "./solvability-banner"
 import {
   errorMessage,
@@ -223,10 +227,6 @@ function LoadError({
   )
 }
 
-function briefHref(world: Pick<World, "id">) {
-  return `/worlds/${encodeURIComponent(world.id)}/brief`
-}
-
 function DraftState({ world }: { world: World }) {
   return (
     <Empty className="py-16">
@@ -243,7 +243,7 @@ function DraftState({ world }: { world: World }) {
       <EmptyContent>
         <Button
           nativeButton={false}
-          render={<Link href={briefHref(world)} />}
+          render={<Link href={briefHref(world.id)} />}
           autoFocus
         >
           Back to the Brief
@@ -300,7 +300,7 @@ function DraftingState({
         <Button
           variant="outline"
           nativeButton={false}
-          render={<Link href={briefHref(world)} />}
+          render={<Link href={briefHref(world.id)} />}
         >
           Watch setup on the Brief page
         </Button>

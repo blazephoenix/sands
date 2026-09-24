@@ -11,6 +11,7 @@
  *
  * Framework-free so it can be tested with fake timers; the Brief page drives it.
  */
+import { nowMs } from "@/lib/time"
 
 export type SaveStatus =
   | { kind: "saved"; at: number | null }
@@ -102,7 +103,7 @@ export class Autosave<T> {
   }
 
   private now() {
-    return (this.options.now ?? Date.now)()
+    return (this.options.now ?? nowMs)()
   }
 
   private setStatus(status: SaveStatus) {

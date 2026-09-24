@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest"
 
 import { getWorldResponseSchema, patchEntryResponseSchema } from "@/domain/api"
-import { startSession } from "@/codex/start-session"
+import { copyId, startSession } from "@/sessions/start-session"
 import { closeDb, getDb } from "@/db/client"
 import { storeLondonWorld } from "@/test/db"
 
@@ -65,7 +65,7 @@ describe("PATCH /api/entries/[id] returns fresh solvability, and GET /api/worlds
       worldId: "w-review",
       mode: "harness",
     })
-    const { status, body } = await patch(`${session.id}.wc-c2`, {
+    const { status, body } = await patch(copyId(session.id, "wc-c2"), {
       action: "accept",
     })
     expect(status).toBe(200)

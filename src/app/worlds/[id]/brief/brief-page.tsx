@@ -95,6 +95,7 @@ import {
   type SetupRun,
 } from "./setup-progress"
 import { WorldName } from "./world-name"
+import { dayjs, formatTimeWithSeconds, nowMs } from "@/lib/time"
 
 export const RUN_SETUP_SHORTCUT = "Mod-Enter"
 
@@ -239,7 +240,8 @@ function initialContent(world: World): InitialContent {
     restored: false,
     staleBackup: backup !== null,
   }
-  if (!backup || backup.at <= Date.parse(world.updatedAt)) return fromServer
+  if (!backup || backup.at <= dayjs(world.updatedAt).valueOf())
+    return fromServer
   const same =
     backup.name === world.name &&
     JSON.stringify(backup.briefDoc) === JSON.stringify(world.briefDoc)
@@ -408,7 +410,7 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
     writeBriefBackup(worldId, {
       name: draft.name,
       briefDoc: draft.briefDoc,
-      at: Date.now(),
+      at: nowMs(),
     })
   }, [draft, worldId])
 
@@ -562,7 +564,7 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
     setConfirmKey((k) => k + 1)
     setSaveAnnouncement(
       saved
-        ? `Brief saved at ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}.`
+        ? `Brief saved at ${formatTimeWithSeconds(nowMs())}.`
         : `Not saved. ${statusMessage(autosave.getStatus())}`
     )
   }
@@ -618,7 +620,7 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
         signal: controller.signal,
       })) {
         // Anchor the ticking clock to the server's stream clock, so a running step never overshoots its final time.
-        const receivedAt = Date.now()
+        const receivedAt = nowMs()
         setStreamStartedAt((start) => start ?? receivedAt - event.at)
         setRun((current) => reduceSetupEvent(current, event))
         if (event.type === "result") {

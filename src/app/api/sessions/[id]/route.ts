@@ -5,7 +5,7 @@
  */
 import type { GetSessionResponse } from "@/domain/session-view"
 import { getDb } from "@/db/client"
-import { getSessionView } from "@/db/sessions"
+import { getSessionView } from "@/sessions/session-view"
 import { handle } from "@/server/http"
 
 type Context = { params: Promise<{ id: string }> }

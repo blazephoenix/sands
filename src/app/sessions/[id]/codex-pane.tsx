@@ -40,6 +40,7 @@ import {
 import { api, ApiError } from "@/lib/api-client"
 
 import { mergeEntries } from "./use-session"
+import { nowIso } from "@/lib/time"
 
 const SOURCES: { value: EntrySource; label: string }[] = [
   { value: "author", label: "Author" },
@@ -112,7 +113,7 @@ export function CodexPane({
   const [sources, setSources] = React.useState<EntrySource[]>(ALL_SOURCES)
   const [statuses, setStatuses] = React.useState<EntryStatus[]>(ALL_STATUSES)
   const [showRemoved, setShowRemoved] = React.useState(false)
-  const [openedAt] = React.useState(() => new Date().toISOString())
+  const [openedAt] = React.useState(nowIso)
   const editorRef = React.useRef<EntryEditorHandle>(null)
 
   const entries = data.entries

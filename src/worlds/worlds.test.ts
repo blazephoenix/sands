@@ -3,15 +3,11 @@ import { beforeEach, describe, expect, it } from "vitest"
 import { storeLondonWorld, testDb } from "@/test/db"
 import { londonBriefDocument } from "@/test/london"
 
-import type { OpenDatabase } from "./client"
-import { insertSession } from "./sessions"
-import {
-  createWorld,
-  getWorld,
-  listWorldSummaries,
-  saveBrief,
-  updateWorld,
-} from "./worlds"
+import type { OpenDatabase } from "@/db/client"
+import { insertSession } from "@/db/sessions"
+import { getWorld, listWorldSummaries, updateWorld } from "@/db/worlds"
+
+import { createWorld, saveBrief } from "./worlds"
 
 let db: OpenDatabase
 

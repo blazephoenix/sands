@@ -13,8 +13,12 @@ import type {
   PatchEntryRequest,
   PatchEntryResponse,
 } from "@/domain/api"
-import { entryContentSchema, type Entry } from "@/domain/entry"
-import type { SolvabilityResult } from "@/domain/world"
+import {
+  ENTRY_KIND_LABELS,
+  entryContentSchema,
+  type Entry,
+} from "@/domain/entry"
+import { hasFinishedSetup, type SolvabilityResult } from "@/domain/world"
 import type { Db } from "@/db/client"
 import {
   getEntry,
@@ -25,7 +29,8 @@ import {
 import { StoreError } from "@/db/errors"
 import { getSession } from "@/db/sessions"
 import { getWorld, updateWorld } from "@/db/worlds"
-import { newId, nowIso } from "@/lib/ids"
+import { newId } from "@/lib/ids"
+import { nowIso } from "@/lib/time"
 import { checkSolvability } from "@/setup/solvability"
 
 /**
@@ -39,11 +44,7 @@ export function recheckSolvability(
   worldId: string
 ): SolvabilityResult | null {
   const world = getWorld(db, worldId)
-  if (
-    !world.brief ||
-    (world.setupStatus !== "review" && world.setupStatus !== "ready")
-  )
-    return world.solvability
+  if (!world.brief || !hasFinishedSetup(world)) return world.solvability
   const checkedAt = nowIso()
   const solvability: SolvabilityResult = {
     ...checkSolvability({
@@ -91,9 +92,11 @@ export function patchEntry(
         break
       case "edit": {
         if (request.content.kind !== entry.kind) {
+          const from = ENTRY_KIND_LABELS[entry.kind].singular
+          const to = ENTRY_KIND_LABELS[request.content.kind].singular
           throw new StoreError(
             "invalid",
-            `This Entry is a ${entry.kind.replaceAll("_", " ")}, not a ${request.content.kind.replaceAll("_", " ")}.`
+            `An edit cannot change an Entry's kind (${from} to ${to}). Add a new ${to} Entry instead.`
           )
         }
         next = {

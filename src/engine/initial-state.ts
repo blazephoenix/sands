@@ -21,9 +21,13 @@ export function initialState(entries: readonly Entry[]): PlayerState | null {
     locations.find(
       (entry) => entry.kind === "location" && entry.data.isStart
     ) ?? locations[0]
-  if (!start) return null
+  return start ? startingState(start.id) : null
+}
+
+/** The Player state before the Opening, at a given start Location. */
+export function startingState(locationId: string): PlayerState {
   return {
-    locationId: start.id,
+    locationId,
     arcIndex: 0,
     cluesFound: [],
     knowledgeRevealed: {},

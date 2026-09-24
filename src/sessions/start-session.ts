@@ -10,9 +10,10 @@ import { insertEntries, listWorldEntries } from "@/db/entries"
 import { StoreError } from "@/db/errors"
 import { insertSession } from "@/db/sessions"
 import { getWorld, updateWorld } from "@/db/worlds"
-import { newId, nowIso } from "@/lib/ids"
-
-import { copyEntriesForSession } from "./session-copy"
+import { copyEntriesForSession } from "@/codex/session-copy"
+import { hasFinishedSetup } from "@/domain/world"
+import { newId } from "@/lib/ids"
+import { nowIso } from "@/lib/time"
 
 /** The id of a Session's copy of a World Entry: unique, and readable in the database. */
 export function copyId(sessionId: string, templateId: string) {
@@ -29,7 +30,7 @@ export function startSession(
 ): CreateSessionResponse {
   return db.transaction((tx) => {
     const world = getWorld(tx, request.worldId)
-    if (world.setupStatus === "draft" || world.setupStatus === "drafting") {
+    if (!hasFinishedSetup(world)) {
       throw new StoreError(
         "conflict",
         "This World has not finished setup. Run setup and review its Entries before starting a Session."

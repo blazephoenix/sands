@@ -12,3 +12,12 @@ export class StoreError extends Error {
     this.name = "StoreError"
   }
 }
+
+/** The SQLite error code behind a failed query (drizzle wraps the driver's error). */
+export function sqliteErrorCode(error: unknown): string | null {
+  for (let e = error; e instanceof Error; e = e.cause) {
+    const code = (e as { code?: unknown }).code
+    if (typeof code === "string" && code.startsWith("SQLITE_")) return code
+  }
+  return null
+}

@@ -5,7 +5,7 @@
  * setup engine.
  */
 import type { Brief } from "@/domain/brief"
-import type { World } from "@/domain/world"
+import { isBriefLocked, type World } from "@/domain/world"
 
 /** The Story logic call runs once, then at most twice more with the gaps as feedback (spec §8 step 3). */
 export const MAX_STORY_LOGIC_ATTEMPTS = 3
@@ -17,14 +17,10 @@ export const MAX_STORY_LOGIC_ATTEMPTS = 3
 export function setupConflict(
   world: Pick<World, "setupStatus">
 ): string | null {
-  switch (world.setupStatus) {
-    case "draft":
-      return null
-    case "drafting":
-      return "Setup is already running for this World. Wait for it to finish."
-    default:
-      return "Setup has already run for this World. Open the setup review instead."
-  }
+  if (!isBriefLocked(world)) return null
+  return world.setupStatus === "drafting"
+    ? "Setup is already running for this World. Wait for it to finish."
+    : "Setup has already run for this World. Open the setup review instead."
 }
 
 function plural(count: number, one: string, many = `${one}s`) {

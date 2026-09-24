@@ -3,11 +3,12 @@ import { beforeEach, describe, expect, it } from "vitest"
 import type { OpenDatabase } from "@/db/client"
 import { listSessionEntries, listWorldEntries } from "@/db/entries"
 import { getSession } from "@/db/sessions"
-import { createWorld, getWorld } from "@/db/worlds"
+import { getWorld } from "@/db/worlds"
 import { referencedEntryIds } from "@/domain/entry"
 import { storeLondonWorld, testDb } from "@/test/db"
+import { createWorld } from "@/worlds/worlds"
+import { patchEntry } from "@/codex/entries"
 
-import { patchEntry } from "./entries"
 import { startSession } from "./start-session"
 
 let db: OpenDatabase

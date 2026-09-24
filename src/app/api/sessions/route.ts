@@ -7,7 +7,7 @@ import {
   createSessionRequestSchema,
   type CreateSessionResponse,
 } from "@/domain/api"
-import { startSession } from "@/codex/start-session"
+import { startSession } from "@/sessions/start-session"
 import { getDb } from "@/db/client"
 import { handle, readJson } from "@/server/http"
 

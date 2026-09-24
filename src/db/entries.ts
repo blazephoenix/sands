@@ -111,7 +111,6 @@ export function insertEntries(db: Db, list: readonly Entry[]): Entry[] {
 /** Replaces a stored Entry with this one (same id). */
 export function updateEntry(db: Db, entry: Entry): Entry {
   const { id, ...row } = entryToRow(entry)
-  const result = db.update(entries).set(row).where(eq(entries.id, id)).run()
-  if (result.changes === 0) getEntry(db, id) // throws not_found
+  db.update(entries).set(row).where(eq(entries.id, id)).run()
   return getEntry(db, id)
 }

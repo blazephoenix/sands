@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/utils"
 
 import type { SaveStatus } from "./autosave"
+import { formatTimeWithSeconds } from "@/lib/time"
 
 export const SAVE_SHORTCUT = "Mod-s"
 
@@ -98,7 +99,7 @@ function tooltipText(status: SaveStatus) {
       return "Your latest edits are being saved."
     case "saved":
       return status.at
-        ? `Every edit is saved (last at ${new Date(status.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}).`
+        ? `Every edit is saved (last at ${formatTimeWithSeconds(status.at)}).`
         : "Every edit is saved."
     case "error":
       return status.retrying

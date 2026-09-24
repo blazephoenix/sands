@@ -10,7 +10,8 @@ import {
   type ListWorldsResponse,
 } from "@/domain/api"
 import { getDb } from "@/db/client"
-import { createWorld, listWorldSummaries } from "@/db/worlds"
+import { listWorldSummaries } from "@/db/worlds"
+import { createWorld } from "@/worlds/worlds"
 import { handle, readJson } from "@/server/http"
 
 /** Read the database on every request; never prerender the list at build. */
