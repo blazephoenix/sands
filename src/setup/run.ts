@@ -19,7 +19,9 @@
  *   also cancels the model call in flight).
  * - **Retries.** Solvability failing, or a name the Drafter used that matches
  *   no Entry, re-runs the Story logic call with its previous draft and the
- *   Gaps, at most twice. Validation re-runs on each attempt for the new
+ *   Gaps, at most twice. A Gap only the World call can close (no start
+ *   Location, `WORLD_CALL_GAP_CODES`) fails setup right after the World call,
+ *   before any Story logic call is spent. Validation re-runs on each attempt for the new
  *   Story logic Entries; the World call's Entries are validated once.
  */
 import type { Brief } from "@/domain/brief"
@@ -43,7 +45,7 @@ import {
 } from "./drafter-calls"
 import type { NewEntryContext } from "./new-entries"
 import { resolveStoryLogicDraft, resolveWorldDraft } from "./resolve"
-import { checkSolvability } from "./solvability"
+import { checkSolvability, WORLD_CALL_GAP_CODES } from "./solvability"
 import { validateEntries } from "./validate"
 
 /** The Story logic call runs once, then at most twice more with the gaps as feedback (spec §8 step 3). */
@@ -244,8 +246,26 @@ export async function runSetup(
     })
     for (const note of worldResolved.notes)
       log(`[setup] world=${world.id} world_call: ${note}`)
-    step("world_call", "done", 1, 1, draftedSummary(worldResolved.entries))
     const codex = [...author, ...worldResolved.entries]
+    // A Gap only the World call can close fails setup now: no Story logic
+    // retry could close it.
+    const worldGaps = checkSolvability({
+      arcs: brief.arcs,
+      entries: codex,
+    }).gaps.filter((gap) => WORLD_CALL_GAP_CODES.has(gap.code))
+    if (worldGaps.length > 0) {
+      log(
+        `[setup] world=${world.id} world_call: ${worldGaps.map((g) => g.message).join(" | ")}`
+      )
+      step("world_call", "failed", 1, 1, plural(worldGaps.length, "gap"))
+      throw new StepFailure(
+        "world_call",
+        "solvability_failed",
+        "The World call left the World without a start Location, and the Story logic call cannot add one, so setup stopped before it. Add a Location to the Brief (the first one is where the Player begins), then run setup again.",
+        worldGaps
+      )
+    }
+    step("world_call", "done", 1, 1, draftedSummary(worldResolved.entries))
 
     // 3. Story logic, validation and solvability, with retries.
     let worldChecked: Entry[] | null = null

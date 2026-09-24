@@ -44,20 +44,27 @@ describe("setup run rules", () => {
 
 const silent = () => {}
 
-function draftWorld(db: Db) {
-  return createWorld(db, {
-    name: "Test World",
-    briefDoc: londonBriefDocument("p"),
+function draftWorld(db: Db, briefDoc: unknown[] = londonBriefDocument("p")) {
+  return createWorld(db, { name: "Test World", briefDoc })
+}
+
+/** The London Brief document without its Location section. */
+function withoutLocations() {
+  let inLocation = false
+  return londonBriefDocument("p").filter((block) => {
+    if (block.type === "location") inLocation = true
+    else if (block.type !== "paragraph") inLocation = false
+    return !inLocation
   })
 }
 
 /** Claims and runs setup on a new London World, collecting the events. */
 async function setUp(
   models: Partial<SetupModels> & { drafter: SetupModels["drafter"] },
-  options: { signal?: AbortSignal; db?: Db } = {}
+  options: { signal?: AbortSignal; db?: Db; briefDoc?: unknown[] } = {}
 ) {
   const db = options.db ?? testDb()
-  const world = claimSetup(db, draftWorld(db).id)
+  const world = claimSetup(db, draftWorld(db, options.briefDoc).id)
   const events: SetupEvent[] = []
   await runSetup(
     { db, drafter: models.drafter, judge: models.judge ?? new FakeJudge() },
@@ -253,6 +260,33 @@ describe("the Solvability retry loop (spec §8 step 3)", () => {
     expect(fake.callsTo("world_call")).toHaveLength(1)
     expect(fake.callsTo("story_logic_call")).toHaveLength(2)
     expect(last).toMatchObject({ type: "result" })
+  })
+
+  it("fails at once, spending no Story logic call, when the World call leaves no start Location", async () => {
+    const fake = new FakeDrafter({
+      outputs: {
+        world_call: { ...londonWorldDraft, locations: [] },
+        story_logic_call: londonStoryDraft,
+      },
+    })
+    const { db, world, events, last } = await setUp(
+      { drafter: fake },
+      { briefDoc: withoutLocations() }
+    )
+
+    expect(fake.callsTo("world_call")).toHaveLength(1)
+    expect(fake.callsTo("story_logic_call")).toHaveLength(0)
+    expect(steps(events).at(-1)).toBe("world_call failed 1/1")
+    expect(last).toMatchObject({
+      type: "error",
+      code: "solvability_failed",
+      step: "world_call",
+      gaps: [{ code: "no_start_location" }],
+    })
+    if (last.type !== "error") return
+    expect(last.message).toMatch(/Add a Location to the Brief/)
+    expect(getWorld(db, world.id).setupStatus).toBe("draft")
+    expect(listWorldEntries(db, world.id)).toEqual([])
   })
 
   it("feeds a name that matches no Entry back as a Gap, and never stores it", async () => {

@@ -203,6 +203,16 @@ function whyUnusable(
   return unreachable ? { ...unreachable, entryId: clue.id } : null
 }
 
+/**
+ * Gaps only the World call can close. The Story logic call drafts no
+ * Locations and never sets the start location, so setup does not spend its
+ * retries on these. Every other Gap can be closed by the Story logic call:
+ * it can move a Clue, reveal one through Knowledge, or draft an Exit
+ * condition.
+ */
+export const WORLD_CALL_GAP_CODES: ReadonlySet<SolvabilityGap["code"]> =
+  new Set(["no_start_location"])
+
 /** A World's solvability, without the time it was checked. */
 export type SolvabilityCheck = Pick<SolvabilityResult, "passed" | "gaps">
 
