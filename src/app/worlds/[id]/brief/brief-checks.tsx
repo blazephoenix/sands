@@ -43,7 +43,7 @@ export function missingSectionOf(issue: BriefIssue): BriefBlockType | null {
   }
 }
 
-/** "Character · Max Rober", for each section heading in the draft. */
+/** "Character · <name>", for each section heading in the draft. */
 function sectionNames(conversion: BriefConversion) {
   const names = new Map<string, string>()
   const { draft } = conversion

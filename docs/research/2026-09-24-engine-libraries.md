@@ -95,7 +95,7 @@ interface Judge {
 
 ## 2. Jev smoke test (spec §9.5)
 
-**Method.** `pnpm smoke:judge` (`scripts/smoke-judge.ts`), dry-run first with `--dry-run`. Two Turns of the 1888 World, written as the Judge state of §10.2 (`scripts/smoke-judge/world.ts`):
+**Method.** `pnpm smoke:judge` (`scripts/smoke-judge.ts`), dry-run first with `--dry-run`. Two Turns of the test World (London, 1888; a testing reference, see the appendix of `docs/requirements.md`), written as the Judge state of §10.2 (`scripts/smoke-judge/world.ts`):
 
 - **Question Turn:** Midpoint Arc, Spitalfields Market. Jacob buys violets and asks Nell what she saw; Band normal; Nell's sighting is the Allowed reveal.
 - **Arrest Turn:** End Arc, St Katharine Docks. The arrest of Max Rober succeeds; the Ending is a win.
@@ -144,7 +144,7 @@ No Rule was missed at the 0.5 threshold, so the proposals below target the weake
 | Location (first question) | Two conditions | Split: "Does `drafts[i]` take place somewhere other than `current_location`?" and "Does `drafts[i]` describe `current_location` against its entry?" |
 | Codex contradiction (0.70) | One question over the whole slice is indirect | One Noul per Entry named in the Draft, with structured instructions: `{entry: {...}, question: "Does drafts[i] state something that conflicts with entry?"}` |
 | Character drift | False alarms; points at a list | Put the entry beside the question: `{character: {...}, question: "Does anything character.name says or does in drafts[i] go against character.personality or character.backstory?"}`. Add a `false` criterion: "Rudeness, fear or courage the entry allows is not drift." |
-| Reputation | Most false alarms; "contradict `reputation_band`" is abstract | Two concrete Nouls per Band from its guidance. For normal: "Does any character treat Jacob with open contempt (insults, jeering, refusing a fair question)?" and "Does any character treat Jacob with special deference (gifts, flattery, favours)?" |
+| Reputation | Most false alarms; "contradict `reputation_band`" is abstract | Two concrete Nouls per Band from its guidance. For normal: "Does any character treat the Player character with open contempt (insults, jeering, refusing a fair question)?" and "Does any character treat the Player character with special deference (gifts, flattery, favours)?" |
 | Voice | False alarms; "depart from `voice`" is abstract | One Noul per guideline, e.g. `{guideline: "Third person, past tense", question: "Does drafts[i] break guideline?"}`. Setup would split the Author's Voice into guidelines. |
 | Knowledge (narration) | Fired on dialogue: literal reading of "narration" | "Leaving aside what characters say aloud, does the narrator state or hint at `hidden_truth` beyond `clues_found`?" |
 | Knowledge (character) | Unsure on clean Drafts; catches embellishments | Define "information" in the criteria. Decided 2026-09-24 (spec §10.3): a new fact about any character counts (what they look like, carry, did, saw, know, or where they are or went); manner, mood, weather and scenery do not. The game is genre-agnostic, so the criteria must not assume suspects. |
@@ -207,10 +207,10 @@ Sources: [orm.drizzle.team](https://orm.drizzle.team/docs), the installed `drizz
 - **#4, Rules:** split the compound questions (Arc, Location). Move Character drift, Codex and Reputation to structured instructions that carry the relevant Entry or Band behaviours, as proposed above. Test each Rule's questions against a few real Drafts before tuning thresholds.
 - **#4, Retry feedback (§10.4):** build feedback only from the Rules the Draft clearly fails. Decided 2026-09-24 (spec §10.4): only failures at p ≥ 0.8 become feedback lines. The spillover would otherwise tell the Writer to fix things it did not do.
 - **#4, Writer and Knowledge:** both real Drafts embellished the Allowed reveal. The Directive should give the reveal as the exact fact to convey and forbid new facts about any character; spec §10.3 now defines information as such facts. Without both, expect most Turns to need Round 2 (+3.7 s).
-- **#4, name matching:** Character drift and the Codex slice match names in code. Drafts use first names ("Jacob", "Nell"), which the fixture aliases do not include. The matcher needs given names and surnames, or the Drafter should add them as aliases.
+- **#4, name matching:** Character drift and the Codex slice match names in code. Drafts use first names (in the test World, "Jacob" and "Nell"), which the test aliases do not include. The matcher needs given names and surnames, or the Drafter should add them as aliases.
 - **#4, Background work:** use a per-Session promise map plus `background_status`, with `after` only for lifetime; see §5.
 - **#4, glossary drift:** `engine/config.ts` still says `ruleFlaggedBand` and `flagged` for the Unsure band; rename it when the Rules land.
-- **#3, Drafter:** use `Output.object` with `.nullable()`, never `.optional()` (strict schemas). Give the extraction the full Codex name list, not the slice: the smoke Drafter proposed "Carrow", a dead merchant from the Brief. Expect the setup calls to take tens of seconds at default effort, and consider `reasoningEffort`.
+- **#3, Drafter:** use `Output.object` with `.nullable()`, never `.optional()` (strict schemas). Give the extraction the full Codex name list, not the slice: the smoke Drafter proposed "Carrow", a character the test World's Brief already has. Expect the setup calls to take tens of seconds at default effort, and consider `reasoningEffort`.
 - **#3, Judge validation:** two Nouls per drafted Entry fit easily in one call (about 20 Entries is about 40 questions).
 - **#2 and #4, storage:** synchronous transactions and `SQLITE_CONSTRAINT_UNIQUE` handling, as above.
 

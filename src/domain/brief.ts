@@ -64,7 +64,7 @@ export type BriefArc = z.infer<typeof briefArcSchema>
 
 export const briefEndingSchema = z.object({
   ...briefItemBase,
-  /** The win condition, for example "the killer is caught". */
+  /** The win condition, for example "the heir takes the throne". */
   condition: z.string(),
 })
 export type BriefEnding = z.infer<typeof briefEndingSchema>

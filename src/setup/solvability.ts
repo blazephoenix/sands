@@ -34,7 +34,7 @@ export type SolvabilityInput = {
   entries: readonly Entry[]
 }
 
-/** "C1 — Matching knife wounds" -> "C1"; a Clue without a handle goes by its name. */
+/** "C1 — The torn letter" -> "C1"; a Clue without a handle goes by its name. */
 export function clueHandle(clue: Pick<Entry, "name">) {
   return (
     /^([A-Z]{1,2}\d{1,3})\b/u.exec(clue.name.trim())?.[1] ??

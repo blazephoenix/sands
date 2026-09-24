@@ -1,5 +1,5 @@
 /**
- * Two Turns of the 1888 World (docs/requirements.md §2), written as the
+ * Two Turns of the 1888 World (the appendix of docs/requirements.md), written as the
  * Judge state of spec §10.2. Every smoke-test Draft is judged against one of
  * them. The Entries follow the fixture World in `src/fixtures/entries.ts`.
  */

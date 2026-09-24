@@ -6,7 +6,7 @@
  * every Choice picks its first option with probability 1. Override answers by
  * question id, or compute them from the question and state.
  *
- *   const judge = new FakeJudge({ answers: { agency_0: 0.82, intent: "arrest" } })
+ *   const judge = new FakeJudge({ answers: { agency_0: 0.82, intent: "move" } })
  */
 import {
   assertValidQuestions,

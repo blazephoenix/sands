@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * The Entry mention (`@Whitechapel`, `@C1`): an inline reference to an
+ * The Entry mention (`@The harbour`, `@C1`): an inline reference to an
  * existing Entry. It shows the Entry's current name and previews it on hover,
  * or when the editor selection covers the chip (Shift+Arrow onto it). A mention
  * whose Entry is rejected or gone renders as visibly broken.

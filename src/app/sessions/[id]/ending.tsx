@@ -58,7 +58,7 @@ const ENDINGS: Record<
   win: {
     label: "Win",
     icon: TrophyIcon,
-    title: () => "The case is closed",
+    title: () => "The story is won",
     description: (_player, condition) =>
       condition ?? "The win condition was met.",
   },
@@ -71,9 +71,9 @@ const ENDINGS: Record<
   removed: {
     label: "Removed",
     icon: DoorClosedIcon,
-    title: () => "Removed from the case",
+    title: () => "Removed from the story",
     description: (player) =>
-      `The authorities have lost patience with ${player}. The story ends here.`,
+      `${player} has pushed too far. The story ends here.`,
   },
 }
 

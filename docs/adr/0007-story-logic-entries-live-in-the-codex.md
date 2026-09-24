@@ -4,7 +4,7 @@ Status: accepted
 
 Exit conditions, Knowledge and Decisive actions are stored as Entries in the same table as locations, characters and Clues, grouped as **Story logic** rather than **World**. They carry the same source and status, so the Author reviews, edits and rejects them with one accept / edit / reject flow, at setup and during play.
 
-The requirements list only six Codex types, all things in the story, and treat the evidence plan, knowledge map and capture condition as separate setup outputs. Separate tables would each need their own review surface and status handling, for content the Author must control in exactly the same way.
+The requirements list only six Codex types, all things in the story, and treat Clues, Knowledge and Decisive actions as separate setup outputs. Separate tables would each need their own review surface and status handling, for content the Author must control in exactly the same way.
 
 ## Considered Options
 
