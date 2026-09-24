@@ -8,6 +8,10 @@
  *
  * States: loading (Skeleton rows; also while sending the Author on), not
  * found, error with Retry, no Sessions yet, list.
+ *
+ * The header's World actions menu holds "Delete World". After a delete the
+ * Author lands on the Worlds home, with focus on its list (or its Empty
+ * state) and a toast saying what was deleted.
  */
 import * as React from "react"
 import Link from "next/link"
@@ -38,6 +42,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { toast } from "@/components/ui/toast"
+import {
+  DeleteWorldDialog,
+  requestWorldsHomeFocus,
+  WorldActionsMenu,
+} from "@/components/worlds/delete-world"
+import { worldDisplayName } from "@/components/worlds/delete-world-copy"
 import { sessionHref, worldHref } from "@/components/worlds/world-links"
 import type { GetWorldResponse } from "@/domain/api"
 import { api, ApiError, isAbortError } from "@/lib/api-client"
@@ -169,7 +180,17 @@ function PlayableWorld({ data }: { data: GetWorldResponse }) {
   const router = useRouter()
   const [starting, setStarting] = React.useState(false)
   const [startError, setStartError] = React.useState<ApiError | null>(null)
-  const name = world.name || "Untitled World"
+  const [deleteOpen, setDeleteOpen] = React.useState(false)
+  const menuButton = React.useRef<HTMLButtonElement>(null)
+  const name = worldDisplayName(world.name)
+  const deletable = { ...world, sessionCount: sessions.length }
+
+  const onDeleted = () => {
+    setDeleteOpen(false)
+    toast.add({ title: `Deleted ${name}`, type: "success" })
+    requestWorldsHomeFocus()
+    router.push("/")
+  }
 
   const startSession = React.useCallback(async () => {
     if (starting) return
@@ -218,7 +239,19 @@ function PlayableWorld({ data }: { data: GetWorldResponse }) {
             <ShortcutKeys shortcut={NEW_SESSION_SHORTCUT} />
           </TooltipContent>
         </Tooltip>
+        <WorldActionsMenu
+          world={deletable}
+          onDelete={() => setDeleteOpen(true)}
+          triggerRef={menuButton}
+        />
       </ShellActions>
+      <DeleteWorldDialog
+        world={deletable}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onDeleted={onDeleted}
+        returnFocus={() => menuButton.current}
+      />
 
       <div className="flex flex-col gap-2">
         <h1 className="font-heading text-2xl font-semibold tracking-tight">
