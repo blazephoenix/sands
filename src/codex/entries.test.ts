@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest"
 
 import type { OpenDatabase } from "@/db/client"
-import { getEntry, listWorldEntries } from "@/db/entries"
+import { getEntry, listWorldEntries, updateEntry } from "@/db/entries"
 import { StoreError } from "@/db/errors"
 import { getWorld } from "@/db/worlds"
 import { checkSolvability } from "@/setup/solvability"
@@ -107,6 +107,35 @@ describe("solvability after every change to a World Entry (spec §7.2, §8 step 
     })
     expect(restored.solvability).toMatchObject({ passed: true, gaps: [] })
     expect(getWorld(db, REVIEW).solvability).toEqual(restored.solvability)
+  })
+
+  it("removing the start Location fails the World and blocks Start, and restoring it passes again", () => {
+    // A World whose Brief had no Location: setup drafted the start Location.
+    const yard = "wc-yard"
+    updateEntry(db, {
+      ...getEntry(db, yard),
+      source: "setup",
+      status: "proposed",
+    })
+
+    const removed = patchEntry(db, yard, { action: "reject" })
+    expect(removed.solvability?.passed).toBe(false)
+    expect(removed.solvability?.gaps[0]).toEqual({
+      code: "no_start_location",
+      message:
+        "There is no start Location: the Player has nowhere to begin. Restore Scotland Yard, or set Start location to yes on another Location.",
+      entryId: yard,
+      arcIndex: null,
+    })
+    expect(() =>
+      startSession(db, { worldId: REVIEW, mode: "harness" })
+    ).toThrow(/no start Location/)
+
+    const restored = patchEntry(db, yard, {
+      action: "restore",
+      status: "proposed",
+    })
+    expect(restored.solvability).toMatchObject({ passed: true, gaps: [] })
   })
 
   it("counts Clues needed: the ready World's arrest takes any three of its four Clues", () => {
