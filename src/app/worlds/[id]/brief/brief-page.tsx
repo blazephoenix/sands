@@ -10,6 +10,10 @@
  *   this browser until the server has them, so a reload loses nothing.
  * - Leaving with unsaved edits, or while setup runs, is guarded.
  * - Run setup (Cmd/Ctrl+Enter) streams `POST /api/worlds/[id]/setup`.
+ * - The header's World actions menu holds "Delete World", as on the World
+ *   page; it is disabled while setup runs. After a delete nothing more is
+ *   saved, the browser copy is dropped, and the Author lands on the Worlds
+ *   home with focus on its list (or its Empty state).
  */
 import * as React from "react"
 import Link from "next/link"
@@ -60,6 +64,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { returnHomeAfterDelete } from "@/app/worlds-home-focus"
+import {
+  DeleteWorldDialog,
+  WorldActionsMenu,
+} from "@/components/worlds/delete-world"
 import { SetupStatusBadge } from "@/components/worlds/setup-status-badge"
 import { setupReviewHref } from "@/components/worlds/world-links"
 import { documentToBrief } from "@/brief/from-document"
@@ -105,7 +114,7 @@ const SUCCESS_PAUSE_MS = 700
 type Load =
   | { state: "loading" }
   | { state: "error"; error: ApiError }
-  | { state: "ready"; world: World }
+  | { state: "ready"; world: World; sessionCount: number }
 
 export function BriefPage({ worldId }: { worldId: string }) {
   const [load, setLoad] = React.useState<Load>({ state: "loading" })
@@ -115,7 +124,9 @@ export function BriefPage({ worldId }: { worldId: string }) {
     const controller = new AbortController()
     api
       .getWorld(worldId, controller.signal)
-      .then(({ world }) => setLoad({ state: "ready", world }))
+      .then(({ world, sessions }) =>
+        setLoad({ state: "ready", world, sessionCount: sessions.length })
+      )
       .catch((error: unknown) => {
         if (isAbortError(error)) return
         setLoad({
@@ -185,7 +196,13 @@ export function BriefPage({ worldId }: { worldId: string }) {
     )
   }
 
-  return <BriefWorkspace key={load.world.id} initialWorld={load.world} />
+  return (
+    <BriefWorkspace
+      key={load.world.id}
+      initialWorld={load.world}
+      sessionCount={load.sessionCount}
+    />
+  )
 }
 
 function PageFrame({ children }: { children: React.ReactNode }) {
@@ -336,7 +353,13 @@ class BriefDraft {
   })
 }
 
-function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
+function BriefWorkspace({
+  initialWorld,
+  sessionCount,
+}: {
+  initialWorld: World
+  sessionCount: number
+}) {
   const router = useRouter()
   const worldId = initialWorld.id
   const [world, setWorld] = React.useState(initialWorld)
@@ -355,6 +378,10 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
     null
   )
   const [leaveTo, setLeaveTo] = React.useState<LeaveRequest | null>(null)
+  const [deleteOpen, setDeleteOpen] = React.useState(false)
+  const menuButton = React.useRef<HTMLButtonElement>(null)
+  /** Set once the World is deleted: nothing more is saved or backed up. */
+  const deletedRef = React.useRef(false)
 
   const editorRef = React.useRef<BriefEditorHandle>(null)
   const busyRef = React.useRef(false)
@@ -453,7 +480,7 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
   React.useEffect(() => {
     autosave.start()
     const saveOnLeave = () => {
-      if (!autosave.dirty) return
+      if (deletedRef.current || !autosave.dirty) return
       writeBackupNow()
       api
         .saveBrief(worldId, draft.snapshot(), { keepalive: true })
@@ -462,6 +489,7 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
         })
     }
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (deletedRef.current) return
       if (!autosave.dirty && !autosave.saving && !busyRef.current) return
       event.preventDefault()
       event.returnValue = ""
@@ -664,9 +692,11 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
     }
   })
   const dialogOpen = leaveTo !== null
+  // Page shortcuts stay off while either dialog is open.
+  const anyDialogOpen = dialogOpen || deleteOpen
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (dialogOpen || event.repeat) return
+      if (anyDialogOpen || event.repeat) return
       const mod = event.metaKey || event.ctrlKey
       if (
         mod &&
@@ -696,9 +726,27 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
     }
     window.addEventListener("keydown", onKeyDown, true)
     return () => window.removeEventListener("keydown", onKeyDown, true)
-  }, [dialogOpen])
+  }, [anyDialogOpen])
 
   const showLockedNotice = locked && run.phase !== "succeeded"
+
+  // A local setup run counts as running before the stored status catches up.
+  const deletable = {
+    ...world,
+    name,
+    setupStatus: busy ? ("drafting" as const) : world.setupStatus,
+    sessionCount,
+  }
+
+  const onDeleted = () => {
+    deletedRef.current = true
+    autosave.stop()
+    if (backupTimer.current !== null) window.clearTimeout(backupTimer.current)
+    backupTimer.current = null
+    clearBriefBackup(worldId)
+    setDeleteOpen(false)
+    returnHomeAfterDelete(router, { name })
+  }
 
   return (
     <PageFrame>
@@ -731,7 +779,19 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
             onRun={() => void runSetup()}
           />
         )}
+        <WorldActionsMenu
+          world={deletable}
+          onDelete={() => setDeleteOpen(true)}
+          triggerRef={menuButton}
+        />
       </ShellActions>
+      <DeleteWorldDialog
+        world={deletable}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onDeleted={onDeleted}
+        returnFocus={() => menuButton.current}
+      />
 
       <div className="flex min-w-0 flex-col gap-4">
         <div className="flex flex-col gap-3 sm:px-[54px]">

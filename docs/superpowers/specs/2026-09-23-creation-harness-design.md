@@ -372,8 +372,9 @@ Each rule has a feedback template. A Rule question the draft fails at p ≥ 0.8 
 
 ## 11. UI
 
-- **`/worlds/[id]/brief`:** BlockNote brief editor; **Run setup** button with progress.
-- **`/worlds/[id]`:** a ready world's sessions, most recent first, and **New Session**. A world that is not ready goes to its brief or its setup review.
+- **`/worlds/[id]/brief`:** BlockNote brief editor; **Run setup** button with progress; **Delete World** in the header's world actions menu.
+- **`/worlds/[id]`:** a ready world's sessions, most recent first, and **New Session**; **Delete World** in the header's world actions menu. A world that is not ready goes to its brief or its setup review.
+- **Delete World** (also in each Worlds home row's menu) asks for confirmation, and is disabled while setup runs. Not on the setup review page.
 - **`/worlds/[id]/setup`:** entry editor grouped into **World** (locations, characters, NPCs, factions, clues, objects) and **Story logic** (exit conditions, knowledge, decisive actions); per-block accept / edit / reject; Jev flags; solvability banner listing any gaps; **Start**.
 - **`/sessions/[id]`:**
   - **Story pane** (center): passages with a client-side animated reveal; free-text input; ending screen.

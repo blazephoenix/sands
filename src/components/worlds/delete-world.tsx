@@ -3,7 +3,7 @@
 /**
  * Deleting a World: the World actions menu (an icon-only button holding
  * "Delete World") and the confirmation dialog it opens. The Worlds home puts
- * the menu on every row; the World page puts it in the header.
+ * the menu on every row; the World page and the Brief put it in the header.
  *
  * A permanent delete behind a confirmation, not an optimistic delete with an
  * Undo toast: Undo would need a soft delete that every query filters on, and

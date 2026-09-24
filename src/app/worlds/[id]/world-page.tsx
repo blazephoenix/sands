@@ -18,7 +18,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { PlayIcon, SearchXIcon, TriangleAlertIcon } from "lucide-react"
 
-import { requestWorldsHomeFocus } from "@/app/worlds-home-focus"
+import { returnHomeAfterDelete } from "@/app/worlds-home-focus"
 import { ShellActions, ShellBreadcrumbs } from "@/components/app-shell"
 import { ShortcutKeys } from "@/components/shortcut-keys"
 import {
@@ -43,7 +43,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { toast } from "@/components/ui/toast"
 import {
   DeleteWorldDialog,
   WorldActionsMenu,
@@ -187,9 +186,7 @@ function PlayableWorld({ data }: { data: GetWorldResponse }) {
 
   const onDeleted = () => {
     setDeleteOpen(false)
-    toast.add({ title: `Deleted ${name}`, type: "success" })
-    requestWorldsHomeFocus()
-    router.push("/")
+    returnHomeAfterDelete(router, world)
   }
 
   const startSession = React.useCallback(async () => {
