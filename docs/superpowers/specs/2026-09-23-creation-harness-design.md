@@ -286,7 +286,7 @@ A Session never starts blank. As soon as it is created, the harness plays its **
 5. **Write (Grok, two drafts in parallel).** Input: brief YAML (hidden fields marked), codex slice (§9.3), voice guidance, last 4 passages, player input, directive. Target length about 150 words. Use a fast non-reasoning Grok model (exact model chosen by the day-1 latency test; configurable via env).
 6. **Jev call 2 — judge both drafts in one request.** All rule questions (§10) for each draft, plus one discovery `noul` per allowed reveal and per discoverable clue ("did this draft reveal it?"), plus the unplanned-clue check (§10).
    - If one or both drafts pass, ship the passing draft with the lower highest-violation score.
-   - If both fail, build feedback from the failed rules and write two new drafts. Maximum 3 rounds. After round 3, ship the draft with the lowest highest-violation score and set `flagged`.
+   - If both fail, build feedback from the clearly failed rules (§10.4) and write two new drafts. Maximum 3 rounds. After round 3, ship the draft with the lowest highest-violation score and set `flagged`.
    - Discovery answers for the shipped draft update `clues_found` and `knowledge_revealed`. Revealed knowledge that carries a clue (`clue_id`) also finds that clue, as the solvability check assumes. A found clue that a decisive action requires gives +5 reputation (recovery).
 7. **Commit and return.** Write the turn row with state and log; return the passage.
 
@@ -319,18 +319,26 @@ The judge state stays roughly constant (about 5k–10k tokens) across the sessio
 
 Before building the turn loop, write about 10 short passages set in the 1888 world, each deliberately violating one rule (plus a few clean ones), and run them through the rule questions. Record which violations Jev catches and at what probability. This is a smoke test for "does the rule work at all," not calibration; thresholds are tuned in playtesting. Measure Grok and Drafter latency in the same session.
 
+**Done 2026-09-24** (`pnpm smoke:judge`; results in `docs/research/2026-09-24-engine-libraries.md`). Every one of 16 deliberate violations scored p ≥ 0.70 on its Rule question. The weakness is the other direction: a Draft that breaks one Rule often scores high on unrelated Rules, and the Knowledge question sits in the Unsure band on clean Drafts. Measured: Judge 553 ms for 30 questions, Writer about 3.1 s per ~140-word Draft (two in parallel, same wall clock), Drafter 4.6 s.
+
 ---
 
 ## 10. Judge rules (Jev)
 
-### 10.1 Conventions (from the Jev docs)
+### 10.1 Conventions (checked against the Jev docs, 2026-09-24)
 
-- Every rule question is a `noul` phrased as **"does the draft violate X?"**, with `criteria: {true, false}` spelling out what yes and no mean.
-- Each rule has two cutoffs: **fail** at p ≥ 0.5, **flagged** when 0.35 ≤ p < 0.65 (uncertain either way). Per-rule overrides in `engine/config.ts`.
-- Every `choice` includes an escape option (`other`, `none`, `not_in_codex`).
-- Questions reference parts of the state by path, e.g. `` `drafts[0]` ``, `` `current_arc.exit_conditions` ``.
-- Pin the model version (`jev-1.13.0`) and log the version Jev reports on every call.
-- A noul and a choice version of the same question are not comparable, and complementary nouls do not sum to 1; do not mix them.
+Verified against https://docs.typesafe.ai and the installed `@typesafe-ai/sdk` 0.6.0; sources and the smoke test are in `docs/research/2026-09-24-engine-libraries.md`.
+
+- **One call, many questions.** A request is one `state` and a map of named questions; Jev evaluates each independently and in parallel, and no answer sees another. Types can be mixed. Question ids are not sent to the model, so each question must be complete in its `instructions`. Limits for `jev-1.13.0`: 64k tokens per request (state plus every question), 32k for the state plus the longest question, 255 options per `choice`; no cap on the number of questions is documented. Latency grows with tokens: 30 questions (3.9k tokens) took 553 ms, 272 questions (26.9k tokens) 2,048 ms.
+- **Answers.** A `noul` answer is one number, the probability of yes, with no separate confidence. A `choice` answer is the chosen option, a probability for every option (summing to 1) and a `confidence` derived from how peaked they are. The `choice` confidence floor (0.6, §9.1) is our choice; the docs' example floor is 0.5.
+- Every Rule question is a `noul` phrased so that yes means **"the Draft violates X"**, with `criteria: {true, false}` spelling out what yes and no mean. **One condition per question:** the docs say a question with two conditions makes the value mean less, so a Rule with an "or" in it asks two Nouls (correction: §10.3's Arc and first Location questions are now split).
+- Thresholds are ours, not Jev's; the docs set none. Each Rule **fails** at p ≥ 0.5 and is **Unsure** when 0.35 ≤ p < 0.65. Per-Rule overrides in `engine/config.ts`.
+- Every `choice` includes an escape option (`other`, `none`, `not_in_codex`), as the docs recommend when the options might not cover every input.
+- Questions point into the state by backticked path, e.g. `` `drafts[0]` ``, `` `current_arc.exit_conditions` ``. `instructions` and `criteria` may also be JSON objects that carry the data a question needs next to the question.
+- Pin the model version: `TYPESAFE_DEFAULT_MODEL=jev-1.13.0` (the alias `jev-latest` points to it today and can move). The response's `model` field reports the versioned id that answered; the Judge logs it on every call and warns when it differs from the pinned one.
+- A `noul` and a `choice` version of the same question are not comparable, and a question and its negation do not sum to 1 (the docs measured 0.72 and 0.47); do not mix them or rely on such identities.
+- Keep the state small. The docs list a large state full of irrelevant detail, indirection and literal reading as known weak spots of `jev-1.13`, which is why the Judge sees a Codex slice (§9.3), not the Codex.
+- The SDK retries 408, 429 and 5xx twice by default with a 10 s timeout per attempt; the Judge sets one retry to match §13.
 
 ### 10.2 Judge state
 
@@ -341,9 +349,9 @@ Before building the turn loop, write about 10 short passages set in the 1888 wor
 | Rule | Question(s) |
 |---|---|
 | Character drift | Per character named in the draft (by name or alias match in code): "Does anything {name} says or does contradict their personality or backstory?" |
-| Arc | "Does the draft depict events from `later_arcs`, or contradict `current_arc`?" |
-| Location | "Is the draft set somewhere other than the current location, or does it contradict that location's entry?" and "Does the draft introduce a named place a character could travel to that is not in `codex`?" (Detail inside a location, such as a back office, is description and allowed.) |
-| Knowledge | "Does a character reveal information that is not in `allowed_reveals` or `knowledge_revealed`?" and "Does the narration reveal or imply `hidden_truth` beyond what `clues_found` supports?" |
+| Arc | "Does the draft depict events from `later_arcs`?" and "Does the draft contradict `current_arc`?" (split per §10.1: one condition per question) |
+| Location | "Is the draft set somewhere other than the current location?", "Does the draft contradict the current location's entry?" and "Does the draft introduce a named place a character could travel to that is not in `codex`?" (Detail inside a location, such as a back office, is description and allowed.) |
+| Knowledge | "Does a character reveal information that is not in `allowed_reveals` or `knowledge_revealed`?" and "Does the narration reveal or imply `hidden_truth` beyond what `clues_found` supports?" **Information** means a fact about a character: what they look like, carry, did, saw, know, or where they are or went. Manner, mood, weather and scenery are not information. The criteria spell this out, because the Writer embellishes Allowed reveals with such facts (smoke test, §9.5). |
 | Unplanned clue | "Does the draft present evidence pointing to `hidden_truth` that is not one of the discoverable or found clues?" (Replaces the blocking part of `docs/requirements.md` §8 step 8.) |
 | Outcome | "Does the draft contradict `outcome`?" |
 | Agency | "Does the player character say or do more than `player_input`?" |
@@ -357,7 +365,7 @@ Action classification and pacing are covered in §9.1 step 2 and §9.2 step 10.
 
 ### 10.4 Retry feedback
 
-Each rule has a feedback template. A failure becomes one line to the writer, e.g.: *"Agency (0.82): the draft has Jacob speak beyond the player's input. Rewrite without adding his words or actions."*
+Each rule has a feedback template. A Rule question the draft fails at p ≥ 0.8 becomes one line to the writer, e.g.: *"Agency (0.82): the draft has the player character speak beyond the player's input. Rewrite without adding their words or actions."* Failures between 0.5 and 0.8 still fail the draft but add no line: the smoke test (§9.5) showed a draft that breaks one Rule often scores above 0.5 on unrelated Rules, and a wrong line tells the writer to fix something it did not do. If no failure reaches 0.8, the next Round is written with no feedback lines. The harness pane still shows every Rule answer.
 
 ---
 
@@ -415,7 +423,8 @@ Each rule has a feedback template. A failure becomes one line to the writer, e.g
 | Pacing window | 3 turns |
 | Writer's recent passages | 4 |
 | Drafts per round / max rounds | 2 / 3 |
-| Jev noul fail / flagged band | p ≥ 0.5 / 0.35–0.65 |
+| Jev noul fail / Unsure band | p ≥ 0.5 / 0.35–0.65 |
+| Retry feedback floor | p ≥ 0.8 |
 | Jev choice confidence floor | 0.6 |
 | Passage length target | ~150 words |
 
@@ -459,9 +468,9 @@ Domain vocabulary is defined in `CONTEXT.md`. Where the requirements use other w
 
 ### Open items
 
-1. **Re-verify §10 against the official Jev docs.** The Jev facts in this spec (endpoint path, question conventions, thresholds, `jev-1.13.0`) came from third-party sites during brainstorming. Load the `typesafe-ai` skill and check them against https://docs.typesafe.ai (API, JavaScript SDK, primitives, confidence) before planning the Judge.
+1. **Re-verify §10 against the official Jev docs:** resolved 2026-09-24. §10.1 is rewritten from https://docs.typesafe.ai and the SDK types. The endpoint, question shapes, answer shapes and `jev-1.13.0` pin were right; the fail and Unsure thresholds are our design, not a Jev convention; compound Rule questions must be split. Sources: `docs/research/2026-09-24-engine-libraries.md`.
 2. **Jev endpoint:** resolved. `https://api.typesafe.ai` (`POST /v1/systemone`), per https://docs.typesafe.ai/api.
-3. **Writer and Drafter model names:** chosen by the day-1 latency test (`WRITER_MODEL`, `DRAFTER_MODEL`).
+3. **Writer and Drafter model names:** resolved 2026-09-24 by the latency test: `WRITER_MODEL=grok-4.20-0309-non-reasoning` (about 3.1 s per ~140-word Draft) and `DRAFTER_MODEL=gpt-5.6-sol` (4.6 s for one small structured-output call at the default reasoning effort).
 
 ### Next step
 

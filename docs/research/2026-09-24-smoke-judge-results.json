@@ -1,0 +1,1053 @@
+{
+  "dryRun": false,
+  "steps": [
+    "passages",
+    "writer",
+    "latency",
+    "drafter"
+  ],
+  "passages": {
+    "model": "jev-1.13.0",
+    "latencyMs": 2048,
+    "questions": 272,
+    "usage": {
+      "inputTokens": 26881,
+      "outputTokens": 5939
+    },
+    "rows": [
+      {
+        "passage": "clean-1",
+        "breaks": null,
+        "rule": null,
+        "p": null,
+        "caught": null,
+        "othersFailed": [
+          {
+            "check": "knowledge.character",
+            "p": 0.62,
+            "expected": false
+          }
+        ],
+        "othersFlagged": [
+          {
+            "check": "knowledge.character",
+            "p": 0.62
+          }
+        ]
+      },
+      {
+        "passage": "clean-2",
+        "breaks": null,
+        "rule": null,
+        "p": null,
+        "caught": null,
+        "othersFailed": [],
+        "othersFlagged": [
+          {
+            "check": "knowledge.character",
+            "p": 0.46
+          }
+        ]
+      },
+      {
+        "passage": "drift",
+        "breaks": "character_drift.nell_garvey",
+        "rule": "Character drift",
+        "p": 0.88,
+        "caught": true,
+        "othersFailed": [
+          {
+            "check": "codex.contradiction",
+            "p": 0.54,
+            "expected": true
+          },
+          {
+            "check": "reputation",
+            "p": 0.92,
+            "expected": false
+          },
+          {
+            "check": "voice",
+            "p": 0.59,
+            "expected": false
+          }
+        ],
+        "othersFlagged": [
+          {
+            "check": "location.new_place",
+            "p": 0.42
+          },
+          {
+            "check": "knowledge.character",
+            "p": 0.45
+          },
+          {
+            "check": "unplanned_clue",
+            "p": 0.49
+          },
+          {
+            "check": "codex.contradiction",
+            "p": 0.54
+          },
+          {
+            "check": "voice",
+            "p": 0.59
+          }
+        ]
+      },
+      {
+        "passage": "arc",
+        "breaks": "arc",
+        "rule": "Arc",
+        "p": 0.93,
+        "caught": true,
+        "othersFailed": [
+          {
+            "check": "character_drift.nell_garvey",
+            "p": 0.87,
+            "expected": false
+          },
+          {
+            "check": "location.setting",
+            "p": 0.65,
+            "expected": false
+          },
+          {
+            "check": "location.new_place",
+            "p": 0.71,
+            "expected": false
+          },
+          {
+            "check": "codex.contradiction",
+            "p": 0.52,
+            "expected": false
+          },
+          {
+            "check": "reputation",
+            "p": 0.78,
+            "expected": false
+          },
+          {
+            "check": "voice",
+            "p": 0.71,
+            "expected": false
+          }
+        ],
+        "othersFlagged": [
+          {
+            "check": "knowledge.narration",
+            "p": 0.38
+          },
+          {
+            "check": "outcome",
+            "p": 0.38
+          },
+          {
+            "check": "agency",
+            "p": 0.45
+          },
+          {
+            "check": "codex.contradiction",
+            "p": 0.52
+          }
+        ]
+      },
+      {
+        "passage": "location-setting",
+        "breaks": "location.setting",
+        "rule": "Location",
+        "p": 0.96,
+        "caught": true,
+        "othersFailed": [
+          {
+            "check": "location.new_place",
+            "p": 0.57,
+            "expected": false
+          },
+          {
+            "check": "codex.contradiction",
+            "p": 0.77,
+            "expected": true
+          }
+        ],
+        "othersFlagged": [
+          {
+            "check": "arc",
+            "p": 0.35
+          },
+          {
+            "check": "location.new_place",
+            "p": 0.57
+          }
+        ]
+      },
+      {
+        "passage": "location-new-place",
+        "breaks": "location.new_place",
+        "rule": "Location",
+        "p": 0.96,
+        "caught": true,
+        "othersFailed": [
+          {
+            "check": "knowledge.character",
+            "p": 0.93,
+            "expected": true
+          }
+        ],
+        "othersFlagged": [
+          {
+            "check": "unplanned_clue",
+            "p": 0.49
+          },
+          {
+            "check": "codex.contradiction",
+            "p": 0.43
+          }
+        ]
+      },
+      {
+        "passage": "knowledge-character",
+        "breaks": "knowledge.character",
+        "rule": "Knowledge",
+        "p": 0.96,
+        "caught": true,
+        "othersFailed": [
+          {
+            "check": "knowledge.narration",
+            "p": 0.88,
+            "expected": false
+          },
+          {
+            "check": "unplanned_clue",
+            "p": 0.89,
+            "expected": false
+          },
+          {
+            "check": "reputation",
+            "p": 0.68,
+            "expected": false
+          }
+        ],
+        "othersFlagged": [
+          {
+            "check": "character_drift.nell_garvey",
+            "p": 0.39
+          },
+          {
+            "check": "location.new_place",
+            "p": 0.39
+          }
+        ]
+      },
+      {
+        "passage": "knowledge-narration",
+        "breaks": "knowledge.narration",
+        "rule": "Knowledge",
+        "p": 0.94,
+        "caught": true,
+        "othersFailed": [
+          {
+            "check": "unplanned_clue",
+            "p": 0.67,
+            "expected": false
+          },
+          {
+            "check": "agency",
+            "p": 0.63,
+            "expected": false
+          }
+        ],
+        "othersFlagged": [
+          {
+            "check": "agency",
+            "p": 0.63
+          },
+          {
+            "check": "voice",
+            "p": 0.48
+          }
+        ]
+      },
+      {
+        "passage": "unplanned-clue",
+        "breaks": "unplanned_clue",
+        "rule": "Unplanned clue",
+        "p": 0.91,
+        "caught": true,
+        "othersFailed": [
+          {
+            "check": "knowledge.character",
+            "p": 0.91,
+            "expected": true
+          },
+          {
+            "check": "knowledge.narration",
+            "p": 0.5,
+            "expected": true
+          }
+        ],
+        "othersFlagged": [
+          {
+            "check": "knowledge.narration",
+            "p": 0.5
+          }
+        ]
+      },
+      {
+        "passage": "outcome",
+        "breaks": "outcome",
+        "rule": "Outcome",
+        "p": 0.95,
+        "caught": true,
+        "othersFailed": [
+          {
+            "check": "agency",
+            "p": 0.53,
+            "expected": true
+          },
+          {
+            "check": "reputation",
+            "p": 0.74,
+            "expected": false
+          }
+        ],
+        "othersFlagged": [
+          {
+            "check": "character_drift.nell_garvey",
+            "p": 0.41
+          },
+          {
+            "check": "arc",
+            "p": 0.38
+          },
+          {
+            "check": "agency",
+            "p": 0.53
+          }
+        ]
+      },
+      {
+        "passage": "agency",
+        "breaks": "agency",
+        "rule": "Agency",
+        "p": 0.96,
+        "caught": true,
+        "othersFailed": [
+          {
+            "check": "character_drift.jacob_flannery",
+            "p": 0.67,
+            "expected": false
+          },
+          {
+            "check": "character_drift.nell_garvey",
+            "p": 0.61,
+            "expected": false
+          },
+          {
+            "check": "arc",
+            "p": 0.7,
+            "expected": false
+          },
+          {
+            "check": "location.new_place",
+            "p": 0.53,
+            "expected": false
+          },
+          {
+            "check": "outcome",
+            "p": 0.72,
+            "expected": false
+          },
+          {
+            "check": "period",
+            "p": 0.89,
+            "expected": false
+          },
+          {
+            "check": "codex.contradiction",
+            "p": 0.69,
+            "expected": false
+          },
+          {
+            "check": "reputation",
+            "p": 0.78,
+            "expected": false
+          },
+          {
+            "check": "voice",
+            "p": 0.65,
+            "expected": false
+          }
+        ],
+        "othersFlagged": [
+          {
+            "check": "character_drift.nell_garvey",
+            "p": 0.61
+          },
+          {
+            "check": "location.new_place",
+            "p": 0.53
+          },
+          {
+            "check": "knowledge.narration",
+            "p": 0.37
+          }
+        ]
+      },
+      {
+        "passage": "period",
+        "breaks": "period",
+        "rule": "Period",
+        "p": 0.79,
+        "caught": true,
+        "othersFailed": [
+          {
+            "check": "character_drift.jacob_flannery",
+            "p": 0.78,
+            "expected": false
+          },
+          {
+            "check": "character_drift.nell_garvey",
+            "p": 0.56,
+            "expected": false
+          },
+          {
+            "check": "agency",
+            "p": 0.72,
+            "expected": true
+          },
+          {
+            "check": "codex.contradiction",
+            "p": 0.79,
+            "expected": false
+          },
+          {
+            "check": "voice",
+            "p": 0.54,
+            "expected": false
+          }
+        ],
+        "othersFlagged": [
+          {
+            "check": "character_drift.nell_garvey",
+            "p": 0.56
+          },
+          {
+            "check": "arc",
+            "p": 0.46
+          },
+          {
+            "check": "reputation",
+            "p": 0.35
+          },
+          {
+            "check": "voice",
+            "p": 0.54
+          }
+        ]
+      },
+      {
+        "passage": "codex-contradiction",
+        "breaks": "codex.contradiction",
+        "rule": "Codex",
+        "p": 0.7,
+        "caught": true,
+        "othersFailed": [
+          {
+            "check": "character_drift.nell_garvey",
+            "p": 0.54,
+            "expected": true
+          },
+          {
+            "check": "codex.rejected",
+            "p": 0.56,
+            "expected": false
+          }
+        ],
+        "othersFlagged": [
+          {
+            "check": "character_drift.nell_garvey",
+            "p": 0.54
+          },
+          {
+            "check": "agency",
+            "p": 0.38
+          },
+          {
+            "check": "period",
+            "p": 0.35
+          },
+          {
+            "check": "codex.rejected",
+            "p": 0.56
+          },
+          {
+            "check": "reputation",
+            "p": 0.35
+          },
+          {
+            "check": "voice",
+            "p": 0.39
+          }
+        ]
+      },
+      {
+        "passage": "codex-rejected",
+        "breaks": "codex.rejected",
+        "rule": "Codex",
+        "p": 0.95,
+        "caught": true,
+        "othersFailed": [
+          {
+            "check": "reputation",
+            "p": 0.78,
+            "expected": false
+          }
+        ],
+        "othersFlagged": [
+          {
+            "check": "character_drift.nell_garvey",
+            "p": 0.36
+          },
+          {
+            "check": "codex.contradiction",
+            "p": 0.4
+          },
+          {
+            "check": "voice",
+            "p": 0.45
+          }
+        ]
+      },
+      {
+        "passage": "reputation",
+        "breaks": "reputation",
+        "rule": "Reputation",
+        "p": 0.89,
+        "caught": true,
+        "othersFailed": [
+          {
+            "check": "character_drift.jacob_flannery",
+            "p": 0.51,
+            "expected": false
+          },
+          {
+            "check": "character_drift.nell_garvey",
+            "p": 0.64,
+            "expected": false
+          },
+          {
+            "check": "voice",
+            "p": 0.92,
+            "expected": false
+          }
+        ],
+        "othersFlagged": [
+          {
+            "check": "character_drift.jacob_flannery",
+            "p": 0.51
+          },
+          {
+            "check": "character_drift.nell_garvey",
+            "p": 0.64
+          },
+          {
+            "check": "knowledge.character",
+            "p": 0.36
+          },
+          {
+            "check": "agency",
+            "p": 0.46
+          },
+          {
+            "check": "codex.contradiction",
+            "p": 0.43
+          },
+          {
+            "check": "codex.rejected",
+            "p": 0.42
+          }
+        ]
+      },
+      {
+        "passage": "voice",
+        "breaks": "voice",
+        "rule": "Voice",
+        "p": 0.98,
+        "caught": true,
+        "othersFailed": [
+          {
+            "check": "character_drift.nell_garvey",
+            "p": 0.53,
+            "expected": false
+          },
+          {
+            "check": "agency",
+            "p": 0.77,
+            "expected": false
+          },
+          {
+            "check": "reputation",
+            "p": 0.83,
+            "expected": false
+          }
+        ],
+        "othersFlagged": [
+          {
+            "check": "character_drift.nell_garvey",
+            "p": 0.53
+          },
+          {
+            "check": "codex.contradiction",
+            "p": 0.4
+          }
+        ]
+      },
+      {
+        "passage": "arrest-clean",
+        "breaks": null,
+        "rule": null,
+        "p": null,
+        "caught": null,
+        "othersFailed": [],
+        "othersFlagged": [
+          {
+            "check": "knowledge.character",
+            "p": 0.48
+          },
+          {
+            "check": "unplanned_clue",
+            "p": 0.4
+          }
+        ]
+      },
+      {
+        "passage": "ending",
+        "breaks": "ending",
+        "rule": "Ending",
+        "p": 0.98,
+        "caught": true,
+        "othersFailed": [
+          {
+            "check": "character_drift.max_rober",
+            "p": 0.5,
+            "expected": false
+          },
+          {
+            "check": "arc",
+            "p": 0.93,
+            "expected": false
+          },
+          {
+            "check": "location.new_place",
+            "p": 0.56,
+            "expected": false
+          },
+          {
+            "check": "outcome",
+            "p": 0.98,
+            "expected": true
+          }
+        ],
+        "othersFlagged": [
+          {
+            "check": "character_drift.max_rober",
+            "p": 0.5
+          },
+          {
+            "check": "location.new_place",
+            "p": 0.56
+          },
+          {
+            "check": "agency",
+            "p": 0.37
+          },
+          {
+            "check": "codex.contradiction",
+            "p": 0.48
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "clean-1.character_drift.jacob_flannery": 0.1,
+      "clean-1.character_drift.nell_garvey": 0.12,
+      "clean-1.arc": 0.06,
+      "clean-1.location.setting": 0.07,
+      "clean-1.location.new_place": 0.16,
+      "clean-1.knowledge.character": 0.62,
+      "clean-1.knowledge.narration": 0.09,
+      "clean-1.unplanned_clue": 0.33,
+      "clean-1.outcome": 0.06,
+      "clean-1.agency": 0.19,
+      "clean-1.period": 0.07,
+      "clean-1.codex.contradiction": 0.09,
+      "clean-1.codex.rejected": 0.06,
+      "clean-1.reputation": 0.17,
+      "clean-1.voice": 0.23,
+      "clean-2.character_drift.jacob_flannery": 0.11,
+      "clean-2.character_drift.nell_garvey": 0.12,
+      "clean-2.arc": 0.06,
+      "clean-2.location.setting": 0.09,
+      "clean-2.location.new_place": 0.33,
+      "clean-2.knowledge.character": 0.46,
+      "clean-2.knowledge.narration": 0.07,
+      "clean-2.unplanned_clue": 0.19,
+      "clean-2.outcome": 0.07,
+      "clean-2.agency": 0.32,
+      "clean-2.period": 0.07,
+      "clean-2.codex.contradiction": 0.12,
+      "clean-2.codex.rejected": 0.06,
+      "clean-2.reputation": 0.18,
+      "clean-2.voice": 0.13,
+      "drift.character_drift.jacob_flannery": 0.25,
+      "drift.character_drift.nell_garvey": 0.88,
+      "drift.arc": 0.3,
+      "drift.location.setting": 0.17,
+      "drift.location.new_place": 0.42,
+      "drift.knowledge.character": 0.45,
+      "drift.knowledge.narration": 0.18,
+      "drift.unplanned_clue": 0.49,
+      "drift.outcome": 0.28,
+      "drift.agency": 0.16,
+      "drift.period": 0.1,
+      "drift.codex.contradiction": 0.54,
+      "drift.codex.rejected": 0.14,
+      "drift.reputation": 0.92,
+      "drift.voice": 0.59,
+      "arc.character_drift.jacob_flannery": 0.32,
+      "arc.character_drift.nell_garvey": 0.87,
+      "arc.arc": 0.93,
+      "arc.location.setting": 0.65,
+      "arc.location.new_place": 0.71,
+      "arc.knowledge.character": 0.31,
+      "arc.knowledge.narration": 0.38,
+      "arc.unplanned_clue": 0.14,
+      "arc.outcome": 0.38,
+      "arc.agency": 0.45,
+      "arc.period": 0.13,
+      "arc.codex.contradiction": 0.52,
+      "arc.codex.rejected": 0.19,
+      "arc.reputation": 0.78,
+      "arc.voice": 0.71,
+      "location-setting.character_drift.jacob_flannery": 0.1,
+      "location-setting.character_drift.nell_garvey": 0.25,
+      "location-setting.arc": 0.35,
+      "location-setting.location.setting": 0.96,
+      "location-setting.location.new_place": 0.57,
+      "location-setting.knowledge.character": 0.23,
+      "location-setting.knowledge.narration": 0.09,
+      "location-setting.unplanned_clue": 0.2,
+      "location-setting.outcome": 0.21,
+      "location-setting.agency": 0.34,
+      "location-setting.period": 0.09,
+      "location-setting.codex.contradiction": 0.77,
+      "location-setting.codex.rejected": 0.2,
+      "location-setting.reputation": 0.12,
+      "location-setting.voice": 0.29,
+      "location-new-place.character_drift.jacob_flannery": 0.1,
+      "location-new-place.character_drift.nell_garvey": 0.16,
+      "location-new-place.arc": 0.14,
+      "location-new-place.location.setting": 0.29,
+      "location-new-place.location.new_place": 0.96,
+      "location-new-place.knowledge.character": 0.93,
+      "location-new-place.knowledge.narration": 0.23,
+      "location-new-place.unplanned_clue": 0.49,
+      "location-new-place.outcome": 0.17,
+      "location-new-place.agency": 0.16,
+      "location-new-place.period": 0.1,
+      "location-new-place.codex.contradiction": 0.43,
+      "location-new-place.codex.rejected": 0.16,
+      "location-new-place.reputation": 0.33,
+      "location-new-place.voice": 0.22,
+      "knowledge-character.character_drift.jacob_flannery": 0.11,
+      "knowledge-character.character_drift.nell_garvey": 0.39,
+      "knowledge-character.arc": 0.23,
+      "knowledge-character.location.setting": 0.12,
+      "knowledge-character.location.new_place": 0.39,
+      "knowledge-character.knowledge.character": 0.96,
+      "knowledge-character.knowledge.narration": 0.88,
+      "knowledge-character.unplanned_clue": 0.89,
+      "knowledge-character.outcome": 0.29,
+      "knowledge-character.agency": 0.14,
+      "knowledge-character.period": 0.08,
+      "knowledge-character.codex.contradiction": 0.19,
+      "knowledge-character.codex.rejected": 0.13,
+      "knowledge-character.reputation": 0.68,
+      "knowledge-character.voice": 0.31,
+      "knowledge-narration.character_drift.jacob_flannery": 0.09,
+      "knowledge-narration.character_drift.nell_garvey": 0.19,
+      "knowledge-narration.arc": 0.24,
+      "knowledge-narration.location.setting": 0.11,
+      "knowledge-narration.location.new_place": 0.14,
+      "knowledge-narration.knowledge.character": 0.33,
+      "knowledge-narration.knowledge.narration": 0.94,
+      "knowledge-narration.unplanned_clue": 0.67,
+      "knowledge-narration.outcome": 0.08,
+      "knowledge-narration.agency": 0.63,
+      "knowledge-narration.period": 0.07,
+      "knowledge-narration.codex.contradiction": 0.12,
+      "knowledge-narration.codex.rejected": 0.07,
+      "knowledge-narration.reputation": 0.21,
+      "knowledge-narration.voice": 0.48,
+      "unplanned-clue.character_drift.jacob_flannery": 0.12,
+      "unplanned-clue.character_drift.nell_garvey": 0.25,
+      "unplanned-clue.arc": 0.17,
+      "unplanned-clue.location.setting": 0.25,
+      "unplanned-clue.location.new_place": 0.18,
+      "unplanned-clue.knowledge.character": 0.91,
+      "unplanned-clue.knowledge.narration": 0.5,
+      "unplanned-clue.unplanned_clue": 0.91,
+      "unplanned-clue.outcome": 0.2,
+      "unplanned-clue.agency": 0.17,
+      "unplanned-clue.period": 0.1,
+      "unplanned-clue.codex.contradiction": 0.23,
+      "unplanned-clue.codex.rejected": 0.06,
+      "unplanned-clue.reputation": 0.33,
+      "unplanned-clue.voice": 0.25,
+      "outcome.character_drift.jacob_flannery": 0.34,
+      "outcome.character_drift.nell_garvey": 0.41,
+      "outcome.arc": 0.38,
+      "outcome.location.setting": 0.12,
+      "outcome.location.new_place": 0.25,
+      "outcome.knowledge.character": 0.24,
+      "outcome.knowledge.narration": 0.25,
+      "outcome.unplanned_clue": 0.21,
+      "outcome.outcome": 0.95,
+      "outcome.agency": 0.53,
+      "outcome.period": 0.33,
+      "outcome.codex.contradiction": 0.33,
+      "outcome.codex.rejected": 0.1,
+      "outcome.reputation": 0.74,
+      "outcome.voice": 0.28,
+      "agency.character_drift.jacob_flannery": 0.67,
+      "agency.character_drift.nell_garvey": 0.61,
+      "agency.arc": 0.7,
+      "agency.location.setting": 0.34,
+      "agency.location.new_place": 0.53,
+      "agency.knowledge.character": 0.31,
+      "agency.knowledge.narration": 0.37,
+      "agency.unplanned_clue": 0.24,
+      "agency.outcome": 0.72,
+      "agency.agency": 0.96,
+      "agency.period": 0.89,
+      "agency.codex.contradiction": 0.69,
+      "agency.codex.rejected": 0.17,
+      "agency.reputation": 0.78,
+      "agency.voice": 0.65,
+      "period.character_drift.jacob_flannery": 0.78,
+      "period.character_drift.nell_garvey": 0.56,
+      "period.arc": 0.46,
+      "period.location.setting": 0.21,
+      "period.location.new_place": 0.18,
+      "period.knowledge.character": 0.25,
+      "period.knowledge.narration": 0.3,
+      "period.unplanned_clue": 0.19,
+      "period.outcome": 0.19,
+      "period.agency": 0.72,
+      "period.period": 0.79,
+      "period.codex.contradiction": 0.79,
+      "period.codex.rejected": 0.28,
+      "period.reputation": 0.35,
+      "period.voice": 0.54,
+      "codex-contradiction.character_drift.jacob_flannery": 0.23,
+      "codex-contradiction.character_drift.nell_garvey": 0.54,
+      "codex-contradiction.arc": 0.31,
+      "codex-contradiction.location.setting": 0.15,
+      "codex-contradiction.location.new_place": 0.26,
+      "codex-contradiction.knowledge.character": 0.3,
+      "codex-contradiction.knowledge.narration": 0.29,
+      "codex-contradiction.unplanned_clue": 0.22,
+      "codex-contradiction.outcome": 0.13,
+      "codex-contradiction.agency": 0.38,
+      "codex-contradiction.period": 0.35,
+      "codex-contradiction.codex.contradiction": 0.7,
+      "codex-contradiction.codex.rejected": 0.56,
+      "codex-contradiction.reputation": 0.35,
+      "codex-contradiction.voice": 0.39,
+      "codex-rejected.character_drift.jacob_flannery": 0.23,
+      "codex-rejected.character_drift.nell_garvey": 0.36,
+      "codex-rejected.arc": 0.29,
+      "codex-rejected.location.setting": 0.13,
+      "codex-rejected.location.new_place": 0.26,
+      "codex-rejected.knowledge.character": 0.33,
+      "codex-rejected.knowledge.narration": 0.18,
+      "codex-rejected.unplanned_clue": 0.2,
+      "codex-rejected.outcome": 0.17,
+      "codex-rejected.agency": 0.32,
+      "codex-rejected.period": 0.24,
+      "codex-rejected.codex.contradiction": 0.4,
+      "codex-rejected.codex.rejected": 0.95,
+      "codex-rejected.reputation": 0.78,
+      "codex-rejected.voice": 0.45,
+      "reputation.character_drift.jacob_flannery": 0.51,
+      "reputation.character_drift.nell_garvey": 0.64,
+      "reputation.arc": 0.34,
+      "reputation.location.setting": 0.16,
+      "reputation.location.new_place": 0.34,
+      "reputation.knowledge.character": 0.36,
+      "reputation.knowledge.narration": 0.22,
+      "reputation.unplanned_clue": 0.21,
+      "reputation.outcome": 0.32,
+      "reputation.agency": 0.46,
+      "reputation.period": 0.22,
+      "reputation.codex.contradiction": 0.43,
+      "reputation.codex.rejected": 0.42,
+      "reputation.reputation": 0.89,
+      "reputation.voice": 0.92,
+      "voice.character_drift.nell_garvey": 0.53,
+      "voice.arc": 0.28,
+      "voice.location.setting": 0.14,
+      "voice.location.new_place": 0.14,
+      "voice.knowledge.character": 0.17,
+      "voice.knowledge.narration": 0.2,
+      "voice.unplanned_clue": 0.16,
+      "voice.outcome": 0.13,
+      "voice.agency": 0.77,
+      "voice.period": 0.16,
+      "voice.codex.contradiction": 0.4,
+      "voice.codex.rejected": 0.11,
+      "voice.reputation": 0.83,
+      "voice.voice": 0.98,
+      "arrest-clean.character_drift.jacob_flannery": 0.09,
+      "arrest-clean.character_drift.max_rober": 0.12,
+      "arrest-clean.character_drift.walter_finch": 0.11,
+      "arrest-clean.arc": 0.05,
+      "arrest-clean.location.setting": 0.15,
+      "arrest-clean.location.new_place": 0.15,
+      "arrest-clean.knowledge.character": 0.48,
+      "arrest-clean.knowledge.narration": 0.33,
+      "arrest-clean.unplanned_clue": 0.4,
+      "arrest-clean.outcome": 0.04,
+      "arrest-clean.agency": 0.26,
+      "arrest-clean.period": 0.09,
+      "arrest-clean.codex.contradiction": 0.09,
+      "arrest-clean.codex.rejected": 0.06,
+      "arrest-clean.reputation": 0.14,
+      "arrest-clean.voice": 0.13,
+      "arrest-clean.ending": 0.06,
+      "ending.character_drift.jacob_flannery": 0.29,
+      "ending.character_drift.max_rober": 0.5,
+      "ending.arc": 0.93,
+      "ending.location.setting": 0.23,
+      "ending.location.new_place": 0.56,
+      "ending.knowledge.character": 0.17,
+      "ending.knowledge.narration": 0.13,
+      "ending.unplanned_clue": 0.1,
+      "ending.outcome": 0.98,
+      "ending.agency": 0.37,
+      "ending.period": 0.14,
+      "ending.codex.contradiction": 0.48,
+      "ending.codex.rejected": 0.1,
+      "ending.reputation": 0.22,
+      "ending.voice": 0.18,
+      "ending.ending": 0.98
+    }
+  },
+  "writer": {
+    "roundMs": 3175,
+    "drafts": [
+      {
+        "index": 0,
+        "text": "Jacob bought a bunch of violets from Nell and asked her, kindly, whether she saw anyone near Carrow’s warehouse the morning he died.\n\nNell took the coin, tucked it into her apron, and gave the flowers a small shake to settle the petals. “Aye, I did,” she said, her voice low enough that the passing costermongers would not catch it. “Just before the sky went grey. A young fellow slipped out the side door of the warehouse. Clerk’s coat, neat as you like, carrying a small leather case. He looked about once, sharp-like, then walked quick toward Whitechapel High Street. I thought it odd at the time, but with the market opening I let it go.”\n\nShe met Jacob’s eyes for a moment, guarded but steady. “That’s all I saw, sir. Nothing more.”\n\nThe gas lamps along the market edge still burned low in the damp morning air.",
+        "latencyMs": 3175,
+        "modelId": "grok-4.20-0309-non-reasoning",
+        "words": 148,
+        "outputTokens": 189
+      },
+      {
+        "index": 1,
+        "text": "Jacob bought a bunch of violets from Nell and asked her, kindly, whether she saw anyone near Carrow’s warehouse the morning he died.\n\nNell took his coins with a small nod. She wrapped the stems in damp newspaper and handed the flowers back. “I did, sir,” she said, her voice low so the other costermongers would not hear. “Just before the sky went grey. A young man came out the side door of the warehouse. Clerk’s coat, neat as you please, carrying a small leather case. He looked once over his shoulder, then walked quick toward Whitechapel High Street. That’s all I saw before the market opened proper.”\n\nShe glanced at the warehouse, then back at Jacob. “Didn’t think much of it at the time. Thought he worked for Mr Carrow.”",
+        "latencyMs": 2922,
+        "modelId": "grok-4.20-0309-non-reasoning",
+        "words": 131,
+        "outputTokens": 168
+      }
+    ]
+  },
+  "latency": {
+    "model": "jev-1.13.0",
+    "questions": 30,
+    "latencyMs": 553,
+    "usage": {
+      "inputTokens": 3852,
+      "outputTokens": 668
+    },
+    "failed": [
+      {
+        "id": "draft_0.knowledge.character",
+        "p": 0.88
+      },
+      {
+        "id": "draft_0.unplanned_clue",
+        "p": 0.89
+      },
+      {
+        "id": "draft_1.knowledge.character",
+        "p": 0.85
+      },
+      {
+        "id": "draft_1.unplanned_clue",
+        "p": 0.84
+      }
+    ],
+    "answers": {
+      "draft_0.character_drift.jacob_flannery": 0.09,
+      "draft_0.character_drift.nell_garvey": 0.1,
+      "draft_0.arc": 0.04,
+      "draft_0.location.setting": 0.05,
+      "draft_0.location.new_place": 0.08,
+      "draft_0.knowledge.character": 0.88,
+      "draft_0.knowledge.narration": 0.17,
+      "draft_0.unplanned_clue": 0.89,
+      "draft_0.outcome": 0.03,
+      "draft_0.agency": 0.14,
+      "draft_0.period": 0.07,
+      "draft_0.codex.contradiction": 0.07,
+      "draft_0.codex.rejected": 0.07,
+      "draft_0.reputation": 0.08,
+      "draft_0.voice": 0.27,
+      "draft_1.character_drift.jacob_flannery": 0.08,
+      "draft_1.character_drift.nell_garvey": 0.12,
+      "draft_1.arc": 0.03,
+      "draft_1.location.setting": 0.06,
+      "draft_1.location.new_place": 0.08,
+      "draft_1.knowledge.character": 0.85,
+      "draft_1.knowledge.narration": 0.12,
+      "draft_1.unplanned_clue": 0.84,
+      "draft_1.outcome": 0.04,
+      "draft_1.agency": 0.17,
+      "draft_1.period": 0.1,
+      "draft_1.codex.contradiction": 0.08,
+      "draft_1.codex.rejected": 0.06,
+      "draft_1.reputation": 0.08,
+      "draft_1.voice": 0.18
+    }
+  },
+  "drafter": {
+    "modelId": "gpt-5.6-sol",
+    "latencyMs": 4561,
+    "usage": {
+      "inputTokens": 324,
+      "inputTokenDetails": {
+        "noCacheTokens": 324,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 99,
+      "outputTokenDetails": {
+        "textTokens": 46,
+        "reasoningTokens": 53
+      },
+      "totalTokens": 423
+    },
+    "output": {
+      "characters": [
+        {
+          "name": "Carrow",
+          "description": "The deceased owner or namesake of the warehouse near which Nell saw a young man leaving on the morning of his death."
+        }
+      ]
+    }
+  }
+}
