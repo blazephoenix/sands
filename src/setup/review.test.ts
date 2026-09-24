@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { Entry, EntryStatus } from "@/domain/entry"
-import { londonEntries } from "@/fixtures/entries"
-import { londonBrief } from "@/fixtures/worlds"
+import { londonBrief, londonEntries } from "@/test/london"
 
 import {
   nextUndecided,

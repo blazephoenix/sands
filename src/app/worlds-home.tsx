@@ -5,8 +5,7 @@
  * changed and how many Sessions it has, and "New World", which creates a World
  * and opens its Brief.
  *
- * States: loading (Skeleton rows), empty (`?scenario=empty`), error
- * (`?scenario=request-error`, with Retry), list.
+ * States: loading (Skeleton rows), empty, error (with Retry), list.
  */
 import * as React from "react"
 import Link from "next/link"
@@ -51,11 +50,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { SetupStatusBadge } from "@/components/worlds/setup-status-badge"
-import {
-  briefHref,
-  withScenario,
-  worldHref,
-} from "@/components/worlds/world-links"
+import { briefHref, worldHref } from "@/components/worlds/world-links"
 import type { WorldSummary } from "@/domain/api"
 import { api, ApiError, isAbortError } from "@/lib/api-client"
 import { useSingleKeyShortcut } from "@/lib/keyboard"
@@ -106,7 +101,7 @@ export function WorldsHome() {
     setCreateError(null)
     try {
       const { world } = await api.createWorld()
-      router.push(withScenario(briefHref(world.id)))
+      router.push(briefHref(world.id))
     } catch (error) {
       setCreateError(asApiError(error, "The World was not created. Try again."))
       setCreating(false)
@@ -233,10 +228,7 @@ function WorldList({ worlds }: { worlds: WorldSummary[] }) {
       <ItemGroup className="gap-2">
         {worlds.map((world) => (
           <div key={world.id} role="listitem">
-            <Item
-              variant="outline"
-              render={<Link href={withScenario(worldHref(world))} />}
-            >
+            <Item variant="outline" render={<Link href={worldHref(world)} />}>
               <ItemContent className="min-w-0">
                 <ItemTitle
                   className={world.name ? undefined : "text-muted-foreground"}

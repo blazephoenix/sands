@@ -1,19 +1,5 @@
-/**
- * Links between a World's pages. Dev scenarios (`?scenario=`) follow the Author
- * from page to page, so a forced state stays forced across a navigation.
- */
+/** Links between a World's pages. */
 import type { SetupStatus } from "@/domain/world"
-import { SCENARIO_QUERY } from "@/fixtures/scenarios"
-import { currentScenario } from "@/lib/api-client"
-
-/** Carries the current page's `?scenario=` onto an in-app href (replacing any it has). Client only; a no-op on the server. */
-export function withScenario(href: string) {
-  const scenario = currentScenario()
-  if (!scenario) return href
-  const url = new URL(href, "http://sands.local")
-  url.searchParams.set(SCENARIO_QUERY, scenario)
-  return `${url.pathname}${url.search}${url.hash}`
-}
 
 export function briefHref(worldId: string) {
   return `/worlds/${encodeURIComponent(worldId)}/brief`

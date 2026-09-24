@@ -19,7 +19,7 @@ import {
   ItemTitle,
 } from "@/components/ui/item"
 import { Skeleton } from "@/components/ui/skeleton"
-import { sessionHref, withScenario } from "@/components/worlds/world-links"
+import { sessionHref } from "@/components/worlds/world-links"
 import type { SessionSummary } from "@/domain/api"
 import { playerTurnCount, type Ending } from "@/domain/session"
 
@@ -56,7 +56,7 @@ export function WorldSessions({
           <div key={session.id} role="listitem">
             <Item
               variant="outline"
-              render={<Link href={withScenario(sessionHref(session.id))} />}
+              render={<Link href={sessionHref(session.id)} />}
             >
               <ItemContent className="min-w-0">
                 <ItemTitle>Session {number}</ItemTitle>

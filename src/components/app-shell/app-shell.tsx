@@ -2,13 +2,12 @@
 
 /**
  * The app shell: a header with the app name, the page's breadcrumbs and
- * actions (see ./shell-slots), the dev scenario menu and the theme toggle.
+ * actions (see ./shell-slots) and the theme toggle.
  */
 import Link from "next/link"
 
 import { Separator } from "@/components/ui/separator"
 
-import { ScenarioMenu } from "./scenario-menu"
 import { ShellSlotsProvider, useShellSlots } from "./shell-slots"
 import { ThemeToggle } from "./theme-toggle"
 
@@ -32,7 +31,6 @@ function Header() {
           className="flex min-w-0 flex-1 items-center"
         />
         <div ref={setActions} className="flex shrink-0 items-center gap-2" />
-        <ScenarioMenu />
         <ThemeToggle />
       </div>
     </header>

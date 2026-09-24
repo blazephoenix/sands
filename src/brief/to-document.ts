@@ -1,7 +1,7 @@
 /**
  * Brief -> Brief editor document (docs/design/editor-design.md). Pure.
  *
- * Used for the new-Brief template (spec §7.1), for fixtures, and for the
+ * Used for the new-Brief template (spec §7.1), for test data, and for the
  * round-trip test. Sections come out in a fixed order (Settings, Characters,
  * Locations, Arcs, Ending, Voices, then prose), each heading followed by every
  * known `Label:` line (empty ones included, so the Author sees what goes where)
@@ -17,7 +17,7 @@ export type IdFactory = () => string
 
 export const randomId: IdFactory = () => crypto.randomUUID()
 
-/** Deterministic ids for fixtures and tests: `${prefix}-1`, `${prefix}-2`, ... */
+/** Deterministic ids for test data: `${prefix}-1`, `${prefix}-2`, ... */
 export function sequentialIds(prefix: string): IdFactory {
   let n = 0
   return () => `${prefix}-${++n}`

@@ -61,7 +61,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { SetupStatusBadge } from "@/components/worlds/setup-status-badge"
-import { setupReviewHref, withScenario } from "@/components/worlds/world-links"
+import { setupReviewHref } from "@/components/worlds/world-links"
 import { documentToBrief } from "@/brief/from-document"
 import type { BriefBlockType } from "@/brief/fields"
 import type { SaveBriefRequest } from "@/domain/api"
@@ -150,10 +150,7 @@ export function BriefPage({ worldId }: { worldId: string }) {
               <EmptyDescription>{load.error.message}</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <Button
-                render={<Link href={withScenario("/")} />}
-                nativeButton={false}
-              >
+              <Button render={<Link href={"/"} />} nativeButton={false}>
                 Go to your Worlds
               </Button>
             </EmptyContent>
@@ -629,7 +626,7 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
           setWorld(event.world)
           clearBriefBackup(worldId)
           window.setTimeout(
-            () => router.push(withScenario(setupReviewHref(worldId))),
+            () => router.push(setupReviewHref(worldId)),
             SUCCESS_PAUSE_MS
           )
         }
@@ -718,7 +715,7 @@ function BriefWorkspace({ initialWorld }: { initialWorld: World }) {
         {locked ? (
           world.setupStatus === "drafting" ? null : (
             <Button
-              render={<Link href={withScenario(setupReviewHref(worldId))} />}
+              render={<Link href={setupReviewHref(worldId)} />}
               nativeButton={false}
             >
               Open setup review

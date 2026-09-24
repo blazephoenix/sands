@@ -8,8 +8,7 @@ import {
   turnLabel,
   turnSchema,
 } from "./session"
-import { listTurns, SESSION_IDS } from "@/fixtures/sessions"
-import { resetStore } from "@/fixtures/store"
+import { openingTurn, playerTurn } from "@/test/turns"
 
 describe("the Opening rule (spec §9.0)", () => {
   const reading = {
@@ -75,9 +74,10 @@ describe("the Opening rule (spec §9.0)", () => {
   })
 
   it("is enforced by the Turn schema", () => {
-    resetStore()
-    const [opening, first] = listTurns(SESSION_IDS.midPlay)
+    const opening = openingTurn("s", "yard")
+    const first = playerTurn("s", 1, "I read the case file.", "yard")
     expect(turnSchema.safeParse(opening).success).toBe(true)
+    expect(turnSchema.safeParse(first).success).toBe(true)
     expect(
       turnSchema.safeParse({ ...opening, playerInput: "I arrive." }).success
     ).toBe(false)

@@ -23,7 +23,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { withScenario, worldHref } from "@/components/worlds/world-links"
+import { worldHref } from "@/components/worlds/world-links"
 import type { SetupStatus } from "@/domain/world"
 
 type Slots = {
@@ -110,7 +110,7 @@ export function ShellBreadcrumbs({ items }: { items: Crumb[] }) {
 /**
  * Breadcrumbs for a page of a World: the World's name, linking to where the
  * World opens (`worldHref`: the World page once it is ready), then the page.
- * A Session page reads World › Session N. Keeps the page's `?scenario=`.
+ * A Session page reads World › Session N.
  */
 export function worldCrumbs(
   world: { id: string; name: string; setupStatus: SetupStatus },
@@ -118,7 +118,7 @@ export function worldCrumbs(
 ): Crumb[] {
   const worldCrumb: Crumb = {
     label: world.name || "Untitled World",
-    href: withScenario(worldHref(world)),
+    href: worldHref(world),
   }
   return [worldCrumb, { label: typeof page === "string" ? page : page.session }]
 }

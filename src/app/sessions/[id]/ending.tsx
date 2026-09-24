@@ -40,11 +40,7 @@ import type { GetSessionResponse } from "@/domain/session-view"
 import { bandFor } from "@/engine/config"
 import { api, ApiError } from "@/lib/api-client"
 
-import {
-  sessionHref,
-  withScenario,
-  worldHref,
-} from "@/components/worlds/world-links"
+import { sessionHref, worldHref } from "@/components/worlds/world-links"
 
 import { TurnSection } from "./story"
 
@@ -110,13 +106,13 @@ export function EndingScreen({
     (entry) => entry.kind === "clue" && entry.status !== "rejected"
   ).length
   const band = bandFor(state.reputation)
-  const worldPageHref = withScenario(worldHref(data.world))
+  const worldPageHref = worldHref(data.world)
 
   const startNew = async () => {
     setStarting(true)
     try {
       const { session } = await api.createSession({ worldId: data.world.id })
-      router.push(withScenario(sessionHref(session.id)))
+      router.push(sessionHref(session.id))
     } catch (error) {
       setStarting(false)
       toast.add({

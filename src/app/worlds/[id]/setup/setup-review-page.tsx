@@ -72,11 +72,7 @@ import {
 
 import { EntryCard } from "./entry-card"
 import { REVIEW_ROW_ATTR, ReviewSidebar } from "./review-sidebar"
-import {
-  sessionHref,
-  withScenario,
-  worldPageHref,
-} from "@/components/worlds/world-links"
+import { sessionHref, worldPageHref } from "@/components/worlds/world-links"
 import { SolvabilityBanner } from "./solvability-banner"
 import {
   errorMessage,
@@ -122,7 +118,7 @@ export function SetupReviewPage({ worldId }: { worldId: string }) {
   const ready =
     load.state === "ready" && load.data.world.setupStatus === "ready"
   React.useEffect(() => {
-    if (ready) router.replace(withScenario(worldPageHref(worldId)))
+    if (ready) router.replace(worldPageHref(worldId))
   }, [ready, router, worldId])
 
   const retry = () => {
@@ -204,10 +200,7 @@ function LoadError({
           <EmptyDescription>{error.message}</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button
-            nativeButton={false}
-            render={<Link href={withScenario("/")} />}
-          >
+          <Button nativeButton={false} render={<Link href={"/"} />}>
             Go to your Worlds
           </Button>
         </EmptyContent>
@@ -231,7 +224,7 @@ function LoadError({
 }
 
 function briefHref(world: Pick<World, "id">) {
-  return withScenario(`/worlds/${encodeURIComponent(world.id)}/brief`)
+  return `/worlds/${encodeURIComponent(world.id)}/brief`
 }
 
 function DraftState({ world }: { world: World }) {
@@ -510,7 +503,7 @@ function ReviewWorkspace({ initial }: { initial: GetWorldResponse }) {
     setStarting(true)
     try {
       const sessionId = await review.startSession()
-      router.push(withScenario(sessionHref(sessionId)))
+      router.push(sessionHref(sessionId))
     } catch (error) {
       setStarting(false)
       toast.add({
