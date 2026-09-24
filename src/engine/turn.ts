@@ -15,28 +15,25 @@
  *   until a Passage ships; `insertTurn` refuses a Turn another request saved
  *   first. A Writer or Judge failure (after the model client's one retry,
  *   spec §13) ends the stream with an error and changes nothing.
- * - **Background work** (spec §9.2: new characters, Exit conditions, pacing)
- *   lands with #5. Until then none runs: a Turn is stored `done` with empty
- *   results and no background time (`backgroundMs: null`), which the
- *   harness pane shows as "no Background work ran", so nothing waits on it.
+ * - **Background work** (spec §9.2; `./background.ts`): a shipped Turn is
+ *   stored `pending` and its Background work starts once the Passage is
+ *   sent. The next Turn first waits for it (the `waiting_background` phase),
+ *   then plays from the state it merged. A Turn that ended the Session runs
+ *   none: it is stored `done` with no background time, which the harness
+ *   pane shows as "no Background work ran".
  */
 import { codexSlice } from "@/codex/slice"
 import type { Db } from "@/db/client"
-import { listSessionEntries } from "@/db/entries"
+import { getEntry, listSessionEntries } from "@/db/entries"
 import { StoreError } from "@/db/errors"
 import { getSession, insertTurn, listTurns } from "@/db/sessions"
 import { getWorld } from "@/db/worlds"
+import { isLiveEntry } from "@/domain/entry"
 import type { StreamErrorCode, TurnEvent } from "@/domain/events"
-import type {
-  BackgroundResults,
-  Draft,
-  PlayerState,
-  Round,
-  Turn,
-  TurnLog,
-} from "@/domain/session"
+import type { Draft, PlayerState, Round, TurnLog } from "@/domain/session"
 import { newId } from "@/lib/ids"
 import { nowIso, nowMs } from "@/lib/time"
+import type { Drafter } from "@/models/drafter"
 import type { Judge } from "@/models/judge"
 import type { Writer } from "@/models/writer"
 import {
@@ -52,6 +49,13 @@ import {
   type SceneContext,
 } from "@/rules/rules"
 
+import {
+  backgroundWorkFor,
+  failInterruptedBackgroundWork,
+  metExitConditions,
+  NO_BACKGROUND_RESULTS,
+  startBackgroundWork,
+} from "./background"
 import { ENGINE_CONFIG } from "./config"
 import { buildDirective, renderDirective } from "./direct"
 import { applyDiscovery } from "./discovery"
@@ -61,16 +65,7 @@ import { resolve, type Resolution } from "./resolve"
 import { deathRollFor } from "./rng"
 import { writerRequest } from "./writer-prompt"
 
-/** Until Background work lands (#5): none ran, so nothing is pending. */
-const NO_BACKGROUND_WORK: BackgroundResults = {
-  newEntryIds: [],
-  arcCheck: [],
-  arcAdvancedTo: null,
-  pacing: null,
-  error: null,
-}
-
-export type TurnModels = { writer: Writer; judge: Judge }
+export type TurnModels = { writer: Writer; judge: Judge; drafter: Drafter }
 
 export type TurnStream = {
   emit: (event: TurnEvent) => void
@@ -112,13 +107,17 @@ type Judged = {
   discoveryAnswers: number[]
 }
 
-/** Exit conditions the Arc check found met, across the Session's Turns. */
-function metExitConditions(turns: readonly Turn[]) {
-  const met = new Set<string>()
-  for (const turn of turns)
-    for (const check of turn.log.background?.arcCheck ?? [])
-      if (check.met) met.add(check.exitConditionId)
-  return [...met]
+/** Resolves when `work` settles, or rejects when the Player leaves first. */
+function waitFor(work: Promise<void>, signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal.aborted) return reject(signal.reason)
+    const onAbort = () => reject(signal.reason)
+    signal.addEventListener("abort", onAbort, { once: true })
+    void work.finally(() => {
+      signal.removeEventListener("abort", onAbort)
+      resolve()
+    })
+  })
 }
 
 /**
@@ -133,16 +132,17 @@ export async function runTurn(
   stream: TurnStream,
   options: { log?: (line: string) => void } = {}
 ): Promise<void> {
-  const { db, writer, judge } = deps
+  const { db, writer, judge, drafter } = deps
   const { emit, elapsed, signal } = stream
   const log = options.log ?? ((line: string) => console.info(line))
   const { sessionId, input } = request
-  const started = nowMs()
+  let started = nowMs()
   const timings = { readingMs: 0, resolvingMs: 0, writingMs: 0, judgingMs: 0 }
   let jevModelVersion = ""
 
   const phase = (
-    name: "reading" | "resolving" | "writing" | "judging",
+    name:
+      "waiting_background" | "reading" | "resolving" | "writing" | "judging",
     round: number | null = null
   ) => emit({ type: "phase", phase: name, round, at: elapsed() })
 
@@ -165,6 +165,15 @@ export async function runTurn(
   }
 
   try {
+    // 0. Wait for the last Turn's Background work (spec §9.1 step 1).
+    const background = backgroundWorkFor(sessionId)
+    if (background) {
+      phase("waiting_background")
+      await waitFor(background, signal)
+      started = nowMs()
+    }
+    failInterruptedBackgroundWork(db, sessionId)
+
     const session = getSession(db, sessionId)
     const world = getWorld(db, session.worldId)
     const brief = world.brief
@@ -237,7 +246,7 @@ export async function runTurn(
       entries,
       state,
       resolution,
-      metExitConditionIds: metExitConditions(turns),
+      metExitConditionIds: [...metExitConditions(turns)],
     })
     const allowedReveals = resolution?.allowedReveals ?? []
     const discoverableClues = resolution?.discoverableClues ?? []
@@ -377,13 +386,14 @@ export async function runTurn(
         shipped: d.id === winner.id,
       })),
     }))
+    const ended = discovered.state.ending !== "none"
     const turnLog: TurnLog = {
       reading: reading?.log ?? null,
       outcome: resolution?.outcome ?? null,
       directive: renderDirective(directive),
       rounds: loggedRounds,
       discovery: discovered.discovery,
-      background: NO_BACKGROUND_WORK,
+      background: ended ? NO_BACKGROUND_RESULTS : null,
       timings: {
         totalMs: nowMs() - started,
         ...timings,
@@ -392,6 +402,15 @@ export async function runTurn(
       jevModelVersion,
     }
     signal.throwIfAborted()
+    // The Author may have removed where the Player now stands while the Turn
+    // was written (spec §7.2). Checked with no await before the insert, so no
+    // Codex edit can land in between.
+    const standing = getEntry(db, discovered.state.locationId)
+    if (!isLiveEntry(standing))
+      throw new TurnFailure(
+        "conflict",
+        `${standing.name.trim() || "The Location this Turn moves to"} was removed from the Codex while this Turn was played. Nothing was saved; restore it, or try another action.`
+      )
     const saved = insertTurn(db, {
       id: turnId,
       sessionId,
@@ -401,10 +420,16 @@ export async function runTurn(
       flagged: shipped.flagged,
       log: turnLog,
       state: discovered.state,
-      backgroundStatus: "done",
+      backgroundStatus: ended ? "done" : "pending",
       createdAt: nowIso(),
     })
     emit({ type: "result", ...saved, entries: [], at: elapsed() })
+    if (!ended)
+      void startBackgroundWork(
+        { db, drafter, judge },
+        { sessionId, turnId },
+        { log }
+      )
   } catch (error) {
     if (signal.aborted) {
       log(`[turn] session=${sessionId} stopped: the Player left`)

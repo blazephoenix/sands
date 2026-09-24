@@ -24,6 +24,11 @@
  *   Rejected Entries do not exist: no path passes through a rejected Location,
  *   and rejected Knowledge or characters reveal nothing.
  *
+ * In play (spec §7.2), the check runs over a Session's copies with the
+ * Player's progress: the Player's current Location takes the start
+ * Location's place (so no start Location is needed), and a Clue already found
+ * is usable whatever has happened to its Entry since.
+ *
  * Each gap is a sentence or two the Author can act on, and names the Entry to
  * jump to: the Clue, the Decisive action when the Clue does not exist, or a
  * rejected Entry that restoring would fix (a winning Decisive action, the
@@ -36,6 +41,8 @@ export type SolvabilityInput = {
   /** The Brief's Arcs, in story order. */
   arcs: readonly { name: string }[]
   entries: readonly Entry[]
+  /** For a Session in play: where the Player stands, and the Clues found so far. */
+  play?: { locationId: string; cluesFound: readonly string[] }
 }
 
 /** "C1 — The torn letter" -> "C1"; a Clue without a handle goes by its name. */
@@ -61,11 +68,12 @@ function liveOfKind<K extends Entry["kind"]>(
 }
 
 /**
- * Live Locations reachable from the start location(s). A connection counts in
- * both directions, whichever Location lists it; a rejected Location is not
- * there, so no path passes through it.
+ * Live Locations reachable from the start location(s), or in play from where
+ * the Player stands. A connection counts in both directions, whichever
+ * Location lists it; a rejected Location is not there, so no path passes
+ * through it.
  */
-function reachableLocations(entries: readonly Entry[]) {
+function reachableLocations(entries: readonly Entry[], origin?: string) {
   const locations = liveOfKind(entries, "location")
   const live = new Set(locations.map((location) => location.id))
   const neighbours = new Map<string, Set<string>>(
@@ -78,7 +86,9 @@ function reachableLocations(entries: readonly Entry[]) {
       neighbours.get(other)!.add(location.id)
     }
   }
-  const starts = locations.filter((location) => location.data.isStart)
+  const starts = locations.filter((location) =>
+    origin === undefined ? location.data.isStart : location.id === origin
+  )
   const reached = new Set(starts.map((start) => start.id))
   const queue = [...reached]
   while (queue.length > 0) {
@@ -93,6 +103,8 @@ function reachableLocations(entries: readonly Entry[]) {
 
 type Graph = {
   byId: ReadonlyMap<string, Entry>
+  /** Clues the Player has found: usable, whatever happened to them since. */
+  found: ReadonlySet<string>
   knowledge: readonly EntryOfKind<"knowledge">[]
   starts: readonly EntryOfKind<"location">[]
   reached: ReadonlySet<string>
@@ -176,6 +188,7 @@ function whyUnusable(
   clueId: string,
   graph: Graph
 ): Problem | null {
+  if (graph.found.has(clueId)) return null
   const clue = graph.byId.get(clueId)
   if (!clue || clue.kind !== "clue") {
     return {
@@ -208,9 +221,13 @@ export type SolvabilityCheck = Pick<SolvabilityResult, "passed" | "gaps">
 
 export function checkSolvability(input: SolvabilityInput): SolvabilityCheck {
   const byId = new Map(input.entries.map((entry) => [entry.id, entry]))
-  const { starts, reached } = reachableLocations(input.entries)
+  const { starts, reached } = reachableLocations(
+    input.entries,
+    input.play?.locationId
+  )
   const knowledge = liveOfKind(input.entries, "knowledge")
-  const graph: Graph = { byId, knowledge, starts, reached }
+  const found = new Set(input.play?.cluesFound)
+  const graph: Graph = { byId, found, knowledge, starts, reached }
   const gaps: SolvabilityGap[] = []
   const gap = (
     code: SolvabilityGap["code"],
@@ -235,7 +252,7 @@ export function checkSolvability(input: SolvabilityInput): SolvabilityCheck {
     )
   }
 
-  if (starts.length === 0) {
+  if (!input.play && starts.length === 0) {
     const removed = input.entries.find(
       (entry): entry is EntryOfKind<"location"> =>
         entry.kind === "location" && entry.data.isStart

@@ -37,7 +37,7 @@ function wholeWords(phrase: string, caseSensitive: boolean) {
  * The given names and surnames of a character's name: capitalised words of
  * three letters or more that are not abbreviations ("Dr.", "St").
  */
-function nameParts(name: string) {
+export function nameParts(name: string) {
   return name
     .split(/\s+/u)
     .map((word) => word.replace(/^[^\p{L}]+|[^\p{L}.]+$/gu, ""))
@@ -46,23 +46,38 @@ function nameParts(name: string) {
     )
 }
 
-function isPerson(entry: Entry): entry is EntryOfKind<"character" | "npc"> {
+export function isPerson(
+  entry: Entry
+): entry is EntryOfKind<"character" | "npc"> {
   return entry.kind === "character" || entry.kind === "npc"
+}
+
+/** A person as prose names them: a Codex character or NPC, or a Brief character. */
+export type Person = { name: string; aliases: readonly string[] }
+
+/** Every pattern that names a person in prose: full name, alias, given name or surname. */
+function personPatterns(person: Person): RegExp[] {
+  const patterns: RegExp[] = []
+  if (person.name.trim()) patterns.push(wholeWords(person.name, false))
+  // Entries stored before placeholders were dropped may still hold "None".
+  for (const alias of person.aliases)
+    if (alias.trim() && !isPlaceholderItem(alias))
+      patterns.push(wholeWords(alias, false))
+  for (const part of nameParts(person.name))
+    patterns.push(wholeWords(part, true))
+  return patterns
 }
 
 /** Every pattern that names this Entry in prose. */
 function patternsFor(entry: Entry): RegExp[] {
-  const patterns: RegExp[] = []
-  if (entry.name.trim()) patterns.push(wholeWords(entry.name, false))
-  if (isPerson(entry)) {
-    // Entries stored before placeholders were dropped may still hold "None".
-    for (const alias of entry.data.aliases)
-      if (alias.trim() && !isPlaceholderItem(alias))
-        patterns.push(wholeWords(alias, false))
-    for (const part of nameParts(entry.name))
-      patterns.push(wholeWords(part, true))
-  }
-  return patterns
+  if (isPerson(entry))
+    return personPatterns({ name: entry.name, aliases: entry.data.aliases })
+  return entry.name.trim() ? [wholeWords(entry.name, false)] : []
+}
+
+/** Does `text` name this person, by full name, alias, given name or surname? */
+export function namesPerson(text: string, person: Person): boolean {
+  return personPatterns(person).some((pattern) => pattern.test(text))
 }
 
 /** The live Entries that `text` names, in Codex order. */

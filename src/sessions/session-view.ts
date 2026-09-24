@@ -4,6 +4,7 @@
  */
 import { asc, eq } from "drizzle-orm"
 
+import { sessionSolvability } from "@/codex/entries"
 import type { Db } from "@/db/client"
 import { listSessionEntries } from "@/db/entries"
 import { sessions } from "@/db/schema"
@@ -26,5 +27,6 @@ export function getSessionView(db: Db, id: string): GetSessionResponse {
     world: getWorld(db, session.worldId),
     turns: listTurns(db, id),
     entries: listSessionEntries(db, id),
+    solvability: sessionSolvability(db, id),
   }
 }

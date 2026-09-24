@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest"
 
+import { patchEntry } from "@/codex/entries"
 import type { OpenDatabase } from "@/db/client"
 import { getSession, insertTurn, listTurns } from "@/db/sessions"
 import type { TurnEvent } from "@/domain/events"
 import type { PlayerState, Turn } from "@/domain/session"
+import { FakeDrafter } from "@/models/fake-drafter"
 import { FakeJudge, type FakeAnswerer } from "@/models/fake-judge"
 import { FakeWriter, type FakeWriterOptions } from "@/models/fake-writer"
 import { JudgeError } from "@/models/judge"
@@ -15,6 +17,7 @@ import { openingTurn, playerTurn } from "@/test/turns"
 import { ENGINE_CONFIG } from "./config"
 import { startingState } from "./initial-state"
 import { deathRollFor } from "./rng"
+import { backgroundWorkFor, startBackgroundWork } from "./background"
 import { runTurn } from "./turn"
 
 let db: OpenDatabase
@@ -54,7 +57,11 @@ function judge(
 
 async function play(
   input: string | null,
-  models: { judge: FakeJudge; writer?: FakeWriter | FakeWriterOptions }
+  models: {
+    judge: FakeJudge
+    writer?: FakeWriter | FakeWriterOptions
+    drafter?: FakeDrafter
+  }
 ) {
   const events: TurnEvent[] = []
   const writer =
@@ -62,7 +69,14 @@ async function play(
       ? models.writer
       : new FakeWriter(models.writer)
   await runTurn(
-    { db, writer, judge: models.judge },
+    {
+      db,
+      writer,
+      judge: models.judge,
+      drafter:
+        models.drafter ??
+        new FakeDrafter({ outputs: { new_characters: { characters: [] } } }),
+    },
     { sessionId, input },
     {
       emit: (event) => events.push(event),
@@ -79,6 +93,24 @@ function shipped(last: TurnEvent): Turn {
   if (last.type !== "result")
     throw new Error(`expected a result, got ${JSON.stringify(last)}`)
   return last.turn
+}
+
+/** The Turn with its Background work finished, having found nothing. */
+function done(turn: Turn): Turn {
+  return {
+    ...turn,
+    backgroundStatus: "done",
+    log: {
+      ...turn.log,
+      background: {
+        newEntryIds: [],
+        arcCheck: [],
+        arcAdvancedTo: null,
+        pacing: null,
+        error: null,
+      },
+    },
+  }
 }
 
 /** Stores the Opening and Turn 1, so the next Turn (2) starts from `state`. */
@@ -110,12 +142,116 @@ describe("the Opening (spec §9.0; ADR-0014)", () => {
       playerInput: null,
       flagged: false,
       state: startingState(copy("yard")),
-      backgroundStatus: "done",
+      backgroundStatus: "pending",
     })
     expect(turn.log.reading).toBeNull()
     expect(turn.log.outcome).toBeNull()
     expect(turn.log.jevModelVersion).toBe("jev-test")
-    expect(listTurns(db, sessionId)).toEqual([turn])
+    expect(listTurns(db, sessionId).map((t) => t.id)).toEqual([turn.id])
+  })
+})
+
+describe("Background work (spec §9.1 step 1, §9.2)", () => {
+  /** A Drafter whose answer waits until `release` is called. */
+  function heldDrafter() {
+    let release = () => {}
+    const held = new Promise<void>((resolve) => (release = resolve))
+    const drafter = new FakeDrafter({
+      outputs: { new_characters: { characters: [] } },
+    })
+    const draft = drafter.draft.bind(drafter)
+    drafter.draft = (async (...args: Parameters<typeof draft>) => {
+      await held
+      return draft(...args)
+    }) as typeof drafter.draft
+    return { drafter, release }
+  }
+
+  it("ships the Passage first, then runs the Turn's Background work and merges its results", async () => {
+    const { last } = await play(null, { judge: judge(null) })
+    const turn = shipped(last)
+    expect(turn.backgroundStatus).toBe("pending")
+    expect(turn.log.background).toBeNull()
+
+    await backgroundWorkFor(sessionId)
+
+    const [stored] = listTurns(db, sessionId)
+    expect(stored.backgroundStatus).toBe("done")
+    expect(stored.log.background).toMatchObject({ newEntryIds: [] })
+  })
+
+  it("makes the next Turn wait for Background work still running, says so, and plays from the merged state", async () => {
+    // Turn 1's Background work will meet Arc 1's only Exit condition.
+    insertTurn(db, done(openingTurn(sessionId, copy("yard"))))
+    const turn1 = playerTurn(sessionId, 1, "I read the file.", copy("yard"))
+    insertTurn(db, turn1)
+    const { drafter, release } = heldDrafter()
+    const backgroundJudge = new FakeJudge({
+      answer: (id) => (id.startsWith("exit_") ? 0.9 : undefined),
+    })
+    void startBackgroundWork(
+      { db, drafter, judge: backgroundJudge },
+      { sessionId, turnId: turn1.id },
+      { log: () => {} }
+    )
+
+    const playing = play("I look around.", {
+      judge: judge({
+        intent: "examine",
+        target: "none",
+        classification: "on_script",
+      }),
+    })
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    expect(listTurns(db, sessionId)).toHaveLength(2)
+    release()
+    const { events, last } = await playing
+
+    expect(
+      events.flatMap((e) => (e.type === "phase" ? [e.phase] : []))
+    ).toEqual([
+      "waiting_background",
+      "reading",
+      "resolving",
+      "writing",
+      "judging",
+    ])
+    expect(shipped(last).state.arcIndex).toBe(1)
+    expect(listTurns(db, sessionId)[1].log.background?.arcAdvancedTo).toBe(1)
+  })
+
+  it("marks Background work a stopped server left pending as failed, and plays on without waiting", async () => {
+    after({})
+    const { events, last } = await play("I look around.", {
+      judge: judge({
+        intent: "examine",
+        target: "none",
+        classification: "on_script",
+      }),
+    })
+    expect(events[0]).toMatchObject({ type: "phase", phase: "reading" })
+    shipped(last)
+    const [opening, turn1] = listTurns(db, sessionId)
+    for (const turn of [opening, turn1]) {
+      expect(turn.backgroundStatus).toBe("failed")
+      expect(turn.log.background?.error).toMatch(/stopped before it finished/)
+    }
+  })
+
+  it("runs no Background work after a Turn that ended the Session", async () => {
+    after({ reputation: 5 })
+    const { last } = await play("I insult the Captain.", {
+      judge: judge({
+        intent: "question",
+        target: "Geoffrey James",
+        classification: "off_script",
+      }),
+    })
+    const turn = shipped(last)
+    expect(turn.state.ending).toBe("removed")
+    expect(turn.backgroundStatus).toBe("done")
+    expect(turn.log.timings.backgroundMs).toBeNull()
+    expect(backgroundWorkFor(sessionId)).toBeUndefined()
   })
 })
 
@@ -269,6 +405,32 @@ describe("a Turn after the Opening (spec §9.1)", () => {
     const turn = shipped(last)
     expect(turn.log.outcome?.penalty.deathRoll).toMatchObject({ lethal: true })
     expect(turn.state.ending).toBe("death")
+  })
+})
+
+describe("a Codex edit during the Turn (spec §7.2)", () => {
+  it("saves nothing when the Author removes the Location the Player is moving to", async () => {
+    after({})
+    const { last } = await play("I walk to Whitechapel.", {
+      judge: judge({
+        intent: "move",
+        target: "Whitechapel High Street",
+        classification: "on_script",
+      }),
+      writer: {
+        drafts: (_request, call) => {
+          if (call === 0)
+            patchEntry(db, copy("whitechapel"), { action: "reject" })
+          return `Draft ${call + 1}.`
+        },
+      },
+    })
+    expect(last).toMatchObject({
+      type: "error",
+      code: "conflict",
+      message: expect.stringMatching(/Whitechapel High Street was removed/),
+    })
+    expect(listTurns(db, sessionId)).toHaveLength(2)
   })
 })
 

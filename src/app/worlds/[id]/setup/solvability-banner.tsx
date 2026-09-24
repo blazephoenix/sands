@@ -6,6 +6,7 @@
  */
 import { CircleCheckIcon, CircleXIcon } from "lucide-react"
 
+import { GapList } from "@/components/codex/gap-list"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import type { SolvabilityResult } from "@/domain/world"
 
@@ -37,25 +38,11 @@ export function SolvabilityBanner({
       <CircleXIcon aria-hidden />
       <AlertTitle>This World can&apos;t be solved yet</AlertTitle>
       <AlertDescription>
-        <ul className="flex list-disc flex-col gap-1 pl-4">
-          {solvability.gaps.map((gap) => (
-            <li
-              key={`${gap.code}-${gap.entryId}-${gap.arcIndex}-${gap.message}`}
-            >
-              {gap.entryId && canSelect(gap.entryId) ? (
-                <button
-                  type="button"
-                  onClick={() => onSelect(gap.entryId!)}
-                  className="inline rounded-sm text-left underline underline-offset-3 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  {gap.message}
-                </button>
-              ) : (
-                gap.message
-              )}
-            </li>
-          ))}
-        </ul>
+        <GapList
+          gaps={solvability.gaps}
+          canSelect={canSelect}
+          onSelect={onSelect}
+        />
       </AlertDescription>
     </Alert>
   )

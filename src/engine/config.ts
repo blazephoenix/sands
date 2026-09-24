@@ -19,6 +19,10 @@ export const ENGINE_CONFIG = {
   offScriptWarningsAt: [2, 3] as const,
   deathOddsPerArc: [0.2, 0.35, 0.5] as const,
   pacingWindow: 3,
+  /** The Arc check counts an Exit condition met at p >= 0.5. */
+  exitConditionMetAt: 0.5,
+  /** The pacing check counts progress at p >= 0.5; below it, the Pacing nudge is set. */
+  pacingProgressAt: 0.5,
   writerRecentPassages: 4,
   draftsPerRound: 2,
   maxRounds: 3,

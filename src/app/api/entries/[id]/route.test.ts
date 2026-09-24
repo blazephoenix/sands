@@ -60,16 +60,22 @@ describe("PATCH /api/entries/[id] returns fresh solvability, and GET /api/worlds
     )
   })
 
-  it("answers null solvability for a Session copy", async () => {
+  it("saves a change to a Session copy that opens a Gap, and answers the Session's solvability", async () => {
     const { session } = startSession(getDb(), {
       worldId: "w-review",
       mode: "harness",
     })
+    // The review World's arrest needs every one of C1-C4.
     const { status, body } = await patch(copyId(session.id, "wc-c2"), {
-      action: "accept",
+      action: "reject",
     })
     expect(status).toBe(200)
-    expect(patchEntryResponseSchema.parse(body).solvability).toBeNull()
+    const { entry, solvability } = patchEntryResponseSchema.parse(body)
+    expect(entry.status).toBe("rejected")
+    expect(solvability).toMatchObject({
+      passed: false,
+      gaps: [{ entryId: copyId(session.id, "wc-c2") }],
+    })
   })
 
   it("refuses a locked Entry with 409 and leaves the stored result alone", async () => {

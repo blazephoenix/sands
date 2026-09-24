@@ -5,7 +5,11 @@ import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import { closeDb, getDb, openDatabase } from "@/db/client"
+import { insertTurn, listTurns } from "@/db/sessions"
 import { getWorld, updateWorld } from "@/db/worlds"
+import { startSession } from "@/sessions/start-session"
+import { storeLondonWorld } from "@/test/db"
+import { openingTurn } from "@/test/turns"
 import { claimSetup } from "@/setup/run"
 import { londonBriefDocument } from "@/test/london"
 import { createWorld } from "@/worlds/worlds"
@@ -62,6 +66,22 @@ describe("the server starting", () => {
     // The Author can run setup again.
     expect(claimSetup(db, interrupted.id).setupStatus).toBe("drafting")
     expect(getWorld(db, reviewed.id)).toEqual(untouched)
+  })
+
+  it("marks a Turn whose Background work a stopped server left pending as failed", async () => {
+    const before = openDatabase(url)
+    storeLondonWorld(before, { id: "w", prefix: "mk", variant: "ready" })
+    const { session } = startSession(before, { worldId: "w", mode: "harness" })
+    insertTurn(before, openingTurn(session.id, `${session.id}.mk-yard`))
+    before.$client.close()
+
+    process.env.DB_URL = url
+    process.env.NEXT_RUNTIME = "nodejs"
+    await register()
+
+    const [opening] = listTurns(getDb(), session.id)
+    expect(opening.backgroundStatus).toBe("failed")
+    expect(opening.log.background?.error).toMatch(/server stopped/)
   })
 
   it("leaves the database closed in the edge runtime", async () => {
