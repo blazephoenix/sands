@@ -89,12 +89,12 @@ export function listWorldSummaries(db: Db): WorldSummary[] {
 }
 
 /**
- * Returns every World left `drafting` to `draft`, and says how many. Setup
- * runs inside the server process and holds nothing on disk but the claim, so
- * when the server starts, any claim left behind belongs to a run that died
- * with the previous process (spec §13: a failed setup leaves the World in
- * draft). Only the World's status and update time change; setup stores no
- * Entries until it has finished.
+ * Returns every World left `drafting` to `draft`, and says how many. Called
+ * once when the server starts (`src/instrumentation.ts`): setup runs inside
+ * the server process and holds nothing on disk but the claim, so any claim
+ * left then belongs to a run that died with the previous process. Only the
+ * World's status and update time change; setup stores no Entries until it
+ * has finished.
  */
 export function releaseInterruptedSetups(db: Db): number {
   return db
