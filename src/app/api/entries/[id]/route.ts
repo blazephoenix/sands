@@ -5,16 +5,16 @@
  * stores the result on the World; the response carries it (spec §8 step 4).
  */
 import { patchEntryRequestSchema, type PatchEntryResponse } from "@/domain/api"
-import { patchEntry } from "@/fixtures/entries"
+import { patchEntry } from "@/codex/entries"
+import { getDb } from "@/db/client"
 import { handle, readJson } from "@/server/http"
-import { scenarioGate } from "@/server/scenarios"
 
 type Context = { params: Promise<{ id: string }> }
 
 export const PATCH = handle(async (request: Request, { params }: Context) => {
-  const blocked = await scenarioGate(request)
-  if (blocked) return blocked
   const { id } = await params
   const body = await readJson(request, patchEntryRequestSchema)
-  return Response.json(patchEntry(id, body) satisfies PatchEntryResponse)
+  return Response.json(
+    patchEntry(getDb(), id, body) satisfies PatchEntryResponse
+  )
 })
