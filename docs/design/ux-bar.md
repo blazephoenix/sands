@@ -17,7 +17,7 @@ Every surface that loads or mutates data has all four, each designed on purpose:
 3. **Error:** what happened and what to do, with a retry that keeps everything the person typed.
 4. **Success:** visible confirmation proportional to the action (a status change, a toast only when the change is off-screen or undoable).
 
-Named fixture scenarios (`src/fixtures/scenarios.ts`) exist so every state can be reached on demand. Use them.
+Reach every state in the real app before calling a change done: an empty database for Empty, the browser's network throttling for Loading, and offline mode or a stopped dev server for Error.
 
 ## Responsiveness
 
