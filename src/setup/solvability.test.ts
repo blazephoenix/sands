@@ -391,12 +391,71 @@ describe("the gap list", () => {
     ])
   })
 
-  it("ignores rejected Decisive actions", () => {
+  it("ignores the Clues of rejected Decisive actions", () => {
+    const input = world([
+      entry("decisive_action", "confess", "Hear Max confess", {
+        verb: "confess to",
+        correctTargetId: "max",
+        requires: [],
+        requiresCount: null,
+        onSuccess: "win",
+        wrongTargetPenalty: 15,
+        prematurePenalty: 20,
+      }),
+    ])
     expect(
       checkSolvability(
-        withStatus(withStatus(world(), "c2", "rejected"), "arrest", "rejected")
-      ).passed
-    ).toBe(true)
+        withStatus(withStatus(input, "c2", "rejected"), "arrest", "rejected")
+      )
+    ).toEqual({ passed: true, gaps: [] })
+  })
+})
+
+describe("winning the story", () => {
+  const NOTHING_WINS = {
+    code: "no_winning_action",
+    message:
+      "Nothing in this World wins the story. Add a Decisive action whose On success is win.",
+    entryId: null,
+    arcIndex: null,
+  }
+
+  it("fails when no Decisive action wins, before any other gap", () => {
+    const input = withStatus(
+      patchData(world(), "arrest", { onSuccess: "none" }),
+      "exit-1",
+      "rejected"
+    )
+    expect(checkSolvability(input).gaps.map((g) => g.code)).toEqual([
+      "no_winning_action",
+      "arc_without_exit_condition",
+    ])
+    expect(checkSolvability(input).gaps[0]).toEqual(NOTHING_WINS)
+  })
+
+  it("fails when the World has no Decisive action at all", () => {
+    const input = world()
+    const entries = input.entries.filter((e) => e.kind !== "decisive_action")
+    expect(checkSolvability({ ...input, entries })).toEqual({
+      passed: false,
+      gaps: [NOTHING_WINS],
+    })
+  })
+
+  it("points at a removed winning Decisive action, so the Author can restore it", () => {
+    expect(
+      checkSolvability(withStatus(world(), "arrest", "rejected"))
+    ).toEqual({
+      passed: false,
+      gaps: [
+        {
+          ...NOTHING_WINS,
+          message:
+            "Nothing in this World wins the story. Restore Arrest Max Rober, or add a Decisive action whose On success is win.",
+          entryId: "arrest",
+        },
+      ],
+    })
   })
 })
 

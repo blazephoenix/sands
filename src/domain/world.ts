@@ -27,14 +27,21 @@ export function hasFinishedSetup(world: { setupStatus: SetupStatus }) {
 /** One reason a World is not solvable, in words the Author can act on (spec §8 step 3). */
 export const solvabilityGapSchema = z.object({
   code: z.enum([
+    /** No live Decisive action wins the story. */
+    "no_winning_action",
     "missing_clue",
     "red_herring_required",
     "unreachable_clue",
     "clue_revealed_too_late",
     "arc_without_exit_condition",
+    /**
+     * Setup only: the Drafter named something that is not in the World. The
+     * name is never stored; the gap is fed back to the Story logic call.
+     */
+    "unknown_name",
   ]),
   message: z.string(),
-  /** The Entry to jump to (a Clue, a Decisive action), or null for an Arc problem. */
+  /** The Entry to jump to (a Clue, a Decisive action), or null when there is none. */
   entryId: z.string().nullable(),
   /** The Arc at fault, for `arc_without_exit_condition`. */
   arcIndex: z.number().int().min(0).nullable(),

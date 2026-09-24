@@ -4,6 +4,7 @@
  * change to a World Entry (spec §7.2).
  *
  * The World is solvable when:
+ * - some live Decisive action wins the story (On success is win);
  * - every live Decisive action has enough usable Clues: all it lists in
  *   Requires, or Clues needed (`requiresCount`, spec §6) of them when set. A
  *   Clue is usable when it exists (is not rejected), is not a red herring, and
@@ -22,8 +23,9 @@
  *   and rejected Knowledge or characters reveal nothing.
  *
  * Each gap is a sentence or two the Author can act on, and names the Entry to
- * jump to: the Clue, the Decisive action when the Clue does not exist, or for
- * an Arc, a rejected Exit condition of that Arc that restoring would fix.
+ * jump to: the Clue, the Decisive action when the Clue does not exist, or a
+ * rejected Entry that restoring would fix (a winning Decisive action, or an
+ * Exit condition of the Arc).
  */
 import { isLiveEntry, type Entry, type EntryOfKind } from "@/domain/entry"
 import type { SolvabilityGap, SolvabilityResult } from "@/domain/world"
@@ -215,7 +217,23 @@ export function checkSolvability(input: SolvabilityInput): SolvabilityCheck {
     arcIndex: number | null = null
   ) => gaps.push({ code, message, entryId, arcIndex })
 
-  for (const action of liveOfKind(input.entries, "decisive_action")) {
+  const actions = input.entries.filter(
+    (entry): entry is EntryOfKind<"decisive_action"> =>
+      entry.kind === "decisive_action"
+  )
+  if (!actions.some((a) => isLiveEntry(a) && a.data.onSuccess === "win")) {
+    const removed = actions.find((a) => a.data.onSuccess === "win")
+    const fix = removed
+      ? `Restore ${actionName(removed)}, or add a Decisive action whose On success is win.`
+      : "Add a Decisive action whose On success is win."
+    gap(
+      "no_winning_action",
+      `Nothing in this World wins the story. ${fix}`,
+      removed?.id ?? null
+    )
+  }
+
+  for (const action of actions.filter(isLiveEntry)) {
     const listed = action.data.requires.length
     const needed = action.data.requiresCount ?? listed
     if (needed > listed) {
