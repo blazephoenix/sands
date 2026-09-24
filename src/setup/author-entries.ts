@@ -29,10 +29,7 @@ function hiddenFields(item: { hiddenFields: string[]; keyFacts: KeyFact[] }) {
   ]
 }
 
-export function authorEntries(
-  brief: Brief,
-  context: NewEntryContext
-): Entry[] {
+export function authorEntries(brief: Brief, context: NewEntryContext): Entry[] {
   const characters = brief.characters.map((character) =>
     newTemplateEntry(context, "author", {
       kind: "character",

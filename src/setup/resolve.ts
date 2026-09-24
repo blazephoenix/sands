@@ -109,7 +109,9 @@ export function resolveWorldDraft(
       return false
     }
     if (known.has(name) || seen.has(key)) {
-      notes.push(`Dropped the ${what} "${name}": the World already has that name.`)
+      notes.push(
+        `Dropped the ${what} "${name}": the World already has that name.`
+      )
       return false
     }
     seen.add(key)

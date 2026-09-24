@@ -30,9 +30,9 @@ describe("FakeDrafter", () => {
 
   it("rejects an answer the schema would reject, and throws a scripted error", async () => {
     await expect(
-      new FakeDrafter({ outputs: { new_characters: { names: "Finch" } } }).draft(
-        request
-      )
+      new FakeDrafter({
+        outputs: { new_characters: { names: "Finch" } },
+      }).draft(request)
     ).rejects.toThrow(DrafterError)
     await expect(
       new FakeDrafter({
@@ -42,7 +42,9 @@ describe("FakeDrafter", () => {
   })
 
   it("stops when the signal is aborted", async () => {
-    const drafter = new FakeDrafter({ outputs: { new_characters: { names: [] } } })
+    const drafter = new FakeDrafter({
+      outputs: { new_characters: { names: [] } },
+    })
     await expect(
       drafter.draft(request, { signal: AbortSignal.abort() })
     ).rejects.toThrow()

@@ -15,11 +15,7 @@
  */
 import { briefForPrompt } from "@/brief/to-prompt"
 import type { Brief } from "@/domain/brief"
-import {
-  ENTRY_KIND_LABELS,
-  type Entry,
-  type JevFlag,
-} from "@/domain/entry"
+import { ENTRY_KIND_LABELS, type Entry, type JevFlag } from "@/domain/entry"
 import { ruleVerdict } from "@/engine/config"
 import {
   noul,

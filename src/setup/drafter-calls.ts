@@ -121,7 +121,9 @@ export const storyLogicCallSchema = z.object({
   ),
   exit_conditions: z
     .array(exitConditionDraft)
-    .describe("Only for Arcs in `arcs_without_exit_conditions`; usually empty."),
+    .describe(
+      "Only for Arcs in `arcs_without_exit_conditions`; usually empty."
+    ),
 })
 export type StoryLogicDraft = z.infer<typeof storyLogicCallSchema>
 

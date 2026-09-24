@@ -56,8 +56,18 @@ function world(draft: WorldDraft = worldDraft) {
   const { brief } = londonBrief("p")
   const context = setupContext()
   const author = authorEntries(brief, context)
-  const drafted = resolveWorldDraft(draft, { brief, authorEntries: author, context })
-  return { brief, context, author, drafted, codex: [...author, ...drafted.entries] }
+  const drafted = resolveWorldDraft(draft, {
+    brief,
+    authorEntries: author,
+    context,
+  })
+  return {
+    brief,
+    context,
+    author,
+    drafted,
+    codex: [...author, ...drafted.entries],
+  }
 }
 
 function named<K extends Entry["kind"]>(
@@ -223,11 +233,19 @@ describe("resolving the Story logic call's names to Entries", () => {
       ],
       knowledge: [
         { ...storyDraft.knowledge[0] },
-        { ...storyDraft.knowledge[0], name: "Tom's tale", character: "Old Tom" },
+        {
+          ...storyDraft.knowledge[0],
+          name: "Tom's tale",
+          character: "Old Tom",
+        },
       ],
       decisive_actions: [
         { ...storyDraft.decisive_actions[0], requires: ["C1", "C2", "C9"] },
-        { ...storyDraft.decisive_actions[0], name: "Arrest Tom", target: "Old Tom" },
+        {
+          ...storyDraft.decisive_actions[0],
+          name: "Arrest Tom",
+          target: "Old Tom",
+        },
       ],
     })
     const stored = JSON.stringify(entries)
