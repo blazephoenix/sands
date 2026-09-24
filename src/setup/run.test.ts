@@ -262,6 +262,32 @@ describe("the Solvability retry loop (spec §8 step 3)", () => {
     expect(listWorldEntries(db, world.id)).toEqual([])
   })
 
+  it("says the Drafter kept naming what the World does not have when unknown names are the only Gaps left", async () => {
+    const stranger = {
+      ...londonStoryDraft,
+      knowledge: [
+        ...londonStoryDraft.knowledge,
+        {
+          ...londonStoryDraft.knowledge[0],
+          name: "Tom's tale",
+          character: "Old Tom",
+        },
+      ],
+    }
+    const { db, world, last } = await setUp({
+      drafter: drafter([stranger, stranger, stranger]),
+    })
+    expect(last).toMatchObject({
+      type: "error",
+      code: "solvability_failed",
+      gaps: [{ code: "unknown_name" }],
+    })
+    if (last.type !== "error") return
+    expect(last.message).toMatch(/names that are not in this World/)
+    expect(last.message).not.toMatch(/not solvable/)
+    expect(getWorld(db, world.id).setupStatus).toBe("draft")
+  })
+
   it("shows the Gap 'nothing in this World wins the story' when no Decisive action wins", async () => {
     const noWin = withAction({ on_success: "none" })
     const fake = drafter([noWin, noWin, noWin])

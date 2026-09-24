@@ -23,7 +23,7 @@
  *   Story logic Entries; the World call's Entries are validated once.
  */
 import type { Brief } from "@/domain/brief"
-import type { Entry } from "@/domain/entry"
+import { ENTRY_KIND_LABELS, ENTRY_KINDS, type Entry } from "@/domain/entry"
 import type { SetupEvent, SetupStep, StreamErrorCode } from "@/domain/events"
 import { isBriefLocked, type SolvabilityGap, type World } from "@/domain/world"
 import type { Db } from "@/db/client"
@@ -77,20 +77,25 @@ export function parseSummary(brief: Brief) {
 
 /** "2 Locations, 1 NPC, 2 Exit conditions": what a Drafter call added. */
 function draftedSummary(entries: readonly Entry[]) {
-  const count = (kind: Entry["kind"]) =>
-    entries.filter((e) => e.kind === kind).length
-  const parts = [
-    ["location", "Location", "Locations"],
-    ["npc", "NPC", "NPCs"],
-    ["clue", "Clue", "Clues"],
-    ["knowledge", "Knowledge", "Knowledge"],
-    ["decisive_action", "Decisive action", "Decisive actions"],
-    ["exit_condition", "Exit condition", "Exit conditions"],
-  ] as const
-  const listed = parts
-    .filter(([kind]) => count(kind) > 0)
-    .map(([kind, one, many]) => plural(count(kind), one, many))
+  const listed = ENTRY_KINDS.flatMap((kind) => {
+    const count = entries.filter((e) => e.kind === kind).length
+    const { singular, plural: many } = ENTRY_KIND_LABELS[kind]
+    return count > 0 ? [plural(count, singular, many)] : []
+  })
   return listed.length > 0 ? listed.join(", ") : "nothing drafted"
+}
+
+/**
+ * Why setup failed when the last attempt still had Gaps. Names the Drafter
+ * kept using that are not in the World are a different failure from a story
+ * that cannot be won, and the Author should hear which one it was.
+ */
+function lastAttemptMessage(gaps: readonly SolvabilityGap[], attempts: number) {
+  const ran = `The Story logic call ran ${plural(attempts, "time")}`
+  if (gaps.every((gap) => gap.code === "unknown_name")) {
+    return `${ran} and kept using names that are not in this World, so its draft could not be stored. The names are below. Run setup again; if it keeps happening, name the people and places the story needs in the Brief.`
+  }
+  return `${ran} and the story is still not solvable. The gaps from the last attempt are below. Make the Brief's Ending and Arcs clearer about how the story is won, then run setup again.`
 }
 
 /**
@@ -302,15 +307,17 @@ export async function runSetup(
       const storyChecked = checked.entries.slice(
         checked.entries.length - story.entries.length
       )
-      const flagged = checked.entries.filter((e) => e.jevFlags.length > 0)
+      // The setup review's words: a "Judge flag" on an Entry (CONTEXT.md
+      // keeps "flagged" for a Flagged Turn).
+      const withFlags = checked.entries.filter((e) => e.jevFlags.length > 0)
       step(
         "validate",
         "done",
         attempt,
         max,
-        flagged.length > 0
-          ? `${plural(flagged.length, "Entry", "Entries")} flagged`
-          : "nothing flagged"
+        withFlags.length > 0
+          ? `${plural(withFlags.length, "Entry", "Entries")} with a Judge flag`
+          : "no Judge flags"
       )
 
       step("solvability", "started", attempt, max)
@@ -331,7 +338,7 @@ export async function runSetup(
         throw new StepFailure(
           "solvability",
           "solvability_failed",
-          `The Story logic call ran ${plural(max, "time")} and the story is still not solvable. The gaps from the last attempt are below. Make the Brief's Ending and Arcs clearer about how the story is won, then run setup again.`,
+          lastAttemptMessage(gaps, max),
           gaps
         )
       }
@@ -378,7 +385,9 @@ export async function runSetup(
       })
       return
     }
-    console.error(`[setup] world=${world.id} failed`, error)
+    log(
+      `[setup] world=${world.id} failed: ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`
+    )
     emit({
       type: "error",
       code: error instanceof StoreError ? "conflict" : "internal",
