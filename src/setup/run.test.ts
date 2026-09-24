@@ -177,6 +177,29 @@ describe("a setup run (spec §8)", () => {
       { question: "contradiction", probability: 0.9, verdict: "fail" },
     ])
   })
+
+  it("counts failed answers as Judge flags and Unsure ones apart, as the review's badges do", async () => {
+    // The Entry asked about, not one that only mentions it.
+    const about = (name: string, question: { instructions?: unknown }) =>
+      JSON.stringify(question.instructions).includes(`"name":"${name}"`)
+    const judge = new FakeJudge({
+      answer: (id, question) =>
+        !id.startsWith("contradiction")
+          ? undefined
+          : about("The Market", question)
+            ? 0.9
+            : about("The Harbour", question)
+              ? 0.45
+              : undefined,
+    })
+    const { events } = await setUp({ drafter: drafter(), judge })
+    const validated = events.find(
+      (e) => e.type === "step" && e.step === "validate" && e.status === "done"
+    )
+    expect(validated).toMatchObject({
+      detail: "1 Entry with a Judge flag, 1 Entry the Judge is unsure about",
+    })
+  })
 })
 
 describe("the Solvability retry loop (spec §8 step 3)", () => {
@@ -281,7 +304,12 @@ describe("the Solvability retry loop (spec §8 step 3)", () => {
       type: "error",
       code: "solvability_failed",
       step: "world_call",
-      gaps: [{ code: "no_start_location" }],
+      gaps: [
+        {
+          code: "no_start_location",
+          message: expect.stringMatching(/Add a Location to the Brief/),
+        },
+      ],
     })
     if (last.type !== "error") return
     expect(last.message).toMatch(/Add a Location to the Brief/)

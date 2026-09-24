@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest"
 
 import type { SetupEvent } from "@/domain/events"
+import type { SolvabilityGap } from "@/domain/world"
 
 import {
   failSetupRun,
+  failureTitle,
   idleSetupRun,
   reduceSetupEvent,
   startingSetupRun,
@@ -116,5 +118,37 @@ describe("setup progress", () => {
       at: 9,
     })
     expect(run.phase).toBe("succeeded")
+  })
+})
+
+describe("the failure title", () => {
+  const gap = (code: SolvabilityGap["code"]): SolvabilityGap => ({
+    code,
+    message: "",
+    entryId: null,
+    arcIndex: null,
+  })
+  const failed = (...codes: SolvabilityGap["code"][]) =>
+    failureTitle({
+      code: "solvability_failed",
+      message: "",
+      step: "solvability",
+      gaps: codes.map(gap),
+    })
+
+  it("says the story is not solvable when a Gap is about the story", () => {
+    expect(failed("no_winning_action", "unknown_name")).toBe(
+      "The story is not solvable yet"
+    )
+  })
+
+  it("says the Drafter used unknown names when those are the only Gaps", () => {
+    expect(failed("unknown_name", "unknown_name")).toBe(
+      "The Drafter used names that are not in this World"
+    )
+  })
+
+  it("says there is no start Location when setup stopped for that", () => {
+    expect(failed("no_start_location")).toBe("There is no start Location")
   })
 })

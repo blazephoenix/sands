@@ -19,10 +19,12 @@
  *   also cancels the model call in flight).
  * - **Retries.** Solvability failing, or a name the Drafter used that matches
  *   no Entry, re-runs the Story logic call with its previous draft and the
- *   Gaps, at most twice. A Gap only the World call can close (no start
- *   Location, `WORLD_CALL_GAP_CODES`) fails setup right after the World call,
- *   before any Story logic call is spent. Validation re-runs on each attempt for the new
- *   Story logic Entries; the World call's Entries are validated once.
+ *   Gaps, at most twice. Every Gap but one can be closed that way: the Story
+ *   logic call can move a Clue, reveal one through Knowledge, or draft an
+ *   Exit condition. It drafts no Locations, so a World the World call left
+ *   with no start Location fails right after the World call, before any
+ *   Story logic call is spent. Validation re-runs on each attempt for the
+ *   new Story logic Entries; the World call's Entries are validated once.
  */
 import type { Brief } from "@/domain/brief"
 import { ENTRY_KIND_LABELS, ENTRY_KINDS, type Entry } from "@/domain/entry"
@@ -45,7 +47,7 @@ import {
 } from "./drafter-calls"
 import type { NewEntryContext } from "./new-entries"
 import { resolveStoryLogicDraft, resolveWorldDraft } from "./resolve"
-import { checkSolvability, WORLD_CALL_GAP_CODES } from "./solvability"
+import { checkSolvability } from "./solvability"
 import { validateEntries } from "./validate"
 
 /** The Story logic call runs once, then at most twice more with the gaps as feedback (spec §8 step 3). */
@@ -85,6 +87,28 @@ function draftedSummary(entries: readonly Entry[]) {
     return count > 0 ? [plural(count, singular, many)] : []
   })
   return listed.length > 0 ? listed.join(", ") : "nothing drafted"
+}
+
+/**
+ * "1 Entry with a Judge flag, 2 Entries the Judge is unsure about": the
+ * setup review's words (its badges read "Judge flag" when an answer failed
+ * and "Judge unsure" otherwise; CONTEXT.md keeps "flagged" for a Flagged
+ * Turn).
+ */
+function judgeSummary(entries: readonly Entry[]) {
+  const failed = entries.filter((e) =>
+    e.jevFlags.some((flag) => flag.verdict === "fail")
+  ).length
+  const unsure = entries.filter((e) => e.jevFlags.length > 0).length - failed
+  const parts = [
+    ...(failed > 0
+      ? [`${plural(failed, "Entry", "Entries")} with a Judge flag`]
+      : []),
+    ...(unsure > 0
+      ? [`${plural(unsure, "Entry", "Entries")} the Judge is unsure about`]
+      : []),
+  ]
+  return parts.length > 0 ? parts.join(", ") : "no Judge flags"
 }
 
 /**
@@ -247,22 +271,19 @@ export async function runSetup(
     for (const note of worldResolved.notes)
       log(`[setup] world=${world.id} world_call: ${note}`)
     const codex = [...author, ...worldResolved.entries]
-    // A Gap only the World call can close fails setup now: no Story logic
-    // retry could close it.
-    const worldGaps = checkSolvability({
+    // No Story logic retry can add a start Location, so fail now.
+    const noStart = checkSolvability({
       arcs: brief.arcs,
       entries: codex,
-    }).gaps.filter((gap) => WORLD_CALL_GAP_CODES.has(gap.code))
-    if (worldGaps.length > 0) {
-      log(
-        `[setup] world=${world.id} world_call: ${worldGaps.map((g) => g.message).join(" | ")}`
-      )
-      step("world_call", "failed", 1, 1, plural(worldGaps.length, "gap"))
+    }).gaps.find((gap) => gap.code === "no_start_location")
+    if (noStart) {
+      log(`[setup] world=${world.id} world_call: ${noStart.message}`)
+      step("world_call", "failed", 1, 1, "no start Location")
       throw new StepFailure(
         "world_call",
         "solvability_failed",
         "The World call left the World without a start Location, and the Story logic call cannot add one, so setup stopped before it. Add a Location to the Brief (the first one is where the Player begins), then run setup again.",
-        worldGaps
+        [noStart]
       )
     }
     step("world_call", "done", 1, 1, draftedSummary(worldResolved.entries))
@@ -327,18 +348,7 @@ export async function runSetup(
       const storyChecked = checked.entries.slice(
         checked.entries.length - story.entries.length
       )
-      // The setup review's words: a "Judge flag" on an Entry (CONTEXT.md
-      // keeps "flagged" for a Flagged Turn).
-      const withFlags = checked.entries.filter((e) => e.jevFlags.length > 0)
-      step(
-        "validate",
-        "done",
-        attempt,
-        max,
-        withFlags.length > 0
-          ? `${plural(withFlags.length, "Entry", "Entries")} with a Judge flag`
-          : "no Judge flags"
-      )
+      step("validate", "done", attempt, max, judgeSummary(checked.entries))
 
       step("solvability", "started", attempt, max)
       const candidate = [...author, ...worldChecked, ...storyChecked]

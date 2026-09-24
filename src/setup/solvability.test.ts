@@ -296,7 +296,7 @@ describe("the start Location", () => {
         {
           code: "no_start_location",
           message:
-            "There is no start Location: the Player has nowhere to begin. Set Start location to yes on a Location.",
+            "There is no start Location: the Player has nowhere to begin. Add a Location to the Brief; the first one is where the Player begins.",
           entryId: null,
           arcIndex: null,
         },
