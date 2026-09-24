@@ -69,6 +69,15 @@ export function updateWorld(db: Db, world: World): World {
   return getWorld(db, id)
 }
 
+/**
+ * Deletes a World row. The foreign keys cascade to its Sessions, their Turns
+ * and every Entry, templates and Session copies alike, in the same statement.
+ * Returns false when there was no such World.
+ */
+export function deleteWorldRow(db: Db, id: string): boolean {
+  return db.delete(worlds).where(eq(worlds.id, id)).run().changes > 0
+}
+
 /** The Worlds home rows, most recently updated first. */
 export function listWorldSummaries(db: Db): WorldSummary[] {
   return db

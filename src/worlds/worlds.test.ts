@@ -4,10 +4,28 @@ import { storeLondonWorld, testDb } from "@/test/db"
 import { londonBriefDocument } from "@/test/london"
 
 import type { OpenDatabase } from "@/db/client"
-import { insertSession } from "@/db/sessions"
-import { getWorld, listWorldSummaries, updateWorld } from "@/db/worlds"
+import {
+  getEntry,
+  insertEntries,
+  listSessionEntries,
+  listWorldEntries,
+} from "@/db/entries"
+import {
+  getSession,
+  insertSession,
+  insertTurn,
+  listTurns,
+} from "@/db/sessions"
+import {
+  findWorld,
+  getWorld,
+  listWorldSummaries,
+  updateWorld,
+} from "@/db/worlds"
+import { copyId, startSession } from "@/sessions/start-session"
+import { openingTurn, playerTurn } from "@/test/turns"
 
-import { createWorld, saveBrief } from "./worlds"
+import { createWorld, deleteWorld, saveBrief } from "./worlds"
 
 let db: OpenDatabase
 
@@ -132,5 +150,88 @@ describe("the Worlds home list", () => {
       createdAt: fresh.createdAt,
       updatedAt: fresh.updatedAt,
     })
+  })
+})
+
+describe("deleting a World", () => {
+  /** A ready World with two Sessions: one played, with a play Entry, and one not started. */
+  function playedWorld(id: string, prefix: string) {
+    storeLondonWorld(db, { id, prefix, variant: "ready" })
+    const played = startSession(db, { worldId: id, mode: "harness", seed: 1 })
+    const idle = startSession(db, { worldId: id, mode: "harness", seed: 2 })
+    const yard = copyId(played.session.id, `${prefix}-yard`)
+    insertTurn(db, openingTurn(played.session.id, yard))
+    insertTurn(db, playerTurn(played.session.id, 1, "I read the file.", yard))
+    insertEntries(db, [
+      {
+        ...getEntry(db, `${prefix}-yard`),
+        id: `${played.session.id}.play-cellar`,
+        sessionId: played.session.id,
+        templateId: null,
+        name: "The cellar",
+        source: "play",
+        sourceTurn: 1,
+        status: "proposed",
+      },
+    ])
+    return { played: played.session.id, idle: idle.session.id }
+  }
+
+  it("deletes the World with its Sessions, Turns and Entries, and nothing of another World", () => {
+    const gone = playedWorld("w-gone", "g")
+    const kept = playedWorld("w-kept", "k")
+    const keptEntries = listWorldEntries(db, "w-kept")
+    const keptCopies = listSessionEntries(db, kept.played)
+
+    deleteWorld(db, "w-gone")
+
+    expect(findWorld(db, "w-gone")).toBeNull()
+    for (const sessionId of [gone.played, gone.idle]) {
+      expect(() => getSession(db, sessionId)).toThrow(
+        expect.objectContaining({ code: "not_found" })
+      )
+      expect(listTurns(db, sessionId)).toEqual([])
+      expect(listSessionEntries(db, sessionId)).toEqual([])
+    }
+    expect(listWorldEntries(db, "w-gone")).toEqual([])
+    expect(listWorldSummaries(db).map((w) => w.id)).toEqual(["w-kept"])
+
+    expect(listWorldEntries(db, "w-kept")).toEqual(keptEntries)
+    expect(listSessionEntries(db, kept.played)).toEqual(keptCopies)
+    expect(listTurns(db, kept.played)).toHaveLength(2)
+    expect(getSession(db, kept.idle).worldId).toBe("w-kept")
+  })
+
+  it("refuses to save a Turn that finishes after its World was deleted", () => {
+    const { played } = playedWorld("w", "g")
+    const late = playerTurn(played, 2, "I open the cellar.", copyId(played, "g-yard"))
+    deleteWorld(db, "w")
+    expect(() => insertTurn(db, late)).toThrow(
+      expect.objectContaining({ code: "not_found" })
+    )
+    expect(listTurns(db, played)).toEqual([])
+  })
+
+  it("refuses, with a conflict, a World whose setup is running, and deletes nothing", () => {
+    const { world, entries } = storeLondonWorld(db, {
+      id: "w",
+      prefix: "wc",
+      variant: "review",
+    })
+    const running = updateWorld(db, { ...world, setupStatus: "drafting" })
+    expect(() => deleteWorld(db, "w")).toThrow(
+      expect.objectContaining({
+        code: "conflict",
+        message: expect.stringMatching(/^Setup is running/),
+      })
+    )
+    expect(getWorld(db, "w")).toEqual(running)
+    expect(listWorldEntries(db, "w")).toEqual(entries)
+  })
+
+  it("answers not found for an unknown World", () => {
+    expect(() => deleteWorld(db, "nope")).toThrow(
+      expect.objectContaining({ code: "not_found" })
+    )
   })
 })

@@ -8,7 +8,12 @@ import type { Brief } from "@/domain/brief"
 import { isBriefLocked, type World } from "@/domain/world"
 import type { Db } from "@/db/client"
 import { StoreError } from "@/db/errors"
-import { getWorld, insertWorld, updateWorld } from "@/db/worlds"
+import {
+  deleteWorldRow,
+  getWorld,
+  insertWorld,
+  updateWorld,
+} from "@/db/worlds"
 import type { SandsBlock } from "@/editor/schema-config"
 import { newId } from "@/lib/ids"
 import { nowIso } from "@/lib/time"
@@ -79,5 +84,23 @@ export function saveBrief(
     }
     if (request.name !== undefined) next = { ...next, name: request.name }
     return updateWorld(tx, { ...next, updatedAt: nowIso() })
+  })
+}
+
+/**
+ * Deletes a World for good, with its Sessions, their Turns and every Entry.
+ * Refused while setup is running (`drafting`), because setup is still writing
+ * to the World. The check and the delete share one transaction.
+ */
+export function deleteWorld(db: Db, worldId: string): void {
+  db.transaction((tx) => {
+    const world = getWorld(tx, worldId)
+    if (world.setupStatus === "drafting") {
+      throw new StoreError(
+        "conflict",
+        "Setup is running for this World, so it cannot be deleted. Wait for setup to finish or fail, then try again."
+      )
+    }
+    deleteWorldRow(tx, world.id)
   })
 }
