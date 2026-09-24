@@ -51,13 +51,20 @@ export class OpenAIDrafter implements Drafter {
     if (options.model) {
       this.#model = options.model
     } else {
+      // Checked here, not at the first call: the provider reads the key
+      // lazily, and a run should not start that cannot finish.
       const id = process.env.DRAFTER_MODEL
-      if (!id) {
-        throw new DrafterError(
-          "DRAFTER_MODEL is not set on the server. Add it to .env.local (see .env.example) and restart."
-        )
+      for (const [name, value] of [
+        ["DRAFTER_MODEL", id],
+        ["OPENAI_API_KEY", process.env.OPENAI_API_KEY],
+      ]) {
+        if (!value) {
+          throw new DrafterError(
+            `${name} is not set on the server. Add it to .env.local (see .env.example) and restart.`
+          )
+        }
       }
-      this.#model = openai(id)
+      this.#model = openai(id!)
     }
   }
 
