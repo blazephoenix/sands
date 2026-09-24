@@ -78,11 +78,6 @@ function unique<T>(items: readonly T[]) {
   return [...new Set(items)]
 }
 
-/** A draft's number as a whole number. */
-function whole(n: number) {
-  return Math.round(n)
-}
-
 export type ResolvedWorldDraft = {
   entries: Entry[]
   /** What was dropped and why, for the server log. */
@@ -175,32 +170,46 @@ export function resolveWorldDraft(
       })
     )
 
-  const exits = draft.exit_conditions.flatMap((exit) => {
-    const arcIndex = whole(exit.arc) - 1
-    if (!brief.arcs[arcIndex]) {
+  const exits = exitConditionEntries(
+    draft.exit_conditions,
+    brief,
+    context,
+    (exit) =>
       notes.push(
         `Dropped the Exit condition "${exit.name}": the Brief has no Arc ${exit.arc}.`
       )
-      return []
-    }
-    return exitConditionEntry(exit, arcIndex, context)
-  })
+  )
 
   return { entries: [...locations, ...npcs, ...exits], notes }
 }
 
-function exitConditionEntry(
-  exit: { name: string; condition: string },
-  arcIndex: number,
-  context: NewEntryContext
-) {
-  const condition = exit.condition.trim()
-  return newTemplateEntry(context, "setup", {
-    kind: "exit_condition",
-    name: exit.name.trim() || condition,
-    description: "",
-    keyFacts: [],
-    data: { arcIndex, condition },
+type ExitConditionDraft = WorldDraft["exit_conditions"][number]
+
+/**
+ * Drafted Exit conditions filed under their Arcs. The Drafter numbers Arcs
+ * from 1; `missing` hears about each one for an Arc the Brief does not have,
+ * which is left out.
+ */
+function exitConditionEntries(
+  exits: readonly ExitConditionDraft[],
+  brief: Brief,
+  context: NewEntryContext,
+  missing: (exit: ExitConditionDraft) => void
+): Entry[] {
+  return exits.flatMap((exit) => {
+    const arcIndex = Math.round(exit.arc) - 1
+    if (!brief.arcs[arcIndex]) {
+      missing(exit)
+      return []
+    }
+    const condition = exit.condition.trim()
+    return newTemplateEntry(context, "setup", {
+      kind: "exit_condition",
+      name: exit.name.trim() || condition,
+      description: "",
+      keyFacts: [],
+      data: { arcIndex, condition },
+    })
   })
 }
 
@@ -331,7 +340,7 @@ export function resolveStoryLogicDraft(
       return clue ? [clue.id] : []
     })
     const needed =
-      action.clues_needed === null ? null : whole(action.clues_needed)
+      action.clues_needed === null ? null : Math.round(action.clues_needed)
     return newTemplateEntry(context, "setup", {
       kind: "decisive_action",
       name,
@@ -349,16 +358,15 @@ export function resolveStoryLogicDraft(
     })
   })
 
-  const exits = draft.exit_conditions.flatMap((exit) => {
-    const arcIndex = whole(exit.arc) - 1
-    if (!brief.arcs[arcIndex]) {
+  const exits = exitConditionEntries(
+    draft.exit_conditions,
+    brief,
+    context,
+    (exit) =>
       unknown(
         `Exit condition "${exit.name}" is for Arc ${exit.arc}, but the Brief has ${brief.arcs.length} Arcs. Use the number of an Arc in the Brief.`
       )
-      return []
-    }
-    return exitConditionEntry(exit, arcIndex, context)
-  })
+  )
 
   return { entries: [...clues, ...knowledge, ...actions, ...exits], gaps }
 }
