@@ -23,11 +23,11 @@ describe("the Player state before the Opening", () => {
     })
   })
 
-  it("falls back to the first live Location when none is marked as the start", () => {
+  it("is null when the start Location is removed, even with other live Locations", () => {
     const entries = codex().map((entry) =>
       entry.id === "mk-yard" ? { ...entry, status: "rejected" } : entry
     ) as Entry[]
-    expect(initialState(entries)?.locationId).toBe("mk-whitechapel")
+    expect(initialState(entries)).toBeNull()
   })
 
   it("is null when there is no live Location to start in", () => {

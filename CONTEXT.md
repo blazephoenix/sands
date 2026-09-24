@@ -183,7 +183,7 @@ The one-time step that turns a Brief into a World: the Drafter proposes Entries,
 _Avoid_: generation, expansion, onboarding
 
 **Solvability**:
-Whether a World or Session can be won as its Entries stand: some Decisive action wins the story, every Decisive action can be completed with Clues the Player can reach, and every Arc has an Exit condition.
+Whether a World or Session can be won as its Entries stand: some Decisive action wins the story, some Location is where the Player begins, every Decisive action can be completed with Clues the Player can reach, and every Arc has an Exit condition.
 _Avoid_: validity, completeness
 
 **Gap**:

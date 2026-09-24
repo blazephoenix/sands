@@ -180,6 +180,19 @@ export function failSetupRun(run: SetupRun, failure: SetupFailure): SetupRun {
   }
 }
 
+/**
+ * A failed solvability check names what went wrong: the story itself, names
+ * the Drafter kept using that are not in the World, or no start Location
+ * (setup stops for that after the World call).
+ */
+function solvabilityTitle(gaps: readonly SolvabilityGap[]) {
+  if (gaps.some((gap) => gap.code === "no_start_location"))
+    return "There is no start Location"
+  if (gaps.length > 0 && gaps.every((gap) => gap.code === "unknown_name"))
+    return "The Drafter used names that are not in this World"
+  return "The story is not solvable yet"
+}
+
 export function failureTitle(failure: SetupFailure) {
   switch (failure.code) {
     case "drafter_error":
@@ -187,7 +200,7 @@ export function failureTitle(failure: SetupFailure) {
         ? `Setup failed at the ${SETUP_STEP_LABELS[failure.step]}`
         : "The Drafter failed"
     case "solvability_failed":
-      return "The story is not solvable yet"
+      return solvabilityTitle(failure.gaps)
     case "invalid_brief":
       return "The saved Brief has problems"
     case "conflict":

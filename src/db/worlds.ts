@@ -10,6 +10,7 @@ import { count, desc, eq } from "drizzle-orm"
 
 import type { WorldSummary } from "@/domain/api"
 import { worldSchema, type World } from "@/domain/world"
+import { nowIso } from "@/lib/time"
 
 import type { Db } from "./client"
 import { StoreError } from "./errors"
@@ -93,4 +94,20 @@ export function listWorldSummaries(db: Db): WorldSummary[] {
     .groupBy(worlds.id)
     .orderBy(desc(worlds.updatedAt), desc(worlds.createdAt))
     .all()
+}
+
+/**
+ * Returns every World left `drafting` to `draft`, and says how many. Called
+ * once when the server starts (`src/instrumentation.ts`): setup runs inside
+ * the server process and holds nothing on disk but the claim, so any claim
+ * left then belongs to a run that died with the previous process. Only the
+ * World's status and update time change; setup stores no Entries until it
+ * has finished.
+ */
+export function releaseInterruptedSetups(db: Db): number {
+  return db
+    .update(worlds)
+    .set({ setupStatus: "draft", updatedAt: nowIso() })
+    .where(eq(worlds.setupStatus, "drafting"))
+    .run().changes
 }
