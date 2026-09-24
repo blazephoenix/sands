@@ -103,10 +103,11 @@ Non-goals (from `docs/requirements.md` §14, plus decisions made here): voice in
 | `GET /api/worlds/[id]` | World, brief, entries, solvability result |
 | `PATCH /api/entries/[id]` | Accept, edit or reject an entry (world template or session copy) |
 | `POST /api/sessions` | Start a session from a world |
-| `POST /api/sessions/[id]/turn` | Play one turn, or the Opening with `input: null` (ADR-0014); returns progress events as NDJSON, then the approved passage and turn summary |
+| `POST /api/sessions/[id]/turn` | Play one turn, or the Opening with `input: null` (ADR-0014); returns progress events as NDJSON, then the approved passage and turn summary. 404, writing nothing, for a session whose world was deleted |
 | `GET /api/sessions/[id]` | Story, current state, entries, harness log |
 | `GET /api/worlds` | Every world, for the Worlds home (added with the UI) |
 | `POST /api/entries` | An entry the author adds in the entry editor: source `author`, status `accepted` (added with the UI; only brief-derived entries are `locked`) |
+| `DELETE /api/worlds/[id]` | Delete a world for good, with its sessions, turns and entries (the foreign keys cascade). 204; 404 for an unknown world; 409 while setup is running (`drafting`), because setup is still writing to it. A confirmation dialog, not an Undo toast: Undo would need a soft delete every query filters on (added with #10) |
 
 The turn route does not stream passage text; the passage is final before it is sent. The client performs the animated reveal (animation design is later work).
 
@@ -371,8 +372,9 @@ Each rule has a feedback template. A Rule question the draft fails at p ≥ 0.8 
 
 ## 11. UI
 
-- **`/worlds/[id]/brief`:** BlockNote brief editor; **Run setup** button with progress.
-- **`/worlds/[id]`:** a ready world's sessions, most recent first, and **New Session**. A world that is not ready goes to its brief or its setup review.
+- **`/worlds/[id]/brief`:** BlockNote brief editor; **Run setup** button with progress; **Delete World** in the header's world actions menu.
+- **`/worlds/[id]`:** a ready world's sessions, most recent first, and **New Session**; **Delete World** in the header's world actions menu. A world that is not ready goes to its brief or its setup review.
+- **Delete World** (also in each Worlds home row's menu) asks for confirmation, and is disabled while setup runs. Not on the setup review page.
 - **`/worlds/[id]/setup`:** entry editor grouped into **World** (locations, characters, NPCs, factions, clues, objects) and **Story logic** (exit conditions, knowledge, decisive actions); per-block accept / edit / reject; Jev flags; solvability banner listing any gaps; **Start**.
 - **`/sessions/[id]`:**
   - **Story pane** (center): passages with a client-side animated reveal; free-text input; ending screen.

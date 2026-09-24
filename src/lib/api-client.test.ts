@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { turnEventSchema, type TurnEvent } from "@/domain/events"
 import { ndjsonResponse } from "@/server/ndjson"
 
-import { ApiError, readNdjson } from "./api-client"
+import { api, ApiError, readNdjson } from "./api-client"
 
 async function collect<T>(iterable: AsyncIterable<T>) {
   const out: T[] = []
@@ -72,5 +72,54 @@ describe("NDJSON progress streams", () => {
     await expect(
       collect(readNdjson(body, turnEventSchema))
     ).rejects.toBeInstanceOf(ApiError)
+  })
+})
+
+describe("deleting a World", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function answer(response: Response | Error) {
+    const fetch = vi.fn(async () => {
+      if (response instanceof Error) throw response
+      return response
+    })
+    vi.stubGlobal("fetch", fetch)
+    return fetch
+  }
+
+  it("sends DELETE for the World and resolves on 204, which has no body", async () => {
+    const fetch = answer(new Response(null, { status: 204 }))
+    await expect(api.deleteWorld("w 1")).resolves.toBeUndefined()
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/worlds/w%201",
+      expect.objectContaining({ method: "DELETE" })
+    )
+  })
+
+  it("rejects with the route's reason when it refuses, which is not worth a Retry", async () => {
+    answer(
+      Response.json(
+        { error: { code: "conflict", message: "Setup is running." } },
+        { status: 409 }
+      )
+    )
+    const error = await api.deleteWorld("w").catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error).toMatchObject({
+      status: 409,
+      code: "conflict",
+      message: "Setup is running.",
+      retryable: false,
+    })
+  })
+
+  it("rejects with a retryable network error when the server cannot be reached", async () => {
+    answer(new TypeError("Failed to fetch"))
+    await expect(api.deleteWorld("w")).rejects.toMatchObject({
+      code: "network",
+      retryable: true,
+    })
   })
 })

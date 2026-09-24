@@ -48,6 +48,7 @@ Reach every state in the real app before calling a change done: an empty databas
 
 - UI text uses `CONTEXT.md` vocabulary: Passage (not message), Session (not run), Round (not retry), Entry (not card), Judge (not validator), Author, Player, Codex.
 - Plain sentences. No exclamation marks. Errors state the cause and the next step.
+- **Delete** is permanent (a World); **Remove** is an Entry's restorable review status. Never use one for the other.
 
 ## Verification (every ticket)
 

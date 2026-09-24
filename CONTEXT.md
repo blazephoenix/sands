@@ -39,7 +39,7 @@ _Avoid_: tone, style guide
 ### World and play
 
 **World**:
-A Brief plus everything setup derived from it and the Author reviewed. Sessions are played in a World.
+A Brief plus everything setup derived from it and the Author reviewed. Sessions are played in a World. The Author can delete a World; deleting is permanent and takes its Sessions, Turns and Entries with it.
 _Avoid_: universe, setting (reserved for place and period), game
 
 **Session**:

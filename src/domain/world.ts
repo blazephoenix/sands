@@ -14,6 +14,11 @@ export const setupStatusSchema = z.enum([
 ])
 export type SetupStatus = z.infer<typeof setupStatusSchema>
 
+/** A World's name as the UI shows it: "Untitled World" when it has none. */
+export function worldDisplayName(name: string) {
+  return name || "Untitled World"
+}
+
 /** Setup has started, so the Brief is locked (spec §6 `brief_json`). */
 export function isBriefLocked(world: { setupStatus: SetupStatus }) {
   return world.setupStatus !== "draft"
