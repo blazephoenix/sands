@@ -352,8 +352,8 @@ export function resolveStoryLogicDraft(
         requires: unique(requires),
         requiresCount: needed !== null && needed >= 1 ? needed : null,
         onSuccess: action.on_success,
-        wrongTargetPenalty: Math.abs(ENGINE_CONFIG.wrongTargetPenalty),
-        prematurePenalty: Math.abs(ENGINE_CONFIG.prematurePenalty),
+        wrongTargetPenalty: ENGINE_CONFIG.wrongTargetPenalty,
+        prematurePenalty: ENGINE_CONFIG.prematurePenalty,
       },
     })
   })

@@ -96,8 +96,8 @@ export const ruleResultSchema = z.object({
   probability: z.number().min(0).max(1),
   /** p >= 0.5 (spec §10.1). */
   failed: z.boolean(),
-  /** 0.35 <= p < 0.65: the Judge was unsure either way. */
-  flagged: z.boolean(),
+  /** 0.35 <= p < 0.65: too close to call either way (CONTEXT.md: Unsure). */
+  unsure: z.boolean(),
 })
 export type RuleResult = z.infer<typeof ruleResultSchema>
 
@@ -127,29 +127,55 @@ const choiceAnswer = z.object({
   probability: z.number().min(0).max(1),
 })
 
+/** What the Player's intent achieved (spec §9.1 step 3). */
+export const ACTION_RESULTS = [
+  "moved",
+  "move_refused",
+  "examined",
+  "questioned",
+  "decisive_success",
+  "decisive_premature",
+  "decisive_wrong_target",
+  "narrated",
+] as const
+export const actionResultSchema = z.enum(ACTION_RESULTS)
+export type ActionResult = z.infer<typeof actionResultSchema>
+
+/** The Classification's effect: an off-script penalty, a reckless death roll, or nothing. */
+export const PENALTY_KINDS = ["none", "off_script", "reckless"] as const
+export const penaltyKindSchema = z.enum(PENALTY_KINDS)
+export type PenaltyKind = z.infer<typeof penaltyKindSchema>
+
+/**
+ * What code decided a Player's action achieved, before any prose is written.
+ * The action's result and the Classification's penalty are recorded apart:
+ * a Classification never cancels the intent (an off-script move still
+ * moves the Player, then costs Reputation).
+ */
 export const outcomeSchema = z.object({
-  kind: z.enum([
-    "moved",
-    "move_refused",
-    "examined",
-    "questioned",
-    "decisive_success",
-    "decisive_premature",
-    "decisive_wrong_target",
-    "off_script",
-    "reckless_survived",
-    "reckless_death",
-    "narrated",
-  ]),
-  /** What code decided, in a sentence. */
-  summary: z.string(),
-  reputationDelta: z.number(),
-  offScriptDelta: z.number().int(),
-  /** Present for reckless actions: the seeded death roll. */
-  deathRoll: z
-    .object({ odds: z.number(), roll: z.number(), lethal: z.boolean() })
+  /** The intent's result. Null when a lethal death roll ended the Session before it resolved. */
+  action: z
+    .object({
+      kind: actionResultSchema,
+      /** What code decided, in a sentence. */
+      summary: z.string(),
+      /** Negative for a failed Decisive action's penalty; otherwise 0. */
+      reputationDelta: z.number().max(0),
+    })
     .nullable(),
+  penalty: z.object({
+    kind: penaltyKindSchema,
+    summary: z.string(),
+    reputationDelta: z.number().max(0),
+    offScriptDelta: z.number().int().min(0),
+    /** Present for reckless actions: the seeded death roll. Lethal when `roll < odds`. */
+    deathRoll: z
+      .object({ odds: z.number(), roll: z.number(), lethal: z.boolean() })
+      .nullable(),
+  }),
   ending: endingSchema,
+  /** Why the Session ended this Turn, in a sentence; null when it did not. */
+  endingReason: z.string().nullable(),
 })
 export type Outcome = z.infer<typeof outcomeSchema>
 
@@ -161,6 +187,8 @@ export const discoverySchema = z.object({
   question: z.string(),
   probability: z.number().min(0).max(1),
   revealed: z.boolean(),
+  /** Recovery: + when a revealed Clue is one a Decisive action requires. */
+  reputationDelta: z.number().min(0),
 })
 export type Discovery = z.infer<typeof discoverySchema>
 

@@ -278,8 +278,8 @@ A Session never starts blank. As soon as it is created, the harness plays its **
    - **move:** allowed only to a non-rejected location entry; `not_in_codex` or a non-location target is refused inside the story.
    - **question:** the target may reveal only knowledge entries with `min_band` at or below the current band that are not yet revealed ("allowed reveals").
    - **examine:** clues at the current location that are not yet found become "discoverable."
-   - **decisive action:** correct target and requirements met → success (may trigger `win`); correct target, requirements unmet → fail, `premature_penalty` (default −20); wrong target → fail, `wrong_target_penalty` (default −15).
-   - **off_script:** −10 reputation, +1 off-script count. Warnings at counts 2 and 3 are added to the directive so a character the player character answers to warns them in the story.
+   - **decisive action:** correct target and requirements met → success (may trigger `win`); correct target, requirements unmet → fail, `premature_penalty` (default 20); wrong target, or no target → fail, `wrong_target_penalty` (default 15). Every penalty is a positive number subtracted from reputation (decided 2026-09-24); the entry schema rejects a negative one.
+   - **off_script:** reputation − 10, +1 off-script count. Warnings at counts 2 and 3 are added to the directive so a character the player character answers to warns them in the story.
    - **reckless:** seeded death roll with the current arc's odds. Lethal → `death`.
    - **on_script / tangential:** no penalty.
    - **removed:** reputation ≤ 0 or off-script count ≥ 4 after this turn's changes → `removed`.
@@ -348,19 +348,21 @@ Verified against https://docs.typesafe.ai and the installed `@typesafe-ai/sdk` 0
 
 ### 10.3 Rules (asked once per draft)
 
+The wordings below include the rewordings the smoke test proposed (research §2) for Character drift, Codex, Reputation, Voice and the Knowledge narration question, and a Location question checked against `known_places`. They were applied with #4 on 2026-09-24 and **have not yet been checked against real Drafts**; tune or revert each after the first real Turns.
+
 | Rule | Question(s) |
 |---|---|
-| Character drift | Per character named in the draft (by name or alias match in code): "Does anything {name} says or does contradict their personality or backstory?" |
+| Character drift | Per non-player character named in the draft (matched in code by full name, alias, given name or surname), with their entry beside the question: "Does anything `character.name` says or does go against `character.personality` or `character.backstory`?" The `false` criterion: behaviour the entry allows is not drift. |
 | Arc | "Does the draft depict events from `later_arcs`?" and "Does the draft contradict `current_arc`?" (split per §10.1: one condition per question) |
-| Location | "Is the draft set somewhere other than the current location?", "Does the draft contradict the current location's entry?" and "Does the draft introduce a named place a character could travel to that is not in `codex`?" (Detail inside a location, such as a back office, is description and allowed.) |
-| Knowledge | "Does a character reveal information that is not in `allowed_reveals` or `knowledge_revealed`?" and "Does the narration reveal or imply `hidden_truth` beyond what `clues_found` supports?" **Information** means a fact about a character: what they look like, carry, did, saw, know, or where they are or went. Manner, mood, weather and scenery are not information. The criteria spell this out, because the Writer embellishes Allowed reveals with such facts (smoke test, §9.5). |
+| Location | "Does the draft take place somewhere other than `current_location`?", "Does the draft describe `current_location` against its description?" and "Does the draft name a place a character could travel to that is not in `known_places`?" (`known_places` is every live Location, since the slice holds only nearby ones. Detail inside a location, such as a back office, is description and allowed.) |
+| Knowledge | "Does a character reveal information that is not in `allowed_reveals` or `knowledge_revealed`?" and "Leaving aside what characters say aloud, does the narrator state or hint at `hidden_truth` beyond what `clues_found` supports?" (reworded: the first wording fired on dialogue). **Information** means a fact about a character: what they look like, carry, did, saw, know, or where they are or went. Manner, mood, weather and scenery are not information. The criteria spell this out, because the Writer embellishes Allowed reveals with such facts (smoke test, §9.5). |
 | Unplanned clue | "Does the draft present a fact pointing to `hidden_truth` that is not one of the discoverable or found clues?" (Replaces the blocking part of `docs/requirements.md` §8 step 8.) |
 | Outcome | "Does the draft contradict `outcome`?" |
 | Agency | "Does the player character say or do more than `player_input`?" |
 | Period | "Does the draft contain anachronisms for `setting`?" |
-| Codex | "Does the draft contradict an entry in `codex`?" (every non-rejected entry: locked, proposed, accepted or edited, since proposed entries are canon) and "Does the draft mention anything in `rejected_names`?" |
-| Reputation | "Does NPC behavior toward the player contradict `reputation_band`?" |
-| Voice | Only if the brief has voice guidance: "Does the draft depart from `voice`?" |
+| Codex | One question per live Entry the draft names (location, character, NPC, faction, object), with the Entry beside it: "Does the draft state something that conflicts with `entry`?" (proposed entries are canon), and, when any Entry is removed, "Does the draft mention anything in `rejected_names`?" |
+| Reputation | Two concrete questions for the current Band, each naming behaviour the Band forbids: high, open contempt and unearned suspicion or coldness; normal, open contempt and special deference (gifts, flattery, favours); low, special deference and warmth or trust. |
+| Voice | Only if the brief has voice guidance: one question per guideline (the guidelines split by line and sentence), with the guideline beside it: "Does the draft break `guideline`?" |
 | Ending | Only on ending turns: "Does the draft narrate an ending other than `ending`?" |
 
 Action classification and pacing are covered in §9.1 step 2 and §9.2 step 10.
@@ -380,7 +382,7 @@ Each rule has a feedback template. A Rule question the draft fails at p ≥ 0.8 
 - **`/sessions/[id]`:**
   - **Story pane** (center): passages with a client-side animated reveal; free-text input; ending screen.
   - **Codex pane** (right drawer): the same entry editor, grouped by kind, tagged by source and status, editable during play. Edits apply from the next turn.
-  - **Harness pane**, shown only when **test mode** is on (header switch, remembered in `localStorage`): per finished turn — intent, classification with confidence, resolved outcome, each draft with rule results and probabilities (rejected drafts struck through), flagged answers, discovery results, background results; current arc and exit conditions; clues found; knowledge revealed; reputation value and band; off-script count against threshold; pacing nudges.
+  - **Harness pane**, shown only when **test mode** is on (header switch, remembered in `localStorage`): per finished turn — intent, classification with confidence, resolved outcome, each draft with rule results and probabilities (rejected drafts struck through), Unsure answers, discovery results, background results; current arc and exit conditions; clues found; knowledge revealed; reputation value and band; off-script count against threshold; pacing nudges.
   - Raw detail (prompts, full Jev payloads, timings) goes to the server console.
 - **Compare view** (last in build order, expected cut): two sessions of the same replay script side by side, harness vs baseline.
 
@@ -417,9 +419,9 @@ Each rule has a feedback template. A Rule question the draft fails at p ≥ 0.8 
 |---|---|
 | Starting reputation | 60 (range 0–100) |
 | Bands | high ≥ 70, normal 30–69, low < 30 |
-| Off-script penalty | −10 |
-| Wrong-target penalty | −15 (overridable per decisive action) |
-| Premature decisive action | −20 (overridable per decisive action) |
+| Off-script penalty | 10, subtracted from reputation |
+| Wrong-target penalty | 15 (overridable per decisive action) |
+| Premature decisive action | 20 (overridable per decisive action) |
 | Recovery | +5 for finding a clue a decisive action requires |
 | Off-script threshold | 4 (warnings at 2 and 3) |
 | Death odds per arc | 20%, 35%, 50% (last value used for later arcs) |

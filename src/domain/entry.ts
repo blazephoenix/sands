@@ -135,8 +135,9 @@ export const decisiveActionDataSchema = z.object({
   /** When set, any `requiresCount` of `requires` suffice; otherwise all are needed. */
   requiresCount: z.number().int().min(1).nullable(),
   onSuccess: z.enum(["win", "none"]),
-  wrongTargetPenalty: z.number().int(),
-  prematurePenalty: z.number().int(),
+  /** Positive: subtracted from Reputation. */
+  wrongTargetPenalty: z.number().int().min(0),
+  prematurePenalty: z.number().int().min(0),
 })
 
 export const entryDataSchemas = {
@@ -284,6 +285,24 @@ export function formatKeyFact(label: string, text: string) {
 /** An Entry can be mentioned, targeted or copied into a Session unless it is rejected. */
 export function isLiveEntry(entry: Pick<Entry, "status">) {
   return entry.status !== "rejected"
+}
+
+/** The live Entries of the given kinds, in Codex order. */
+export function liveOfKinds<K extends EntryKind>(
+  entries: readonly Entry[],
+  kinds: readonly K[]
+): EntryOfKind<K>[] {
+  return entries.filter(
+    (entry): entry is EntryOfKind<K> =>
+      (kinds as readonly EntryKind[]).includes(entry.kind) && isLiveEntry(entry)
+  )
+}
+
+/** The live Player character, if the Codex has one. */
+export function playerCharacterOf(
+  entries: readonly Entry[]
+): EntryOfKind<"character"> | undefined {
+  return liveOfKinds(entries, ["character"]).find((c) => c.data.isPlayer)
 }
 
 /** The Entry ids an Entry refers to through its kind-specific data. */

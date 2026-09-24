@@ -41,6 +41,7 @@ import type { Entry } from "@/domain/entry"
 import {
   RULE_LABELS,
   turnLabel,
+  type ActionResult,
   type Classification,
   type Draft,
   type Outcome,
@@ -59,7 +60,7 @@ const CLASSIFICATION_LABELS: Record<Classification, string> = {
   reckless: "reckless",
 }
 
-const OUTCOME_LABELS: Record<Outcome["kind"], string> = {
+const ACTION_LABELS: Record<ActionResult, string> = {
   moved: "Moved",
   move_refused: "Move refused",
   examined: "Examined",
@@ -67,9 +68,6 @@ const OUTCOME_LABELS: Record<Outcome["kind"], string> = {
   decisive_success: "Decisive action succeeded",
   decisive_premature: "Decisive action too early",
   decisive_wrong_target: "Decisive action, wrong target",
-  off_script: "Off-script",
-  reckless_survived: "Reckless, survived",
-  reckless_death: "Reckless, lethal",
   narrated: "Narrated",
 }
 
@@ -263,8 +261,8 @@ function RuleRows({ draft }: { draft: Draft }) {
       className="grid grid-cols-[minmax(7rem,auto)_1fr_auto_3.5rem] items-center gap-x-3 gap-y-1 text-xs"
       aria-label="Rule results"
     >
-      {draft.rules.map((result) => (
-        <li key={result.rule} className="contents">
+      {draft.rules.map((result, index) => (
+        <li key={`${result.rule}-${index}`} className="contents">
           <span className={cn(result.failed && "font-medium text-destructive")}>
             {RULE_LABELS[result.rule]}
           </span>
@@ -284,7 +282,7 @@ function RuleRows({ draft }: { draft: Draft }) {
           <span className="flex justify-end">
             {result.failed ? (
               <Badge variant="destructive">fail</Badge>
-            ) : result.flagged ? (
+            ) : result.unsure ? (
               <Badge variant="outline">unsure</Badge>
             ) : null}
           </span>
@@ -379,6 +377,16 @@ function Background({
   arcName: (index: number) => string
 }) {
   const results = turn.log.background
+  if (
+    turn.backgroundStatus === "done" &&
+    turn.log.timings.backgroundMs === null
+  ) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No Background work ran for this Turn.
+      </p>
+    )
+  }
   if (turn.backgroundStatus === "pending" || !results) {
     return (
       <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -485,17 +493,39 @@ function OutcomeSection({
     <div className="flex flex-col gap-1.5">
       <Label>Outcome</Label>
       <p className="text-sm">
-        <span className="font-medium">{OUTCOME_LABELS[outcome.kind]}.</span>{" "}
-        {outcome.summary}
+        {outcome.action ? (
+          <>
+            <span className="font-medium">
+              {ACTION_LABELS[outcome.action.kind]}.
+            </span>{" "}
+            {outcome.action.summary}
+            {outcome.action.reputationDelta !== 0 ? (
+              <span className="text-muted-foreground tabular-nums">
+                {" "}
+                Reputation {signed(outcome.action.reputationDelta)}.
+              </span>
+            ) : null}
+          </>
+        ) : (
+          <span className="text-muted-foreground">
+            The action did not resolve: the death roll ended the Session first.
+          </span>
+        )}
       </p>
+      <p className="text-sm">{outcome.penalty.summary}</p>
       <p className="text-xs text-muted-foreground">
-        Reputation {signed(outcome.reputationDelta)} · off-script{" "}
-        {signed(outcome.offScriptDelta)}
-        {outcome.deathRoll
-          ? ` · death roll ${formatProbability(outcome.deathRoll.roll)} against odds ${formatProbability(outcome.deathRoll.odds)}, ${outcome.deathRoll.lethal ? "lethal" : "survived"}`
+        Penalty: Reputation {signed(outcome.penalty.reputationDelta)} ·
+        off-script {signed(outcome.penalty.offScriptDelta)}
+        {outcome.penalty.deathRoll
+          ? ` · death roll ${formatProbability(outcome.penalty.deathRoll.roll)} against odds ${formatProbability(outcome.penalty.deathRoll.odds)}, ${outcome.penalty.deathRoll.lethal ? "lethal" : "survived"}`
           : ""}
       </p>
-      <p className="text-xs text-muted-foreground">Directive: {directive}</p>
+      {outcome.endingReason ? (
+        <p className="text-sm font-medium">{outcome.endingReason}</p>
+      ) : null}
+      <p className="text-xs whitespace-pre-line text-muted-foreground">
+        Directive: {directive}
+      </p>
     </div>
   )
 }
@@ -504,17 +534,23 @@ function TurnLog({
   turn,
   names,
   arcName,
-  defaultOpen,
+  open,
+  onOpenChange,
 }: {
   turn: Turn
   names: Names
   arcName: (index: number) => string
-  defaultOpen: boolean
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }) {
   const { log } = turn
   const { reading, outcome } = log
   return (
-    <Collapsible defaultOpen={defaultOpen} className="group/turn flex flex-col">
+    <Collapsible
+      open={open}
+      onOpenChange={onOpenChange}
+      className="group/turn flex flex-col"
+    >
       <CollapsibleTrigger className="flex w-full items-start gap-2 rounded-md px-1 py-2 text-left outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50">
         <ChevronRightIcon
           aria-hidden
@@ -558,7 +594,7 @@ function TurnLog({
         ) : (
           <div className="flex flex-col gap-1.5">
             <Label>Directive</Label>
-            <p className="text-sm">{log.directive}</p>
+            <p className="text-sm whitespace-pre-line">{log.directive}</p>
             <p className="text-xs text-muted-foreground">
               No Player input, so nothing was read and no Outcome was resolved.
             </p>
@@ -588,6 +624,9 @@ function TurnLog({
                   <span>
                     {names(item.target.entryId)}:{" "}
                     {item.revealed ? "revealed" : "not revealed"}
+                    {item.reputationDelta > 0
+                      ? `, Reputation ${signed(item.reputationDelta)}`
+                      : ""}
                     <span className="block text-xs text-muted-foreground">
                       {item.question}
                     </span>
@@ -637,6 +676,9 @@ export function HarnessPane({ data }: { data: GetSessionResponse }) {
   )
   const turns = [...data.turns].reverse()
   const latest = turns[0]
+  // Controlled, so a new Turn can open itself: the latest Turn is open and
+  // older ones closed, unless the Author opened or closed one by hand.
+  const [toggled, setToggled] = React.useState<Record<string, boolean>>({})
 
   if (!latest) {
     return (
@@ -670,7 +712,10 @@ export function HarnessPane({ data }: { data: GetSessionResponse }) {
             turn={turn}
             names={names}
             arcName={arcName}
-            defaultOpen={turn.id === latest.id}
+            open={toggled[turn.id] ?? turn.id === latest.id}
+            onOpenChange={(open) =>
+              setToggled((current) => ({ ...current, [turn.id]: open }))
+            }
           />
         ))}
       </section>

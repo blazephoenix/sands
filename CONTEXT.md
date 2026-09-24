@@ -74,6 +74,10 @@ _Avoid_: attempt, candidate, version
 One pass of the Writer producing Drafts in parallel and the Judge ruling on them. A Turn has at most three Rounds.
 _Avoid_: retry, attempt, iteration
 
+**Retry feedback**:
+The lines the Writer gets for its next Round: one per Rule question a Draft of the last Round failed clearly (p ≥ 0.8). Weaker failures still fail the Draft but add no line.
+_Avoid_: critique, hints
+
 **Unsure**:
 A Judge answer too close to call either way. It is shown to the Author, not acted on differently.
 _Avoid_: flagged (reserved for a Flagged Turn), borderline

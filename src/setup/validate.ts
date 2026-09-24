@@ -15,7 +15,8 @@
  */
 import { briefForPrompt } from "@/brief/to-prompt"
 import type { Brief } from "@/domain/brief"
-import { ENTRY_KIND_LABELS, type Entry, type JevFlag } from "@/domain/entry"
+import { entryForJudge } from "@/codex/for-models"
+import type { Entry, JevFlag } from "@/domain/entry"
 import { ruleVerdict } from "@/engine/config"
 import {
   noul,
@@ -36,63 +37,6 @@ const SETTING_CRITERIA = {
   true: "Something in the Entry could not exist or happen in the place and time `brief.setting` describes: an object, a technology, an institution, a custom, a title or a way of life the setting does not have.",
   false:
     "Everything in the Entry could exist in the place and time `brief.setting` describes, including things the setting allows but does not mention. Judge only against the setting, not against the rest of the Brief.",
-}
-
-/** An Entry as the Judge reads it: its fields, with references as names. */
-export function entryForJudge(
-  entry: Entry,
-  byId: ReadonlyMap<string, Entry>
-): { [key: string]: JudgeJson } {
-  const name = (id: string | null) => (id ? (byId.get(id)?.name ?? "") : "")
-  const names = (ids: readonly string[]) => ids.map(name).filter(Boolean)
-  const base: { [key: string]: JudgeJson } = {
-    kind: ENTRY_KIND_LABELS[entry.kind].singular,
-    name: entry.name,
-  }
-  if (entry.description.trim()) base.description = entry.description.trim()
-  if (entry.keyFacts.length > 0) base.key_facts = entry.keyFacts
-  switch (entry.kind) {
-    case "location":
-      return { ...base, connections: names(entry.data.connections) }
-    case "character":
-    case "npc":
-      return {
-        ...base,
-        role: entry.data.role,
-        age: entry.data.age,
-        personality: entry.data.personality,
-        backstory: entry.data.backstory,
-        aliases: entry.data.aliases,
-      }
-    case "clue":
-      return {
-        ...base,
-        found_at: name(entry.data.locationId) || null,
-        known_by: names(entry.data.knownBy),
-        reveals: entry.data.reveals,
-        red_herring: entry.data.redHerring,
-      }
-    case "knowledge":
-      return {
-        ...base,
-        character: name(entry.data.characterId),
-        fact: entry.data.fact,
-      }
-    case "decisive_action":
-      return {
-        ...base,
-        verb: entry.data.verb,
-        target: name(entry.data.correctTargetId),
-      }
-    case "exit_condition":
-      return {
-        ...base,
-        arc: entry.data.arcIndex + 1,
-        condition: entry.data.condition,
-      }
-    default:
-      return base
-  }
 }
 
 function hasSetting(brief: Brief) {
@@ -164,8 +108,8 @@ export async function validateEntries(
   const flags = new Map<string, JevFlag[]>()
   for (const [id, answer] of Object.entries(result.answers)) {
     const { entryId, question, prompt } = asked.get(id)!
-    const { failed, flagged } = ruleVerdict(answer.noul)
-    if (!failed && !flagged) continue
+    const { failed, unsure } = ruleVerdict(answer.noul)
+    if (!failed && !unsure) continue
     flags.set(entryId, [
       ...(flags.get(entryId) ?? []),
       {

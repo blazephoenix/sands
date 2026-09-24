@@ -106,8 +106,8 @@ async function runPassages() {
         p: p(q.id),
         expected: passage.alsoBreaks?.includes(q.check) ?? false,
       }))
-    const flagged = qs
-      .filter((q) => q !== target && ruleVerdict(p(q.id)).flagged)
+    const unsure = qs
+      .filter((q) => q !== target && ruleVerdict(p(q.id)).unsure)
       .map((q) => ({ check: q.check, p: p(q.id) }))
     return {
       passage: passage.id,
@@ -116,7 +116,7 @@ async function runPassages() {
       p: target ? p(target.id) : null,
       caught: target ? ruleVerdict(p(target.id)).failed : null,
       othersFailed: others,
-      othersFlagged: flagged,
+      othersFlagged: unsure,
     }
   })
 
