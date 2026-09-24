@@ -72,9 +72,41 @@ _Avoid_: attempt, candidate, version
 One pass of the Writer producing Drafts in parallel and the Judge ruling on them. A Turn has at most three Rounds.
 _Avoid_: retry, attempt, iteration
 
+**Unsure**:
+A Judge answer too close to call either way. It is shown to the Author, not acted on differently.
+_Avoid_: flagged (reserved for a Flagged Turn), borderline
+
+**Flagged Turn**:
+A Turn whose Passage shipped after three failed Rounds, as the least-violating Draft.
+_Avoid_: failed turn, forced turn
+
 **Directive**:
 The instructions code gives the Writer for one Turn: what happened, what may be revealed, how NPCs should behave.
 _Avoid_: prompt, instructions, context
+
+**Reading**:
+What the Judge takes from one Player input: its intent (the kind of action), its target (the Entry acted on) and its Classification. The Opening has none.
+_Avoid_: parse, interpretation, intent (for the whole)
+
+**Allowed reveal**:
+A piece of Knowledge a character may give up this Turn: at or below the current Band, and not yet revealed.
+_Avoid_: unlocked knowledge, available secret
+
+**Discoverable Clue**:
+A Clue the Player's action makes findable this Turn but has not yet found.
+_Avoid_: available clue, visible clue
+
+**Discovery**:
+The Judge's ruling on whether a Passage actually revealed an Allowed reveal or a Discoverable Clue. Only a Discovery changes what the Player has found.
+_Avoid_: reveal check, detection
+
+**Codex slice**:
+The part of a Session's Codex the Writer and the Judge see for one Turn, narrowed to the scene.
+_Avoid_: context, window, relevant entries
+
+**Background work**:
+What the harness does after a Passage ships that only matters from the next Turn on: naming new characters, checking Exit conditions and checking pacing.
+_Avoid_: post-processing, async jobs
 
 **Outcome**:
 What code decided a Player's action achieved in this Turn, before any prose is written.
@@ -115,7 +147,7 @@ An Entry for a condition code enforces: an Exit condition, a piece of Knowledge 
 _Avoid_: plan, rule (reserved for the Judge's checks), mechanic
 
 **Clue**:
-A discoverable fact placed at a location or held by a character. It may point to the Hidden truth, or be a labelled red herring.
+A discoverable fact placed at a location, or held by a character who gives it up as Knowledge. It may point to the Hidden truth, or be a labelled red herring.
 _Avoid_: evidence (as a noun for one item), hint
 
 **Knowledge**:
@@ -129,6 +161,38 @@ _Avoid_: capture condition, win condition, key action
 **Exit condition**:
 A checkable statement that, once true, lets the story move from one Arc to the next.
 _Avoid_: goal, trigger, milestone
+
+**Template Entry**:
+An Entry a World holds, which every new Session copies.
+_Avoid_: world entry (that names the group of things in the story), master, original
+
+**Session copy**:
+A Session's own copy of a Template Entry. Changing it changes only that Session.
+_Avoid_: instance, clone, override
+
+### Setup
+
+**Setup**:
+The one-time step that turns a Brief into a World: the Drafter proposes Entries, the Judge checks them against the Brief, and code checks Solvability.
+_Avoid_: generation, expansion, onboarding
+
+**Solvability**:
+Whether a World or Session can be won as its Entries stand: some Decisive action wins the story, every Decisive action can be completed with Clues the Player can reach, and every Arc has an Exit condition.
+_Avoid_: validity, completeness
+
+**Gap**:
+One reason a World is not solvable, stated so the Author can fix it.
+_Avoid_: error, failure, issue
+
+### Evaluation
+
+**Replay**:
+A fixed script of Player inputs played in a World with a set seed, producing an ordinary Session.
+_Avoid_: test run, playback
+
+**Baseline**:
+A Session played with the Brief alone as the Writer's prompt and no harness; the control a harness Session is compared against.
+_Avoid_: control run, vanilla mode
 
 ### Roles
 

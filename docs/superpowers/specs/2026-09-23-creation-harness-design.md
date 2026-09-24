@@ -105,6 +105,8 @@ Non-goals (from `docs/requirements.md` §14, plus decisions made here): voice in
 | `POST /api/sessions` | Start a session from a world |
 | `POST /api/sessions/[id]/turn` | Play one turn, or the Opening with `input: null` (ADR-0014); returns progress events as NDJSON, then the approved passage and turn summary |
 | `GET /api/sessions/[id]` | Story, current state, entries, harness log |
+| `GET /api/worlds` | Every world, for the Worlds home (added with the UI) |
+| `POST /api/entries` | An entry the author adds in the entry editor: source `author`, status `accepted` (added with the UI; only brief-derived entries are `locked`) |
 
 The turn route does not stream passage text; the passage is final before it is sent. The client performs the animated reveal (animation design is later work).
 
@@ -122,7 +124,7 @@ Four tables.
 | `name` | |
 | `brief_doc` | BlockNote document JSON, so the editor reopens exactly as left |
 | `brief_json` | Validated brief; locked |
-| `setup_status` | `draft` / `drafting` / `review` / `ready` |
+| `setup_status` | `draft` / `drafting` / `review` / `ready`. `ready` once the first session starts; a failed setup returns to `draft` |
 | `solvability_json` | Latest solvability result |
 | `created_at`, `updated_at` | |
 
@@ -223,6 +225,8 @@ The same BlockNote editor and pattern as §7.1, with one section heading per ent
 - **Entry heading:** kind icon and kind, handle, source, status and Jev-flag marker as a plain-text label line, then the name. **Accept**, **Reject** and **Restore** are in the ⠿ menu. Fields are `Label: value` paragraphs, including kind-specific data (e.g. `Red herring: yes`, `Requires: @C1, @C3`).
 - **References** use a custom inline mention (`@Whitechapel`, `@C1`). The mention menu lists only existing, non-rejected entries, so the author cannot point at something that does not exist.
 - **Editing** a block sets status `edited`, then re-runs solvability (setup review) or takes effect from the next turn (play).
+- **Edits in play** re-run solvability over the Session's copies and show any gaps in the codex pane as a warning; the edit still goes through. Clues already found count as usable even if their entry is later rejected.
+- **Rejecting in play changes only the future.** Clues found and knowledge revealed stay in state and still count. The location the player stands in cannot be rejected (409 with the reason).
 - **Locked** entries render read-only.
 - Blocks are grouped under **World** and **Story logic** headings; the slash menu is limited to entry kinds (no free prose) on these surfaces.
 
@@ -244,7 +248,7 @@ A BlockNote custom block has flat typed props plus one content area; a Character
    2. **Story logic call** (sees call 1's output): clues (location or holder, what each reveals, `points_to_hidden`, `red_herring`), knowledge entries, decisive actions derived from the ending.
    The Drafter refers to things by name; code resolves names to ids. An unresolved name is a validation error.
 3. **Validate.**
-   - **Solvability (code, pure):** for every decisive action, each required clue exists, is not a red herring, and is reachable: either at a location connected to the start location, or held by a character with a knowledge entry revealing it at `normal` band or lower. Every arc has at least one exit condition.
+   - **Solvability (code, pure):** at least one non-rejected decisive action has `on_success = win` (else the gap "nothing in this World wins the story"); for every decisive action, each required clue exists, is not a red herring, and is reachable: either at a location connected to the start location, or held by a character with a knowledge entry revealing it at `normal` band or lower. Every arc has at least one exit condition.
    - **Jev:** one call with two `noul` questions per drafted entry — "does this contradict the brief?" and, for locations, "does this fit the setting and period?" Failures set `jev_flags`; nothing is deleted.
    - **On solvability failure:** re-run the story logic call with the failure list as feedback, at most 2 times. If it still fails, show the author the exact gaps (e.g. "C4 sits at an unreachable location").
 4. **Review.** Author accepts, edits or rejects entries in the entry editor (§7.2). Solvability re-runs after every change. **Start** is enabled while solvability passes. Entries may remain `proposed`; proposed entries are canon (`docs/requirements.md` §5). Historical accuracy of real places is the author's call; Jev is not relied on for factual history.
@@ -277,12 +281,13 @@ A Session never starts blank. As soon as it is created, the harness plays its **
    - **reckless:** seeded death roll with the current arc's odds. Lethal → `death`.
    - **on_script / tangential:** no penalty.
    - **removed:** reputation ≤ 0 or off-script count ≥ 4 after this turn's changes → `removed`.
+   - **Order:** the intent and the classification both apply; a classification never cancels the intent (an off-script move still moves the player, then costs 10). A reckless action rolls for death first; lethal ends the session and nothing else resolves. Otherwise the intent resolves, then the classification's penalty, then the removed check. The Outcome records the intent's result and the classification's effect separately.
 4. **Direct (code, pure).** Build the directive: current arc and its unmet exit conditions, allowed reveals, discoverable clues, reputation band plus behavior guidance for that band, warnings to deliver, pacing nudge if set, the outcome to narrate, and the ending if one was decided.
 5. **Write (Grok, two drafts in parallel).** Input: brief YAML (hidden fields marked), codex slice (§9.3), voice guidance, last 4 passages, player input, directive. Target length about 150 words. Use a fast non-reasoning Grok model (exact model chosen by the day-1 latency test; configurable via env).
 6. **Jev call 2 — judge both drafts in one request.** All rule questions (§10) for each draft, plus one discovery `noul` per allowed reveal and per discoverable clue ("did this draft reveal it?"), plus the unplanned-clue check (§10).
    - If one or both drafts pass, ship the passing draft with the lower highest-violation score.
    - If both fail, build feedback from the failed rules and write two new drafts. Maximum 3 rounds. After round 3, ship the draft with the lowest highest-violation score and set `flagged`.
-   - Discovery answers for the shipped draft update `clues_found` and `knowledge_revealed`. A found clue that a decisive action requires gives +5 reputation (recovery).
+   - Discovery answers for the shipped draft update `clues_found` and `knowledge_revealed`. Revealed knowledge that carries a clue (`clue_id`) also finds that clue, as the solvability check assumes. A found clue that a decisive action requires gives +5 reputation (recovery).
 7. **Commit and return.** Write the turn row with state and log; return the passage.
 
 ### 9.2 Background (after the passage appears)
@@ -339,11 +344,11 @@ Before building the turn loop, write about 10 short passages set in the 1888 wor
 | Arc | "Does the draft depict events from `later_arcs`, or contradict `current_arc`?" |
 | Location | "Is the draft set somewhere other than the current location, or does it contradict that location's entry?" and "Does the draft introduce a named place a character could travel to that is not in `codex`?" (Detail inside a location, such as a back office, is description and allowed.) |
 | Knowledge | "Does a character reveal information that is not in `allowed_reveals` or `knowledge_revealed`?" and "Does the narration reveal or imply `hidden_truth` beyond what `clues_found` supports?" |
-| Unplanned clue | "Does the draft present evidence implicating the hidden character that is not one of the discoverable or found clues?" (Replaces the blocking part of `docs/requirements.md` §8 step 8.) |
+| Unplanned clue | "Does the draft present evidence pointing to `hidden_truth` that is not one of the discoverable or found clues?" (Replaces the blocking part of `docs/requirements.md` §8 step 8.) |
 | Outcome | "Does the draft contradict `outcome`?" |
 | Agency | "Does the player character say or do more than `player_input`?" |
 | Period | "Does the draft contain anachronisms for `setting`?" |
-| Codex | "Does the draft contradict an accepted or edited entry in `codex`?" and "Does the draft mention anything in `rejected_names`?" |
+| Codex | "Does the draft contradict an entry in `codex`?" (every non-rejected entry: locked, proposed, accepted or edited, since proposed entries are canon) and "Does the draft mention anything in `rejected_names`?" |
 | Reputation | "Does NPC behavior toward the player contradict `reputation_band`?" |
 | Voice | Only if the brief has voice guidance: "Does the draft depart from `voice`?" |
 | Ending | Only on ending turns: "Does the draft narrate an ending other than `ending`?" |
