@@ -165,7 +165,7 @@ export const turnRequestSchema = z.object({
   input: z
     .string()
     .trim()
-    .min(1, "Type what Jacob does before sending.")
+    .min(1, "Type an action before sending.")
     .nullable(),
 })
 export type TurnRequest = z.infer<typeof turnRequestSchema>

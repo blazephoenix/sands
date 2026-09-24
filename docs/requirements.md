@@ -3,6 +3,8 @@
 **Due:** Friday
 **Purpose:** MVP for the Lossfunk sabbatical
 
+The harness is genre-agnostic: the brief may describe a mystery, a romance, an adventure or anything else, and nothing below assumes one. The appendix's test World (London, 1888) is a testing reference only.
+
 ---
 
 ## 1. What we're testing
@@ -21,35 +23,16 @@ The MVP passes if a viewer can see three things:
 
 ## 2. The author's brief
 
-The brief can be light. The system must work with one as sparse as this:
+The brief can be light. The system must work with one as sparse as this (the appendix has a worked example):
 
 - **Setting:** place and period.
-- **Characters:** name, role, age, personality and backstory. One is flagged as the player character. The brief may include deceased characters and a hidden antagonist with a motive.
+- **Characters:** name, role, age, personality and backstory. One is flagged as the player character. The brief may include deceased characters, and may mark any fact hidden: a character's true identity, a motive, a past event.
 - **Arcs:** ordered phases, each with a name and a short description of what happens. Exit conditions are optional.
-- **Ending:** named in the final arc (for example, "the killer is caught").
+- **Ending:** named in the final arc (for example, "the heir takes the throne" or "the rivals make peace").
 - **Locations:** optional.
 - **Voice:** optional, as guidelines or sample passages.
 
 Everything in the brief is **locked**. Nothing in the system may contradict or edit it.
-
-### Example brief
-
-> **Setting:** 1888, London
-> **Location:** Scotland Yard
->
-> **Characters**
-> 1. Jacob Flannery (player character): a 38-year-old weary, alcoholic detective called over from the United States for a special case, a series of killings of merchants in London over the past three weeks.
-> 2. Geoffrey James: police captain. Description, personality, backstory.
-> 3. Amanda Hopkins: second in command. Description, personality, backstory.
-> 4. Three or four deceased merchants, each with a description, personality and backstory.
-> 5. Max Rober (the killer): a 21-year-old serial killer murdering merchants as revenge against his father, himself a merchant. This gave him a deep hatred of merchants in general.
->
-> **Arcs**
-> 1. Introduction: Jacob lands in London, meets the police and learns the state of the case.
-> 2. Midpoint: the investigation begins. The player discovers evidence and backstories.
-> 3. End: the killer is caught.
->
-> **Locations:** the AI should pick 3 to 4 real ones.
 
 ---
 
@@ -58,7 +41,7 @@ Everything in the brief is **locked**. Nothing in the system may contradict or e
 | Tier | Created by | Rules |
 |---|---|---|
 | **Locked** | Author | Everything in the brief. Never contradicted or altered. |
-| **Expanded** | AI, during setup | Locations, exit conditions, evidence plan, knowledge map, supporting NPCs. Derived from the brief and reviewed by the author before play. |
+| **Expanded** | AI, during setup | Locations, exit conditions, clues, knowledge, decisive actions, supporting NPCs. Derived from the brief and reviewed by the author before play. |
 | **Invented** | AI, during play | New places, NPCs, objects and details that come up in play. Must not contradict locked or expanded content. |
 | **Description** | AI, always | Prose, sensory detail, rhythm, how events and characters come across on the page. Adds no facts. |
 
@@ -72,23 +55,23 @@ The **small OpenAI model** drafts the expansion as structured JSON. Every output
 
 ### The setup must generate
 
-- **Locations,** if the brief has none: 3 to 4 real, period-accurate places that fit the setting, each with a description and its connections.
-- **Arc exit conditions** for any arc that doesn't have them: concrete, checkable statements. Example: "The player has learned the victims' shared trade and visited at least one crime scene."
-- **An evidence plan:** clues derived from the locked truth (victims' backstories, the antagonist's motive). Each clue records:
+- **Locations,** if the brief has none: 3 to 4 places that fit the setting (real and period-accurate when the setting is historical), each with a description and its connections.
+- **Arc exit conditions** for any arc that doesn't have them: concrete, checkable statements. Example: "The player has learned what the stranger wants and has visited the harbour."
+- **Clues:** facts derived from the hidden truth (a character's past, a hidden motive). Each clue records:
   - where it's found
   - who knows it
   - what it reveals
-  - whether it points to the antagonist
+  - whether it points to the hidden truth
   - Red herrings are allowed but must be labeled.
-- **A capture condition:** which clues, or how many, the player needs before an arrest of the antagonist can succeed.
-- **A knowledge map:** what each character knows, and what they reveal at high, normal and low reputation.
-- **Supporting NPCs** as the story needs them: witnesses, informants, family.
+- **Decisive actions:** the story-critical actions the brief implies (an arrest, a duel, a confession), each with its correct target, the clues (or how many of them) the player needs before it can succeed, and what success and a wrong target mean.
+- **Knowledge:** what each character knows, and what they reveal at high, normal and low reputation.
+- **Supporting NPCs** as the story needs them: allies, rivals, bystanders.
 
 ### Setup validation
 
 - **Jev** checks that nothing in the expansion contradicts the brief, and that the locations fit the setting.
-- **Code** checks that the mystery is solvable: every clue the capture condition needs exists, sits at a location that exists, and can be reached.
-- **The author** reviews the expansion, including whether the real places are historically accurate (Jev can't be relied on for factual history). The author can accept, edit or reject any entry before starting play.
+- **Code** checks that the story is solvable: some decisive action wins it, and every clue a decisive action needs exists, sits at a location that exists, and can be reached.
+- **The author** reviews the expansion, including, for a real-world setting, whether the places are accurate (Jev can't be relied on for factual history). The author can accept, edit or reject any entry before starting play.
 
 ---
 
@@ -135,22 +118,22 @@ Code manages all of it. The model never writes state.
 
 ## 8. Turn loop
 
-1. **Parse intent** (OpenAI): turn the free text into an intent (move, examine, question, accuse, arrest, other) with its targets.
+1. **Parse intent** (OpenAI): turn the free text into an intent (move, examine, question, one per decisive action verb, other) with its targets.
 
 2. **Classify the action** (Jev, `choice`). Using the brief, the current arc and the scene, classify the action as one of:
-   - `on-script`: fits the investigation.
+   - `on-script`: fits the player character's role in the current arc.
    - `tangential`: harmless, off to the side (buying a drink, wandering).
-   - `off-script`: works against the role or the case (abandoning the case, insulting the captain, tampering with evidence).
-   - `reckless`: plausibly lethal (walking into the killer's lodging alone, at night).
+   - `off-script`: works against the role or the story (abandoning the role, turning on an ally, destroying a clue).
+   - `reckless`: plausibly lethal (picking a fight with an armed stranger, walking alone into danger at night).
 
    A low-confidence classification counts as `tangential`, so the player is never punished on a guess.
 
 3. **Resolve** (code):
    - **Move:** only to a location in the codex.
-   - **Question:** the NPC reveals only what the knowledge map allows at the current reputation band.
-   - **Wrong accusation or arrest:** costs reputation.
-   - **Arresting the antagonist before the capture condition is met:** fails and costs reputation.
-   - **Arresting the antagonist once the capture condition is met:** succeeds, and this can satisfy the final arc.
+   - **Question:** the NPC reveals only what their knowledge allows at the current reputation band.
+   - **A decisive action on the wrong target:** costs reputation.
+   - **A decisive action before its required clues are found:** fails and costs reputation.
+   - **A decisive action once its required clues are found:** succeeds, and this can satisfy the final arc.
    - **`off-script`:** costs reputation and adds 1 to the off-script count.
    - **`reckless`:** a chance of death, weighted by arc and state. A lethal result ends the game.
    - **`on-script` and `tangential`:** no penalty. The model describes what happens.
@@ -165,26 +148,26 @@ Code manages all of it. The model never writes state.
 
 8. **Extract** (OpenAI): pull the new entities and revealed clues out of the passage.
    - New entities go into the codex as `proposed`.
-   - Clues go into state only if they match the evidence plan.
-   - A clue that isn't in the plan and implicates the antagonist counts as a violation, and the passage goes back to step 7.
+   - Clues go into state only if they match a planned clue.
+   - A clue that isn't planned and points to the hidden truth counts as a violation, and the passage goes back to step 7.
 
 9. **Check the arc** (Jev plus code): if the current arc's exit conditions are met, advance to the next arc.
 
-10. **Check pacing** (Jev, `noul`): "Over the last N turns, has the player made progress toward the current arc's exit conditions?" If not, set a pacing nudge for the next turn, and the writer surfaces an opportunity (a messenger, a lead, a witness). This never forces an arc forward. **It's experimental and needs testing.**
+10. **Check pacing** (Jev, `noul`): "Over the last N turns, has the player made progress toward the current arc's exit conditions?" If not, set a pacing nudge for the next turn, and the writer surfaces an opportunity (a messenger, a chance meeting, an overheard remark). This never forces an arc forward. **It's experimental and needs testing.**
 
 11. **Update state** (code).
 
 12. **Check endings** (code):
     - **Win:** the final arc's condition is met.
     - **Death:** a reckless action resolved as lethal.
-    - **Removed from the case:** reputation reaches 0, or the off-script count reaches its threshold. The captain takes the player off the case.
+    - **Removed:** reputation reaches 0, or the off-script count reaches its threshold. The story's characters stop the player character, in the story's own terms.
     - Grok narrates whichever ending was reached, and Jev checks that the narration matches the outcome code decided.
 
 There's no turn limit. Arcs and endings drive the game.
 
 ### Reputation in the story
 
-Reputation has to be visible in the prose, not just in a number. At low reputation, NPCs are curt, the captain issues warnings, and witnesses refuse to talk. The writer gets the reputation band each turn, and Jev checks that NPC behavior matches it.
+Reputation has to be visible in the prose, not just in a number. At low reputation, NPCs are curt, someone with standing over the player character issues warnings, and characters refuse to talk. The writer gets the reputation band each turn, and Jev checks that NPC behavior matches it.
 
 ---
 
@@ -201,7 +184,7 @@ Reputation has to be visible in the prose, not just in a number. At low reputati
 | **Character drift** | Each character in the passage acts consistently with their personality and backstory. One question per character present. |
 | **Arc validity** | The passage fits the current arc and pulls in no events from later arcs. |
 | **Location** | The scene is set in a codex location, and its details match the entry. |
-| **Knowledge** | No character reveals more than the knowledge map allows. The narrator doesn't reveal the antagonist or his motive before the evidence does. |
+| **Knowledge** | No character reveals more than their knowledge allows. The narrator doesn't reveal the hidden truth before the clues found support it. |
 | **Outcome** | The passage matches the resolved outcome. The player doesn't succeed at something the resolver rejected. |
 | **Agency** | The passage doesn't act or speak for the player beyond their input. |
 | **Period** | No anachronisms for the setting. |
@@ -232,7 +215,7 @@ Reputation has to be visible in the prose, not just in a number. At low reputati
 ## 12. Interface
 
 - **Brief editor:** the author's input form or file.
-- **Setup review:** the expanded codex, evidence plan, capture condition, exit conditions and knowledge map, each with accept, edit and reject. A **Start** button.
+- **Setup review:** the expanded codex, clues, decisive actions, exit conditions and knowledge, each with accept, edit and reject. A **Start** button.
 - **Story pane:** passages, free-text input and the ending.
 - **Harness pane:**
   - A per-turn log: action classification, resolved outcome, each attempt, rule results with confidence, and rejected passages struck through.
@@ -248,24 +231,24 @@ Reputation has to be visible in the prose, not just in a number. At low reputati
 ## 13. Friday acceptance criteria
 
 ### Setup
-- [ ] A brief as detailed as the example, with no locations, expands into a playable world that the author can review and edit.
+- [ ] A brief as detailed as the test World's, with no locations, expands into a playable world that the author can review and edit.
 - [ ] The solvability check passes.
 
 ### Play
-- [ ] A full playthrough reaches the **win** ending through evidence the player discovered.
+- [ ] A full playthrough reaches the **win** ending through clues the player discovered.
 - [ ] At least one visible rejection and retry appears in the harness log.
 - [ ] At least 2 codex entries are created by the AI during play.
 
 ### Adversarial replay: the harness handles each case correctly
-- [ ] Arresting the antagonist in arc 1 fails and costs reputation.
+- [ ] Attempting the winning decisive action in arc 1, before its clues are found, fails and costs reputation.
 - [ ] Asking a character something they couldn't know gets no reveal.
-- [ ] Going to a location that doesn't exist or doesn't fit the period is refused inside the story.
+- [ ] Going to a location that doesn't exist or doesn't fit the setting is refused inside the story.
 - [ ] Provoking a character to act against their personality leaves them in character.
-- [ ] A wrong accusation lowers reputation, and a later NPC is visibly less cooperative.
+- [ ] A decisive action on the wrong target lowers reputation, and a later NPC is visibly less cooperative.
 - [ ] A passive stretch triggers a pacing nudge, visible in the log.
 
 ### Losing
-- [ ] A script that keeps going off-script ends with the player **removed from the case**, with warnings visible in the story before it happens.
+- [ ] A script that keeps going off-script ends with the player **removed**, with warnings visible in the story before it happens.
 - [ ] A reckless action shows a death risk in the log, and at least one run reaches the **death** ending.
 
 ### Baseline
@@ -285,9 +268,33 @@ Voice input, saves, accounts, multiple concurrent worlds, importing briefs from 
 ## 15. Open decisions
 
 - Starting reputation, the size of each penalty, band thresholds and the off-script threshold. Pick defaults and tune them in playtesting.
-- Whether on-script actions such as finding a key clue or making a correct deduction can raise reputation, so the player can recover.
+- Whether on-script actions such as finding a clue a decisive action requires can raise reputation, so the player can recover.
 - The window N for the pacing check.
 - Death odds for reckless actions, per arc.
 - How many recent passages the writer sees.
 - The Jev noul threshold and the confidence floor.
 - Which Grok model variant to use, since latency matters in a live demo.
+
+---
+
+## Appendix: the test World
+
+A testing reference only, not a template or a default: the smoke test and the unit tests use it because a fixed story makes results comparable. Nothing in the harness may depend on its genre, names or period.
+
+
+> **Setting:** 1888, London
+> **Location:** Scotland Yard
+>
+> **Characters**
+> 1. Jacob Flannery (player character): a 38-year-old weary, alcoholic detective called over from the United States for a special case, a series of killings of merchants in London over the past three weeks.
+> 2. Geoffrey James: police captain. Description, personality, backstory.
+> 3. Amanda Hopkins: second in command. Description, personality, backstory.
+> 4. Three or four deceased merchants, each with a description, personality and backstory.
+> 5. Max Rober (the killer): a 21-year-old serial killer murdering merchants as revenge against his father, himself a merchant. This gave him a deep hatred of merchants in general.
+>
+> **Arcs**
+> 1. Introduction: Jacob lands in London, meets the police and learns the state of the case.
+> 2. Midpoint: the investigation begins. The player discovers evidence and backstories.
+> 3. End: the killer is caught.
+>
+> **Locations:** the AI should pick 3 to 4 real ones.

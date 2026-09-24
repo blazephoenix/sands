@@ -2,7 +2,7 @@
 
 Status: accepted
 
-Every location comes from the Brief or from setup, where the Author reviews it before play. During a Session the Writer may invent new characters, which enter the Codex as proposed Entries, but never new places or objects. A Player who tries to go somewhere outside the Codex is refused inside the story. Detail within a location, such as a back office at Scotland Yard, is description and allowed; a new place the Player could travel to, such as a tavern on Fleet Street, breaks the Location Rule.
+Every location comes from the Brief or from setup, where the Author reviews it before play. During a Session the Writer may invent new characters, which enter the Codex as proposed Entries, but never new places or objects. A Player who tries to go somewhere outside the Codex is refused inside the story. Detail within a location, such as a back room in an authored inn, is description and allowed; a new place the Player could travel to, such as a tavern on Fleet Street, breaks the Location Rule.
 
 The requirements let play invent places, NPCs and objects. We narrowed that because a fixed map keeps the setup solvability check valid for the whole Session, keeps movement a pure lookup, and makes the Author's world the one the Player actually walks through.
 

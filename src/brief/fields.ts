@@ -30,7 +30,7 @@ export type FieldSpec = {
   aliases?: string[]
   /** How the value becomes a list, for list-valued properties. */
   list?: "lines" | "comma"
-  /** Shown after an empty `Label:`, in the 1888 example's style. */
+  /** Shown after an empty `Label:`. Says what belongs there without assuming a genre. */
   placeholder: string
 }
 
@@ -56,8 +56,8 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
     named: false,
     namePlaceholder: "",
     fields: [
-      { key: "place", label: "Place", placeholder: "London" },
-      { key: "period", label: "Period", placeholder: "Autumn 1888" },
+      { key: "place", label: "Place", placeholder: "Where the story happens" },
+      { key: "period", label: "Period", placeholder: "When it happens" },
     ],
   },
   character: {
@@ -71,26 +71,25 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
       {
         key: "role",
         label: "Role",
-        placeholder: "Detective, called over from New York",
+        placeholder: "Their place in the story",
       },
-      { key: "age", label: "Age", placeholder: "38" },
+      { key: "age", label: "Age", placeholder: "How old they are" },
       {
         key: "personality",
         label: "Personality",
-        placeholder: "Weary and sharp-eyed. Drinks more than he admits.",
+        placeholder: "How they think, speak and act",
       },
       {
         key: "backstory",
         label: "Backstory",
-        placeholder:
-          "Sent for after three merchants were killed in as many weeks.",
+        placeholder: "What happened to them before the story",
       },
       {
         key: "aliases",
         label: "Aliases",
         aliases: ["Alias"],
         list: "comma",
-        placeholder: "The American, Flannery",
+        placeholder: "Other names they go by, comma-separated",
       },
     ],
   },
@@ -105,8 +104,7 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
       {
         key: "description",
         label: "Description",
-        placeholder:
-          "Jacob lands in London, meets the police and learns the state of the case.",
+        placeholder: "What happens in this part of the story",
       },
       {
         key: "exitConditions",
@@ -114,7 +112,7 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
         aliases: ["Exit conditions"],
         list: "lines",
         placeholder:
-          "Jacob has read the case file and met Captain James. (Optional; one per line.)",
+          "What must be true before the story moves on. (Optional; one per line.)",
       },
     ],
   },
@@ -130,7 +128,7 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
         key: "condition",
         label: "Condition",
         aliases: ["Win condition"],
-        placeholder: "The killer is caught.",
+        placeholder: "What must happen for the story to be won",
       },
     ],
   },
@@ -145,8 +143,7 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
       {
         key: "description",
         label: "Description",
-        placeholder:
-          "Gaslit corridors, damp coats, a captain who wants results by Friday.",
+        placeholder: "What the place is like, and who is found there",
       },
     ],
   },
@@ -163,14 +160,13 @@ export const BRIEF_BLOCKS: Record<BriefBlockType, BriefBlockSpec> = {
         key: "guidelines",
         label: "Guidelines",
         aliases: ["Guideline"],
-        placeholder:
-          "Close third person on Jacob. Short sentences. Fog, not gore.",
+        placeholder: "Point of view, tense, rhythm, what to avoid",
       },
       {
         key: "samplePassages",
         label: "Sample passage",
         aliases: ["Sample passages"],
-        placeholder: "The river smelled of coal and something older.",
+        placeholder: "A few lines written the way the story should sound",
       },
     ],
   },

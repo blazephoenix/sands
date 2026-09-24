@@ -2,6 +2,8 @@
 
 A creation harness: an author fixes a story's premise, characters, hidden truth and arcs; an AI writes the story inside those constraints; code and a judge model hold it to them. It exists to test whether an AI can be creative within human-authored constraints.
 
+The language is genre-agnostic: a story may be a mystery, a romance or anything else. Terms name story mechanics, never one genre's furniture.
+
 ## Language
 
 ### Authoring
@@ -113,7 +115,7 @@ What code decided a Player's action achieved in this Turn, before any prose is w
 _Avoid_: result, resolution, ending
 
 **Reputation**:
-A number tracking how the story's authorities regard the Player character, read through its Band.
+A number tracking how the story's characters regard the Player character, read through its Band.
 _Avoid_: score, standing, karma
 
 **Band**:
@@ -139,7 +141,7 @@ One item in the Codex, with a source (author, setup, play) and a status (locked,
 _Avoid_: record, item, card, block
 
 **World entry**:
-An Entry for a thing in the story: a location, character, NPC, faction, clue or object.
+An Entry for a thing in the story: a location, character, NPC, faction, Clue or object.
 _Avoid_: asset, element
 
 **Story logic entry**:
@@ -147,15 +149,19 @@ An Entry for a condition code enforces: an Exit condition, a piece of Knowledge 
 _Avoid_: plan, rule (reserved for the Judge's checks), mechanic
 
 **Clue**:
-A discoverable fact placed at a location, or held by a character who gives it up as Knowledge. It may point to the Hidden truth, or be a labelled red herring.
+A discoverable fact placed at a location, or held by a character who gives it up as Knowledge. It may point to the Hidden truth, or be a labelled Red herring.
 _Avoid_: evidence (as a noun for one item), hint
+
+**Red herring**:
+A Clue the Author marks as misleading. It can be found, but no Decisive action may require it.
+_Avoid_: decoy, false clue
 
 **Knowledge**:
 One fact one character knows, with the lowest Band at which they will reveal it.
 _Avoid_: knowledge map (the whole set), secret, dialogue tree
 
 **Decisive action**:
-A story-critical action declared as data: who it targets, which Clues it requires, and what success and a wrong target mean. An arrest is a Decisive action.
+A story-critical action declared as data: who it targets, which Clues it requires, and what success and a wrong target mean. Its verb comes from the Brief: an arrest, a duel, a confession, a heist.
 _Avoid_: capture condition, win condition, key action
 
 **Exit condition**:

@@ -72,8 +72,8 @@ import { useTestMode } from "./test-mode"
 import { useSession } from "./use-session"
 
 const SUGGESTIONS = [
-  "I read the case file at Captain James's desk.",
-  "I ask Amanda what the victims had in common.",
+  "I look around.",
+  "I ask the nearest person what is going on.",
 ]
 
 export function SessionPage({ sessionId }: { sessionId: string }) {

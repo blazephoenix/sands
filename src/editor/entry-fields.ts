@@ -44,33 +44,33 @@ const person: EntryFieldSpec[] = [
     key: "role",
     label: "Role",
     type: "text",
-    placeholder: "Witness, flower seller",
+    placeholder: "Their place in the story",
   },
-  { key: "age", label: "Age", type: "text", placeholder: "24" },
+  { key: "age", label: "Age", type: "text", placeholder: "How old they are" },
   {
     key: "personality",
     label: "Personality",
     type: "text",
-    placeholder: "Quick to laugh, slow to trust the police.",
+    placeholder: "How they think, speak and act",
   },
   {
     key: "backstory",
     label: "Backstory",
     type: "text",
-    placeholder: "Sells violets outside Spitalfields Market.",
+    placeholder: "What happened to them before the story",
   },
   {
     key: "aliases",
     label: "Aliases",
     aliases: ["Alias"],
     type: "list",
-    placeholder: "Nell",
+    placeholder: "Other names they go by",
   },
 ]
 
 export const ENTRY_FIELDS: Record<EntryKind, EntryFieldSpec[]> = {
   location: [
-    description("Gaslit corridors and damp coats."),
+    description("What the place is like."),
     {
       key: "connections",
       label: "Connections",
@@ -143,7 +143,8 @@ export const ENTRY_FIELDS: Record<EntryKind, EntryFieldSpec[]> = {
       key: "condition",
       label: "Condition",
       type: "text",
-      placeholder: "The Player has learned the victims' shared trade.",
+      placeholder:
+        "A checkable statement, such as: the Player has visited the harbour",
     },
   ],
   knowledge: [
@@ -182,7 +183,12 @@ export const ENTRY_FIELDS: Record<EntryKind, EntryFieldSpec[]> = {
   ],
   decisive_action: [
     description("What success and a wrong target mean."),
-    { key: "verb", label: "Verb", type: "text", placeholder: "arrest" },
+    {
+      key: "verb",
+      label: "Verb",
+      type: "text",
+      placeholder: "The action, such as arrest, duel or confess to",
+    },
     {
       key: "correctTargetId",
       label: "Target",
@@ -267,5 +273,5 @@ export const ENTRY_NAME_PLACEHOLDER: Record<EntryKind, string> = {
   object: "Object name",
   exit_condition: "Exit condition name",
   knowledge: "What this Knowledge is about",
-  decisive_action: "Arrest Max Rober",
+  decisive_action: "The action and its target",
 }

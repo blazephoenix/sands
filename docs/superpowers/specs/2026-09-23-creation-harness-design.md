@@ -13,7 +13,7 @@ Test one thesis: **can an AI be creative when working within human-authored cons
 
 An author writes a brief. The AI expands it, writes the story, and invents what the author left open. Code enforces the brief's rules. Jev judges every passage. The author can see and edit every AI invention.
 
-This is a **writing harness**, not a mystery engine. The code knows generic story mechanics; the specific story (a murder case, a romance, anything) lives in the brief's data. For Friday, exactly one brief is played: the 1888 London case from `docs/requirements.md` §2.
+This is a **writing harness**, not a mystery engine. The code knows generic story mechanics; the specific story (a mystery, a romance, anything) lives in the brief's data, and nothing in code, prompts, Rules or UI copy may assume a genre. The 1888 London World in the appendix of `docs/requirements.md` is the **test World**: the smoke test and the unit tests use it. It is a testing reference, not a default; every World that is played is written by the author in the UI.
 
 The MVP passes if a viewer can see:
 
@@ -38,14 +38,14 @@ The MVP passes if a viewer can see:
 | Term | Meaning |
 |---|---|
 | **Brief** | The author's locked input: setting, characters, arcs, ending, optional locations, optional voice, optional custom sections and fields. |
-| **Hidden field** | A brief field the author marks as secret (e.g. the killer's identity and motive). Together, the hidden fields are the **hidden truth**. |
+| **Hidden field** | A brief field the author marks as secret (e.g. a character's true identity, or the motive behind a past event). Together, the hidden fields are the **hidden truth**. |
 | **World** | A brief plus its setup output (the template entries). |
 | **Session** | One playthrough of a world. Starts with its own copy of the world's entries. |
 | **Turn** | One player input and everything the harness does in response. |
 | **Entry** | One codex item. Kinds are grouped into **World** (location, character, npc, faction, clue, object) and **Story logic** (exit_condition, knowledge, decisive_action). World entries are things in the story; story-logic entries are conditions code enforces. Group is independent of source: both groups hold author (`locked`) and AI (`proposed`) entries. |
 | **Clue** | A discoverable fact, placed at a location or held by a character. May point to the hidden truth. May be a labeled red herring. |
 | **Knowledge** | One fact one character knows, with the lowest reputation band at which they reveal it. |
-| **Decisive action** | A story-ending or story-critical move declared as data, e.g. "arrest Max Rober; requires clues C1, C3, C5; wrong target costs 15 reputation." |
+| **Decisive action** | A story-ending or story-critical move declared as data, e.g. "challenge the usurper to a duel; requires clues C1, C3, C5; wrong target costs 15 reputation." |
 | **Directive** | Code-built instructions to the writer for this turn. |
 | **Drafter** | The small OpenAI model (setup drafting, entity extraction). |
 | **Writer** | Grok (passage writing). |
@@ -154,7 +154,7 @@ Kind-specific `data_json`:
 - **clue:** `location_id` (nullable), `known_by` (character ids), `reveals` (text), `points_to_hidden` (bool), `red_herring` (bool)
 - **exit_condition:** `arc_index`, `condition` (text, checkable)
 - **knowledge:** `character_id`, `fact`, `min_band` (`low` / `normal` / `high`), `clue_id` (nullable)
-- **decisive_action:** `verb` (e.g. "arrest"), `correct_target_id`, `requires` (clue ids) or `requires_count` (n of listed clues), `on_success` (`win` to end the session, or `none` to continue play), `wrong_target_penalty`, `premature_penalty`
+- **decisive_action:** `verb` (e.g. "arrest", "duel", "confess to"), `correct_target_id`, `requires` (clue ids) or `requires_count` (n of listed clues), `on_success` (`win` to end the session, or `none` to continue play), `wrong_target_penalty`, `premature_penalty`
 
 **Session copy:** starting a session copies every non-rejected template entry into rows with `session_id` set. Mid-game edits touch only that session. Two sessions of one world start identical, which the variation claim needs. (Alternative for later: store only per-session overrides and merge on read. Not chosen: every read becomes a merge, and later template edits would leak into running sessions.)
 
@@ -207,7 +207,7 @@ A Notion-style block editor. The document mixes **section headings with `Label: 
   - **Setting:** Place, Period.
   - **Character:** Role, Age, Personality, Backstory, Aliases. **Player character** is a prop on the heading, toggled from the ⠿ menu.
   - **Arc:** Description, Exit condition.
-  - **Ending:** Condition (e.g. "the killer is caught").
+  - **Ending:** Condition (e.g. "the heir takes the throne").
   - **Location** (optional): Description.
   - **Voice** (optional): Guidelines, Sample passage.
 - **Custom fields:** any other label is an Author-labelled field and becomes the item's `key_facts`. A near-miss of a known label is reported as a probable typo.
@@ -223,7 +223,7 @@ A Notion-style block editor. The document mixes **section headings with `Label: 
 The same BlockNote editor and pattern as §7.1, with one section heading per entry kind (location, character, npc, faction, clue, object, exit condition, knowledge, decisive action):
 
 - **Entry heading:** kind icon and kind, handle, source, status and Jev-flag marker as a plain-text label line, then the name. **Accept**, **Reject** and **Restore** are in the ⠿ menu. Fields are `Label: value` paragraphs, including kind-specific data (e.g. `Red herring: yes`, `Requires: @C1, @C3`).
-- **References** use a custom inline mention (`@Whitechapel`, `@C1`). The mention menu lists only existing, non-rejected entries, so the author cannot point at something that does not exist.
+- **References** use a custom inline mention (`@The harbour`, `@C1`). The mention menu lists only existing, non-rejected entries, so the author cannot point at something that does not exist.
 - **Editing** a block sets status `edited`, then re-runs solvability (setup review) or takes effect from the next turn (play).
 - **Edits in play** re-run solvability over the Session's copies and show any gaps in the codex pane as a warning; the edit still goes through. Clues already found count as usable even if their entry is later rejected.
 - **Rejecting in play changes only the future.** Clues found and knowledge revealed stay in state and still count. The location the player stands in cannot be rejected (409 with the reason).
@@ -269,7 +269,7 @@ A Session never starts blank. As soon as it is created, the harness plays its **
 
 1. **Wait** for the previous turn's background work if it is still running.
 2. **Jev call 1 — read the input.** One request, three `choice` questions:
-   - **Intent:** `move`, `examine`, `question`, one option per declared decisive-action verb (e.g. `arrest`, `accuse`), `other`.
+   - **Intent:** `move`, `examine`, `question`, one option per declared decisive-action verb (e.g. `arrest`, `duel`, `confess to`), `other`.
    - **Target:** every non-rejected session entry that can be targeted (locations, characters, NPCs, objects), plus `none` and `not_in_codex`.
    - **Classification:** `on_script`, `tangential`, `off_script`, `reckless`. Confidence below the floor (0.6) is treated as `tangential`.
 3. **Resolve (code, pure).** Input: state, intent, target, classification, session entries, seeded RNG, config. Output: outcome plus state changes. Endings are decided here, so the passage written next is the ending scene.
@@ -277,7 +277,7 @@ A Session never starts blank. As soon as it is created, the harness plays its **
    - **question:** the target may reveal only knowledge entries with `min_band` at or below the current band that are not yet revealed ("allowed reveals").
    - **examine:** clues at the current location that are not yet found become "discoverable."
    - **decisive action:** correct target and requirements met → success (may trigger `win`); correct target, requirements unmet → fail, `premature_penalty` (default −20); wrong target → fail, `wrong_target_penalty` (default −15).
-   - **off_script:** −10 reputation, +1 off-script count. Warnings at counts 2 and 3 are added to the directive so the captain (or the brief's equivalent authority) warns the player in the story.
+   - **off_script:** −10 reputation, +1 off-script count. Warnings at counts 2 and 3 are added to the directive so a character with standing over the player character warns them in the story.
    - **reckless:** seeded death roll with the current arc's odds. Lethal → `death`.
    - **on_script / tangential:** no penalty.
    - **removed:** reputation ≤ 0 or off-script count ≥ 4 after this turn's changes → `removed`.
@@ -294,7 +294,7 @@ A Session never starts blank. As soon as it is created, the harness plays its **
 
 8. **Extraction (Drafter):** named characters in the passage that are not in the codex become `npc` entries with `status = proposed`, `source = play`, `source_turn = idx`.
 9. **Arc check (Jev):** one `noul` per unmet exit condition of the current arc, using recent passages and state. When all are met, code advances `arc_index`.
-10. **Pacing check (Jev):** "Over the last 3 turns, has the player made progress toward the current arc's exit conditions?" If not, set `pacing_nudge`; the next directive tells the writer to surface an opportunity (a messenger, a lead, a witness). The nudge never advances an arc. Experimental.
+10. **Pacing check (Jev):** "Over the last 3 turns, has the player made progress toward the current arc's exit conditions?" If not, set `pacing_nudge`; the next directive tells the writer to surface an opportunity (a messenger, a chance meeting, an overheard remark). The nudge never advances an arc. Experimental.
 
 Results are written into the turn's `log_json` and `state_json`; `background_status` becomes `done` or `failed`.
 
@@ -317,7 +317,7 @@ The judge state stays roughly constant (about 5k–10k tokens) across the sessio
 
 ### 9.5 Jev smoke test (day 1, first task)
 
-Before building the turn loop, write about 10 short passages set in the 1888 world, each deliberately violating one rule (plus a few clean ones), and run them through the rule questions. Record which violations Jev catches and at what probability. This is a smoke test for "does the rule work at all," not calibration; thresholds are tuned in playtesting. Measure Grok and Drafter latency in the same session.
+Before building the turn loop, write about 10 short passages set in the test World (London, 1888), each deliberately violating one rule (plus a few clean ones), and run them through the rule questions. Record which violations Jev catches and at what probability. This is a smoke test for "does the rule work at all," not calibration; thresholds are tuned in playtesting. Measure Grok and Drafter latency in the same session.
 
 **Done 2026-09-24** (`pnpm smoke:judge`; results in `docs/research/2026-09-24-engine-libraries.md`). Every one of 16 deliberate violations scored p ≥ 0.70 on its Rule question. The weakness is the other direction: a Draft that breaks one Rule often scores high on unrelated Rules, and the Knowledge question sits in the Unsure band on clean Drafts. Measured: Judge 553 ms for 30 questions, Writer about 3.1 s per ~140-word Draft (two in parallel, same wall clock), Drafter 4.6 s.
 
@@ -352,7 +352,7 @@ Verified against https://docs.typesafe.ai and the installed `@typesafe-ai/sdk` 0
 | Arc | "Does the draft depict events from `later_arcs`?" and "Does the draft contradict `current_arc`?" (split per §10.1: one condition per question) |
 | Location | "Is the draft set somewhere other than the current location?", "Does the draft contradict the current location's entry?" and "Does the draft introduce a named place a character could travel to that is not in `codex`?" (Detail inside a location, such as a back office, is description and allowed.) |
 | Knowledge | "Does a character reveal information that is not in `allowed_reveals` or `knowledge_revealed`?" and "Does the narration reveal or imply `hidden_truth` beyond what `clues_found` supports?" **Information** means a fact about a character: what they look like, carry, did, saw, know, or where they are or went. Manner, mood, weather and scenery are not information. The criteria spell this out, because the Writer embellishes Allowed reveals with such facts (smoke test, §9.5). |
-| Unplanned clue | "Does the draft present evidence pointing to `hidden_truth` that is not one of the discoverable or found clues?" (Replaces the blocking part of `docs/requirements.md` §8 step 8.) |
+| Unplanned clue | "Does the draft present a fact pointing to `hidden_truth` that is not one of the discoverable or found clues?" (Replaces the blocking part of `docs/requirements.md` §8 step 8.) |
 | Outcome | "Does the draft contradict `outcome`?" |
 | Agency | "Does the player character say or do more than `player_input`?" |
 | Period | "Does the draft contain anachronisms for `setting`?" |
@@ -458,7 +458,7 @@ This spec and the ADRs in `docs/adr/` take precedence over `docs/requirements.md
 | Harness pane shows each attempt | Harness pane shows finished Turns only, in test mode; drafts go to the console | 0003 |
 | Baseline and compare view are acceptance scope | Cut first if time runs short | 0012 |
 
-Domain vocabulary is defined in `CONTEXT.md`. Where the requirements use other words (antagonist, capture condition, evidence plan, knowledge map, attempt, run), the glossary term wins.
+Domain vocabulary is defined in `CONTEXT.md`. Where the requirements use other words (attempt, run), the glossary term wins.
 
 ### State at handoff (2026-09-23)
 
