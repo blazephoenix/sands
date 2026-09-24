@@ -24,18 +24,13 @@
  */
 import { codexSlice } from "@/codex/slice"
 import type { Db } from "@/db/client"
-import { listSessionEntries } from "@/db/entries"
+import { getEntry, listSessionEntries } from "@/db/entries"
 import { StoreError } from "@/db/errors"
 import { getSession, insertTurn, listTurns } from "@/db/sessions"
 import { getWorld } from "@/db/worlds"
+import { isLiveEntry } from "@/domain/entry"
 import type { StreamErrorCode, TurnEvent } from "@/domain/events"
-import type {
-  BackgroundResults,
-  Draft,
-  PlayerState,
-  Round,
-  TurnLog,
-} from "@/domain/session"
+import type { Draft, PlayerState, Round, TurnLog } from "@/domain/session"
 import { newId } from "@/lib/ids"
 import { nowIso, nowMs } from "@/lib/time"
 import type { Drafter } from "@/models/drafter"
@@ -58,6 +53,7 @@ import {
   backgroundWorkFor,
   failInterruptedBackgroundWork,
   metExitConditions,
+  NO_BACKGROUND_RESULTS,
   startBackgroundWork,
 } from "./background"
 import { ENGINE_CONFIG } from "./config"
@@ -68,15 +64,6 @@ import { readingQuestions, readReading, type Reading } from "./reading"
 import { resolve, type Resolution } from "./resolve"
 import { deathRollFor } from "./rng"
 import { writerRequest } from "./writer-prompt"
-
-/** For a Turn that ended the Session: no Background work runs. */
-const NO_BACKGROUND_WORK: BackgroundResults = {
-  newEntryIds: [],
-  arcCheck: [],
-  arcAdvancedTo: null,
-  pacing: null,
-  error: null,
-}
 
 export type TurnModels = { writer: Writer; judge: Judge; drafter: Drafter }
 
@@ -406,7 +393,7 @@ export async function runTurn(
       directive: renderDirective(directive),
       rounds: loggedRounds,
       discovery: discovered.discovery,
-      background: ended ? NO_BACKGROUND_WORK : null,
+      background: ended ? NO_BACKGROUND_RESULTS : null,
       timings: {
         totalMs: nowMs() - started,
         ...timings,
@@ -415,6 +402,15 @@ export async function runTurn(
       jevModelVersion,
     }
     signal.throwIfAborted()
+    // The Author may have removed where the Player now stands while the Turn
+    // was written (spec §7.2). Checked with no await before the insert, so no
+    // Codex edit can land in between.
+    const standing = getEntry(db, discovered.state.locationId)
+    if (!isLiveEntry(standing))
+      throw new TurnFailure(
+        "conflict",
+        `${standing.name.trim() || "The Location this Turn moves to"} was removed from the Codex while this Turn was played. Nothing was saved; restore it, or try another action.`
+      )
     const saved = insertTurn(db, {
       id: turnId,
       sessionId,

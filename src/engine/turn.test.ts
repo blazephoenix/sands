@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"
 
+import { patchEntry } from "@/codex/entries"
 import type { OpenDatabase } from "@/db/client"
 import { getSession, insertTurn, listTurns } from "@/db/sessions"
 import type { TurnEvent } from "@/domain/events"
@@ -404,6 +405,32 @@ describe("a Turn after the Opening (spec §9.1)", () => {
     const turn = shipped(last)
     expect(turn.log.outcome?.penalty.deathRoll).toMatchObject({ lethal: true })
     expect(turn.state.ending).toBe("death")
+  })
+})
+
+describe("a Codex edit during the Turn (spec §7.2)", () => {
+  it("saves nothing when the Author removes the Location the Player is moving to", async () => {
+    after({})
+    const { last } = await play("I walk to Whitechapel.", {
+      judge: judge({
+        intent: "move",
+        target: "Whitechapel High Street",
+        classification: "on_script",
+      }),
+      writer: {
+        drafts: (_request, call) => {
+          if (call === 0)
+            patchEntry(db, copy("whitechapel"), { action: "reject" })
+          return `Draft ${call + 1}.`
+        },
+      },
+    })
+    expect(last).toMatchObject({
+      type: "error",
+      code: "conflict",
+      message: expect.stringMatching(/Whitechapel High Street was removed/),
+    })
+    expect(listTurns(db, sessionId)).toHaveLength(2)
   })
 })
 

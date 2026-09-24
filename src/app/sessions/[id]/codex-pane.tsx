@@ -13,6 +13,7 @@
 import * as React from "react"
 import { FilterXIcon, TriangleAlertIcon } from "lucide-react"
 
+import { GapList } from "@/components/codex/gap-list"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -247,8 +248,8 @@ export function CodexPane({
                     )
                     api
                       .patchEntry(entry.id, undo)
-                      .then((restored) => {
-                        setSaved(restored)
+                      .then((response) => {
+                        setSaved(response)
                         toast.add({
                           id: toastId,
                           title: `${name} is back as it was`,
@@ -551,28 +552,13 @@ export function CodexPane({
             </AlertTitle>
             <AlertDescription>
               <p>Your changes are saved. Fix these Gaps to keep it winnable:</p>
-              <ul className="flex list-disc flex-col gap-1 pl-4">
-                {data.solvability.gaps.map((gap) => (
-                  <li
-                    key={`${gap.code}-${gap.entryId}-${gap.arcIndex}-${gap.message}`}
-                  >
-                    {gap.entryId &&
-                    editorEntries.some((entry) => entry.id === gap.entryId) ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          editorRef.current?.focusEntry(gap.entryId!)
-                        }
-                        className="inline rounded-sm text-left underline underline-offset-3 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-                      >
-                        {gap.message}
-                      </button>
-                    ) : (
-                      gap.message
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <GapList
+                gaps={data.solvability.gaps}
+                canSelect={(id) =>
+                  editorEntries.some((entry) => entry.id === id)
+                }
+                onSelect={(id) => editorRef.current?.focusEntry(id)}
+              />
             </AlertDescription>
           </Alert>
         </div>

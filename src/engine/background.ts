@@ -34,7 +34,9 @@
  * alive. A Turn left `pending` with no work running in this process was cut
  * off by a stopped server: it is marked `failed` rather than waited on.
  */
-import { namesPerson, nameParts } from "@/codex/slice"
+import { z } from "zod"
+
+import { isPerson, nameParts, namesPerson, type Person } from "@/codex/slice"
 import type { Db } from "@/db/client"
 import { insertEntries, listSessionEntries } from "@/db/entries"
 import {
@@ -62,11 +64,13 @@ import { newId } from "@/lib/ids"
 import { nowIso, nowMs } from "@/lib/time"
 import type { Drafter } from "@/models/drafter"
 import { noul, type Judge, type NoulQuestion } from "@/models/judge"
-import { z } from "zod"
 
 import { ENGINE_CONFIG } from "./config"
 
 export type BackgroundModels = { drafter: Drafter; judge: Judge }
+type BackgroundDeps = BackgroundModels & { db: Db }
+/** The Turn whose Background work to run. */
+type BackgroundRequest = { sessionId: string; turnId: string }
 
 type Log = (line: string) => void
 
@@ -91,24 +95,17 @@ const NEW_CHARACTERS_INSTRUCTIONS = `You read one Passage of a story and list th
 - Describe each character only from what the Passage says. Invent nothing. Use null for a role or personality the Passage does not show.
 - If the Passage names no new character, answer with an empty list.`
 
-type Person = { name: string; aliases: readonly string[] }
-
 /** Everyone and everything the story already has a name for: the Codex, removed Entries included, and the Brief's characters. */
 function knownNames(entries: readonly Entry[], brief: Brief) {
   const people: Person[] = [
     ...entries
-      .filter(
-        (e): e is EntryOfKind<"character" | "npc"> =>
-          e.kind === "character" || e.kind === "npc"
-      )
+      .filter(isPerson)
       .map((e) => ({ name: e.name, aliases: e.data.aliases })),
     ...brief.characters.map((c) => ({ name: c.name, aliases: c.aliases })),
   ].filter((p) => p.name.trim())
   const names = [
     ...people.flatMap((p) => [p.name, ...p.aliases]),
-    ...entries
-      .filter((e) => e.kind !== "character" && e.kind !== "npc")
-      .map((e) => e.name),
+    ...entries.filter((e) => !isPerson(e)).map((e) => e.name),
   ]
     .map((name) => name.trim())
     .filter(Boolean)
@@ -231,7 +228,7 @@ function exitConditionQuestion(
 }
 
 /** What the Judge reads for the Arc and pacing checks: the current Arc and the last few Turns. */
-function checkState(input: {
+function backgroundJudgeState(input: {
   brief: Brief
   entries: readonly Entry[]
   turns: readonly Turn[]
@@ -284,8 +281,7 @@ const PACING_QUESTION = noul(
   }
 )
 
-const stalledReason = () =>
-  `no progress toward the current Arc's Exit conditions in the last ${ENGINE_CONFIG.pacingWindow} Turns`
+const STALLED_REASON = `no progress toward the current Arc's Exit conditions in the last ${ENGINE_CONFIG.pacingWindow} Turns`
 
 // The run
 
@@ -302,8 +298,8 @@ function reason(error: unknown) {
  * for a Turn whose Background work is not pending.
  */
 export async function runBackgroundWork(
-  deps: BackgroundModels & { db: Db },
-  request: { sessionId: string; turnId: string },
+  deps: BackgroundDeps,
+  request: BackgroundRequest,
   options: { log?: Log } = {}
 ): Promise<void> {
   const { db, drafter, judge } = deps
@@ -312,21 +308,22 @@ export async function runBackgroundWork(
   let turn: Turn | undefined
   try {
     const session = getSession(db, request.sessionId)
-    const brief = getWorld(db, session.worldId).brief
-    if (!brief) throw new Error("the Session's World has no Brief")
-    const entries = listSessionEntries(db, session.id)
     const all = listTurns(db, session.id)
     turn = all.find((t) => t.id === request.turnId)
     if (!turn || turn.backgroundStatus !== "pending") return
+    const brief = getWorld(db, session.worldId).brief
+    if (!brief) throw new Error("the Session's World has no Brief")
+    const entries = listSessionEntries(db, session.id)
 
-    const ran = turn
-    const turns = all.filter((t) => t.idx <= ran.idx)
-    const state = ran.state
+    const pending = turn
+    const turns = all.filter((t) => t.idx <= pending.idx)
+    const state = pending.state
 
     // The Arc check, for Turns after the Opening.
     const met = metExitConditions(turns)
-    const exits = exitConditionsOf(entries, state.arcIndex)
-    const unmet = isOpening(ran) ? [] : exits.filter((e) => !met.has(e.id))
+    const unmet = isOpening(pending)
+      ? []
+      : exitConditionsOf(entries, state.arcIndex).filter((e) => !met.has(e.id))
     const askPacing =
       unmet.length > 0 &&
       turnsInArc(turns, state.arcIndex) >= ENGINE_CONFIG.pacingWindow
@@ -338,7 +335,13 @@ export async function runBackgroundWork(
       Object.keys(questions).length === 0
         ? null
         : judge.ask({
-            state: checkState({ brief, entries, turns, state, unmet }),
+            state: backgroundJudgeState({
+              brief,
+              entries,
+              turns,
+              state,
+              unmet,
+            }),
             questions,
           })
 
@@ -347,12 +350,16 @@ export async function runBackgroundWork(
         worldId: session.worldId,
         brief,
         entries,
-        turn: ran,
+        turn: pending,
       }),
       ask(),
     ])
-    const noulOf = (id: string) =>
-      (answered?.answers[id] as { noul: number } | undefined)?.noul ?? 0
+    const noulOf = (id: string) => {
+      const answer = answered?.answers[id]
+      if (answer?.type !== "noul")
+        throw new Error(`the Judge gave no answer to "${id}"`)
+      return answer.noul
+    }
 
     const arcCheck = unmet.map((exit, n) => {
       const probability = noulOf(`exit_${n}`)
@@ -363,46 +370,52 @@ export async function runBackgroundWork(
       }
     })
     for (const check of arcCheck) if (check.met) met.add(check.exitConditionId)
-    const advance =
-      !isOpening(ran) &&
-      exits.length > 0 &&
-      exits.every((e) => met.has(e.id)) &&
-      state.arcIndex + 1 < brief.arcs.length
-
     const progressed = arcCheck.some((check) => check.met)
     const pacing = askPacing
       ? (() => {
           const probability = noulOf("pacing")
           const nudge =
             !progressed && probability < ENGINE_CONFIG.pacingProgressAt
-          return { probability, nudge, reason: nudge ? stalledReason() : null }
+          return { probability, nudge, reason: nudge ? STALLED_REASON : null }
         })()
       : null
-    const nextState: PlayerState = {
-      ...state,
-      arcIndex: advance ? state.arcIndex + 1 : state.arcIndex,
-      pacingNudge:
-        progressed || advance || pacing
-          ? { active: pacing?.nudge ?? false, reason: pacing?.reason ?? null }
-          : state.pacingNudge,
-    }
 
-    const results: BackgroundResults = {
-      newEntryIds: added.map((e) => e.id),
-      arcCheck,
-      arcAdvancedTo: advance ? nextState.arcIndex : null,
-      pacing,
-      error: null,
-    }
-    db.transaction((tx) => {
-      insertEntries(tx, added)
+    // Commit against the Codex as it is now: the Author may have edited it
+    // while the models ran (a character added, an Exit condition removed).
+    const { added: kept, nextState } = db.transaction((tx) => {
+      const now = listSessionEntries(tx, session.id)
+      const known = knownNames(now, brief)
+      const kept = added.filter((entry) => !isKnown(entry.name, known))
+      const exitsNow = exitConditionsOf(now, state.arcIndex)
+      const advance =
+        !isOpening(pending) &&
+        exitsNow.length > 0 &&
+        exitsNow.every((e) => met.has(e.id)) &&
+        state.arcIndex + 1 < brief.arcs.length
+      const nextState: PlayerState = {
+        ...state,
+        arcIndex: advance ? state.arcIndex + 1 : state.arcIndex,
+        pacingNudge:
+          progressed || advance || pacing
+            ? { active: pacing?.nudge ?? false, reason: pacing?.reason ?? null }
+            : state.pacingNudge,
+      }
+      const results: BackgroundResults = {
+        newEntryIds: kept.map((e) => e.id),
+        arcCheck,
+        arcAdvancedTo: advance ? nextState.arcIndex : null,
+        pacing,
+        error: null,
+      }
+      insertEntries(tx, kept)
       updateTurn(tx, {
-        ...finished(ran, "done", results, nowMs() - started),
+        ...finished(pending, "done", results, nowMs() - started),
         state: nextState,
       })
+      return { added: kept, nextState }
     })
     log(
-      `[background] session=${session.id} turn=${ran.idx} new=${added.length} met=${arcCheck.filter((c) => c.met).length}/${arcCheck.length} arc=${nextState.arcIndex} nudge=${nextState.pacingNudge.active}`
+      `[background] session=${session.id} turn=${pending.idx} new=${kept.length} met=${arcCheck.filter((c) => c.met).length}/${arcCheck.length} arc=${nextState.arcIndex} nudge=${nextState.pacingNudge.active}`
     )
   } catch (error) {
     log(
@@ -415,7 +428,7 @@ export async function runBackgroundWork(
         finished(
           turn,
           "failed",
-          { ...EMPTY_RESULTS, error: reason(error) },
+          { ...NO_BACKGROUND_RESULTS, error: reason(error) },
           nowMs() - started
         )
       )
@@ -439,8 +452,8 @@ function running(): Map<string, Promise<void>> {
 
 /** Starts a Turn's Background work; the next Turn of its Session waits for it. */
 export function startBackgroundWork(
-  deps: BackgroundModels & { db: Db },
-  request: { sessionId: string; turnId: string },
+  deps: BackgroundDeps,
+  request: BackgroundRequest,
   options: { log?: Log } = {}
 ): Promise<void> {
   const work: Promise<void> = runBackgroundWork(deps, request, options).finally(
@@ -478,12 +491,18 @@ export function failInterruptedBackgroundWork(
   for (const turn of stranded)
     updateTurn(
       db,
-      finished(turn, "failed", { ...EMPTY_RESULTS, error: INTERRUPTED }, null)
+      finished(
+        turn,
+        "failed",
+        { ...NO_BACKGROUND_RESULTS, error: INTERRUPTED },
+        null
+      )
     )
   return stranded.length
 }
 
-const EMPTY_RESULTS: BackgroundResults = {
+/** Background results with nothing in them: for a failure, or a Turn that ran no Background work. */
+export const NO_BACKGROUND_RESULTS: BackgroundResults = {
   newEntryIds: [],
   arcCheck: [],
   arcAdvancedTo: null,

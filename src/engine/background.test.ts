@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"
 
+import { createEntry } from "@/codex/entries"
 import type { OpenDatabase } from "@/db/client"
 import { insertEntries, listSessionEntries } from "@/db/entries"
 import { insertTurn, listTurns, updateTurn } from "@/db/sessions"
@@ -374,5 +375,55 @@ describe("a Background failure (spec §13)", () => {
     expect(
       listSessionEntries(db, sessionId).filter((e) => e.source === "play")
     ).toEqual([])
+  })
+})
+
+describe("a Codex edit while Background work runs", () => {
+  it("does not propose a character the Author added meanwhile", async () => {
+    const turn = played(1, { passage: "Mary Kelly waited by the door." })
+    const drafter = new FakeDrafter({
+      outputs: {
+        new_characters: {
+          characters: [
+            {
+              name: "Mary Kelly",
+              description: "Waits by the door.",
+              role: null,
+              personality: null,
+            },
+          ],
+        },
+      },
+    })
+    const draft = drafter.draft.bind(drafter)
+    drafter.draft = (async (...args: Parameters<typeof draft>) => {
+      createEntry(db, {
+        worldId: "w",
+        sessionId,
+        content: {
+          kind: "npc",
+          name: "Mary Kelly",
+          description: "Added by the Author.",
+          keyFacts: [],
+          data: {
+            role: "",
+            age: "",
+            personality: "",
+            backstory: "",
+            isPlayer: false,
+            hiddenFields: [],
+            aliases: [],
+          },
+        },
+      })
+      return draft(...args)
+    }) as typeof drafter.draft
+
+    const { stored } = await background(turn, { drafter })
+
+    expect(
+      listSessionEntries(db, sessionId).filter((e) => e.name === "Mary Kelly")
+    ).toHaveLength(1)
+    expect(stored.log.background?.newEntryIds).toEqual([])
   })
 })

@@ -46,15 +46,17 @@ export function nameParts(name: string) {
     )
 }
 
-function isPerson(entry: Entry): entry is EntryOfKind<"character" | "npc"> {
+export function isPerson(
+  entry: Entry
+): entry is EntryOfKind<"character" | "npc"> {
   return entry.kind === "character" || entry.kind === "npc"
 }
 
+/** A person as prose names them: a Codex character or NPC, or a Brief character. */
+export type Person = { name: string; aliases: readonly string[] }
+
 /** Every pattern that names a person in prose: full name, alias, given name or surname. */
-function personPatterns(person: {
-  name: string
-  aliases: readonly string[]
-}): RegExp[] {
+function personPatterns(person: Person): RegExp[] {
   const patterns: RegExp[] = []
   if (person.name.trim()) patterns.push(wholeWords(person.name, false))
   // Entries stored before placeholders were dropped may still hold "None".
@@ -74,10 +76,7 @@ function patternsFor(entry: Entry): RegExp[] {
 }
 
 /** Does `text` name this person, by full name, alias, given name or surname? */
-export function namesPerson(
-  text: string,
-  person: { name: string; aliases: readonly string[] }
-): boolean {
+export function namesPerson(text: string, person: Person): boolean {
   return personPatterns(person).some((pattern) => pattern.test(text))
 }
 
