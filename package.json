@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "smoke:judge": "tsx --env-file-if-exists=.env.local scripts/smoke-judge.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.72",
