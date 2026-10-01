@@ -140,7 +140,7 @@ export function renderDirective(directive: Directive): string {
   const player = directive.playerCharacter
   if (directive.kind === "opening") {
     lines.push(
-      `Write the opening scene, like the first page of a novel: ${player} at ${directive.location.name}, with Arc ${directive.arc.number} (${directive.arc.name}) under way. ${player} does nothing beyond arriving; the Player acts next.`
+      `Write the opening scene as a cold open: ${player} at ${directive.location.name}, with Arc ${directive.arc.number} (${directive.arc.name}) under way and the world already in motion. Make plain what ${player} is here to do, as the Brief and this Arc give it, and end on something the Player can act on. ${player} does nothing beyond arriving and says nothing; the Player acts next.`
     )
   } else {
     lines.push(`What happened (narrate it): ${directive.outcome ?? "—"}`)

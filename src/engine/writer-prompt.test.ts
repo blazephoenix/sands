@@ -68,4 +68,11 @@ describe("the Writer's request (spec §9.1 step 5)", () => {
     expect(instructions).toMatch(/no new fact about any character/i)
     expect(instructions).toContain(WRITER_HIDDEN_MARKER)
   })
+
+  it("tells the Writer to break the Passage up and end on something the Player can act on", () => {
+    const { instructions } = request()
+    expect(instructions).toMatch(/blank line/)
+    expect(instructions).toMatch(/dialogue/i)
+    expect(instructions).toMatch(/end on something the Player can act on/i)
+  })
 })

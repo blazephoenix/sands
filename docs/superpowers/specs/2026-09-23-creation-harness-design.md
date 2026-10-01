@@ -265,7 +265,7 @@ Target: **3–5 seconds** from submit to passage on a turn that needs no retry. 
 
 ### 9.0 The Opening (turn 0)
 
-A Session never starts blank. As soon as it is created, the harness plays its **Opening**: the Writer writes the first scene (the Player character at the start location, the first Arc under way) and the Judge rules on it like any Turn. There is no player input, so steps 2 and 3 below are skipped: nothing is read or classified, and no Outcome is resolved. The directive asks for an opening scene and allows no reveals. The Agency rule checks that the Player character does nothing beyond arriving. The Opening is turn 0, with `player_input` null. The Session page plays it automatically, with the same progress events and reveal as any Turn; a failure leaves the Session with no Turns and offers Retry.
+A Session never starts blank. As soon as it is created, the harness plays its **Opening**: the Writer writes the first scene as a cold open (the Player character at the start location, the first Arc under way and the world already in motion, what the Player character is there to do made plain, ending on something the Player can act on) and the Judge rules on it like any Turn. There is no player input, so steps 2 and 3 below are skipped: nothing is read or classified, and no Outcome is resolved. The directive asks for an opening scene and allows no reveals. The Agency rule checks that the Player character does nothing beyond arriving. The Opening is turn 0, with `player_input` null. The Session page plays it automatically, with the same progress events and reveal as any Turn; a failure leaves the Session with no Turns and offers Retry.
 
 ### 9.1 Critical path (before the passage appears)
 

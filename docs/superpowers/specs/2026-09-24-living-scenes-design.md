@@ -3,6 +3,7 @@
 **Date:** 2026-09-24
 **Builds on:** `2026-09-23-creation-harness-design.md` §9–§11, the Turn engine of #4 (PR #13)
 **Status:** Draft for the Author's review.
+**Built so far (2026-09-30):** the prose lines of §3.6 as plain prose, not Markdown, with Passages kept at about 150 words; paragraphs in the story pane, the reveal and the harness pane instead of §3.8's Markdown renderer; a cold-open Opening. Nothing else here is built.
 
 ---
 
@@ -103,7 +104,7 @@ The Author's request: Passages read like a book, not one paragraph tag.
 ## 4. Not changed
 
 - **Which passing Draft ships:** still the lower highest violation. The Author chose Momentum as a Rule over re-weighting the choice.
-- **Background work and the Pacing nudge (#5):** unaffected. Momentum asks for something to happen in every Passage; the nudge asks for Arc progress after three stalled Turns. Both keep.
+- **Background work and the Pacing nudge (#5):** unaffected. Momentum asks for something to happen in every Passage; the nudge asks for Arc progress after two stalled Turns. Both keep.
 - **No new Entry kinds, no setup change, no new ADR.** This tunes Rules and prompts inside ADR-0001 and ADR-0003.
 
 ## 5. Testing
