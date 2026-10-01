@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "smoke:judge": "tsx --env-file-if-exists=.env.local scripts/smoke-judge.ts"
+    "smoke:judge": "tsx --env-file-if-exists=.env.local scripts/smoke-judge.ts",
+    "seed:worlds": "tsx --env-file-if-exists=.env.local scripts/seed-worlds.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.72",
