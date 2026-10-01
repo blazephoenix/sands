@@ -246,7 +246,11 @@ describe("the Arc check (spec §9.2 step 9)", () => {
 
     const { stored } = await background(turn, { judge })
 
-    expect(Object.keys(judge.calls[0].request.questions)).toEqual(["exit_0"])
+    expect(
+      Object.keys(judge.calls[0].request.questions).filter((id) =>
+        id.startsWith("exit_")
+      )
+    ).toEqual(["exit_0"])
     expect(stored.log.background?.arcAdvancedTo).toBe(1)
   })
 
@@ -281,8 +285,8 @@ describe("the pacing check (spec §9.2 step 10)", () => {
         id === "pacing" ? progress : id.startsWith("exit_") ? met : undefined,
     })
 
-  it("sets the Pacing nudge after three Turns in the Arc without progress, and does not advance the Arc", async () => {
-    const turn = played(3)
+  it("sets the Pacing nudge after two Turns in the Arc without progress, and does not advance the Arc", async () => {
+    const turn = played(2)
     const judge = pacingJudge(0.15)
 
     const { stored } = await background(turn, { judge })
@@ -293,19 +297,19 @@ describe("the pacing check (spec §9.2 step 10)", () => {
       (state as { recent_turns: { turn: string }[] }).recent_turns.map(
         (t) => t.turn
       )
-    ).toEqual(["Turn 1", "Turn 2", "Turn 3"])
+    ).toEqual(["Turn 1", "Turn 2"])
     expect(stored.log.background?.pacing).toMatchObject({
       probability: 0.15,
       nudge: true,
     })
     expect(stored.state.pacingNudge.active).toBe(true)
-    expect(stored.state.pacingNudge.reason).toMatch(/3 Turns/)
+    expect(stored.state.pacingNudge.reason).toMatch(/2 Turns/)
     expect(stored.state.arcIndex).toBe(0)
     expect(stored.log.background?.arcAdvancedTo).toBeNull()
   })
 
-  it("does not ask before the Arc has had three Turns", async () => {
-    const turn = played(2)
+  it("does not ask before the Arc has had two Turns", async () => {
+    const turn = played(1)
     const judge = pacingJudge(0.15)
 
     const { stored } = await background(turn, { judge })
@@ -318,7 +322,7 @@ describe("the pacing check (spec §9.2 step 10)", () => {
   })
 
   it("counts only Turns played in the current Arc", async () => {
-    const turn = played(3, { state: { arcIndex: 1 } })
+    const turn = played(2, { state: { arcIndex: 1 } })
     const judge = pacingJudge(0.15)
 
     await background(turn, { judge })
@@ -329,7 +333,7 @@ describe("the pacing check (spec §9.2 step 10)", () => {
   })
 
   it("clears the nudge once the Player makes progress", async () => {
-    const turn = played(3, {
+    const turn = played(2, {
       state: { pacingNudge: { active: true, reason: "stalled" } },
     })
 
