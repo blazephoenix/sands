@@ -2,11 +2,11 @@ import { APICallError } from "ai"
 import { MockLanguageModelV4 } from "ai/test"
 import { describe, expect, it, vi } from "vitest"
 
-import { ENGINE_CONFIG } from "@/engine/config"
-
 import { FakeWriter } from "./fake-writer"
 import { GrokWriter } from "./grok-writer"
 import type { ModelLogger } from "./logger"
+
+const maxOutputTokens = 6000
 
 const request = { instructions: "Write the scene.", prompt: "Directive: …" }
 
@@ -44,7 +44,11 @@ describe("GrokWriter", () => {
       doGenerate: async () => generated("  The fog lifted.  "),
     })
     const log = logger()
-    const result = await new GrokWriter({ model, logger: log }).write(request)
+    const result = await new GrokWriter({
+      model,
+      logger: log,
+      maxOutputTokens,
+    }).write(request)
     expect(result).toMatchObject({
       text: "The fog lifted.",
       model: "mock-grok",
@@ -58,15 +62,13 @@ describe("GrokWriter", () => {
     )
   })
 
-  it("caps output at the configured ceiling and logs reasoning tokens", async () => {
+  it("caps output at the ceiling it is given and logs reasoning tokens", async () => {
     const model = new MockLanguageModelV4({
       doGenerate: async () => generated("The fog lifted."),
     })
     const log = logger()
-    await new GrokWriter({ model, logger: log }).write(request)
-    expect(model.doGenerateCalls[0].maxOutputTokens).toBe(
-      ENGINE_CONFIG.writerMaxOutputTokens
-    )
+    await new GrokWriter({ model, logger: log, maxOutputTokens }).write(request)
+    expect(model.doGenerateCalls[0].maxOutputTokens).toBe(maxOutputTokens)
     expect(log.lines[0]).toMatch(/ reasoning_tokens=0 /)
   })
 
@@ -86,9 +88,11 @@ describe("GrokWriter", () => {
         return generated("Second time.")
       },
     })
-    const result = await new GrokWriter({ model, logger: logger() }).write(
-      request
-    )
+    const result = await new GrokWriter({
+      model,
+      logger: logger(),
+      maxOutputTokens,
+    }).write(request)
     expect(result.text).toBe("Second time.")
     expect(calls).toBe(2)
   }, 10_000)
@@ -99,15 +103,22 @@ describe("GrokWriter", () => {
       doGenerate: async () => generated(texts.shift() ?? ""),
     })
     expect(
-      (await new GrokWriter({ model: once, logger: logger() }).write(request))
-        .text
+      (
+        await new GrokWriter({
+          model: once,
+          logger: logger(),
+          maxOutputTokens,
+        }).write(request)
+      ).text
     ).toBe("At last.")
 
     const never = new MockLanguageModelV4({
       doGenerate: async () => generated("   "),
     })
     await expect(
-      new GrokWriter({ model: never, logger: logger() }).write(request)
+      new GrokWriter({ model: never, logger: logger(), maxOutputTokens }).write(
+        request
+      )
     ).rejects.toThrow(/empty Draft twice/)
     expect(never.doGenerateCalls).toHaveLength(2)
   })
@@ -115,7 +126,9 @@ describe("GrokWriter", () => {
   it("refuses to start without WRITER_MODEL", () => {
     vi.stubEnv("WRITER_MODEL", "")
     try {
-      expect(() => new GrokWriter()).toThrow(/WRITER_MODEL is not set/)
+      expect(() => new GrokWriter({ maxOutputTokens })).toThrow(
+        /WRITER_MODEL is not set/
+      )
     } finally {
       vi.unstubAllEnvs()
     }

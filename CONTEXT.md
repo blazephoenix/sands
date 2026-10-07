@@ -94,6 +94,10 @@ _Avoid_: prompt, instructions, context
 What the Judge takes from one Player input: its intent (the kind of action), its target (the Entry acted on) and its Classification. The Opening has none.
 _Avoid_: parse, interpretation, intent (for the whole)
 
+**Pushover**:
+A character who agrees with, gives in to, or flatters the Player character against their own wants, with no reason in the story. The Reputation Rule's one question asks whether a Draft has one, in every Band.
+_Avoid_: sycophant, yes-man
+
 **Allowed reveal**:
 A piece of Knowledge a character may give up this Turn: at or below the current Band, and not yet revealed.
 _Avoid_: unlocked knowledge, available secret

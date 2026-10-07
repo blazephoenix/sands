@@ -44,9 +44,9 @@ export type Directive = {
   outcome: string | null
   /**
    * For an action that changes nothing code tracks: the Player character's
-   * action as typed, the beat to play. Null otherwise.
+   * action as typed, the beat to play. Null otherwise, or with no input.
    */
-  beat: string | null
+  playerAction: string | null
   allowedReveals: { character: string; fact: string }[]
   discoverableClues: { name: string; reveals: string }[]
   band: Band
@@ -98,7 +98,8 @@ export function buildDirective(input: DirectiveInput): Directive {
   const band = resolution?.band ?? bandFor(state.reputation)
   const ending = state.ending === "none" ? null : state.ending
   const action = resolution?.outcome.action ?? null
-  const narrated = action?.kind === "narrated"
+  const playerAction =
+    action?.kind === "narrated" ? input.playerInput?.trim() || null : null
 
   return {
     kind: resolution ? "turn" : "opening",
@@ -120,8 +121,8 @@ export function buildDirective(input: DirectiveInput): Directive {
         )
         .map((e) => e.data.condition.trim() || e.name),
     },
-    outcome: narrated ? null : (action?.summary ?? null),
-    beat: narrated ? (input.playerInput?.trim() ?? "") : null,
+    outcome: playerAction ? null : (action?.summary ?? null),
+    playerAction,
     allowedReveals: (resolution?.allowedReveals ?? []).map((k) => ({
       character: byId.get(k.data.characterId)?.name ?? "",
       fact: k.data.fact,
@@ -153,9 +154,9 @@ export function renderDirective(directive: Directive): string {
     lines.push(
       `Write the opening scene as a cold open: ${player} at ${directive.location.name}, with Arc ${directive.arc.number} (${directive.arc.name}) under way and the world already in motion. Make plain what ${player} is here to do, as the Brief and this Arc give it, and end on something the Player can act on. ${player} does nothing beyond arriving and says nothing; the Player acts next.`
     )
-  } else if (directive.beat !== null) {
+  } else if (directive.playerAction !== null) {
     lines.push(
-      `What ${player} does: ${directive.beat}\nShow it, and how the characters present react.`
+      `What ${player} does: ${directive.playerAction}\nShow it, and how the characters present react.`
     )
   } else {
     lines.push(`What happened (narrate it): ${directive.outcome ?? "—"}`)

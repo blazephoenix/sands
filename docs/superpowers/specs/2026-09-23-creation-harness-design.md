@@ -476,7 +476,7 @@ Domain vocabulary is defined in `CONTEXT.md`. Where the requirements use other w
 
 1. **Re-verify §10 against the official Jev docs:** resolved 2026-09-24. §10.1 is rewritten from https://docs.typesafe.ai and the SDK types. The endpoint, question shapes, answer shapes and `jev-1.13.0` pin were right; the fail and Unsure thresholds are our design, not a Jev convention; compound Rule questions must be split. Sources: `docs/research/2026-09-24-engine-libraries.md`.
 2. **Jev endpoint:** resolved. `https://api.typesafe.ai` (`POST /v1/systemone`), per https://docs.typesafe.ai/api.
-3. **Writer and Drafter model names:** resolved 2026-09-24 by the latency test: `WRITER_MODEL=grok-4.20-0309-non-reasoning` (about 3.1 s per ~140-word Draft), changed by #18 to `grok-4.20-0309-reasoning` and `DRAFTER_MODEL=gpt-5.6-sol` (4.6 s for one small structured-output call at the default reasoning effort).
+3. **Writer and Drafter model names:** resolved 2026-09-24 by the latency test: `WRITER_MODEL=grok-4.20-0309-non-reasoning` (about 3.1 s per ~140-word Draft) and `DRAFTER_MODEL=gpt-5.6-sol` (4.6 s for one small structured-output call at the default reasoning effort). #18 moved the Writer to `grok-4.20-0309-reasoning`.
 
 ### Next step
 

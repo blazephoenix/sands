@@ -13,8 +13,6 @@
 import { xai } from "@ai-sdk/xai"
 import { generateText, type LanguageModel } from "ai"
 
-import { ENGINE_CONFIG } from "@/engine/config"
-
 import { consoleLogger, type ModelLogger } from "./logger"
 import {
   WriterError,
@@ -34,6 +32,8 @@ export interface GrokWriterOptions {
    */
   timeoutMs?: number
   logger?: ModelLogger
+  /** The output-token ceiling, reasoning included. The engine passes its config. */
+  maxOutputTokens: number
 }
 
 export class GrokWriter implements Writer {
@@ -41,7 +41,7 @@ export class GrokWriter implements Writer {
   readonly #options: GrokWriterOptions
   readonly #logger: ModelLogger
 
-  constructor(options: GrokWriterOptions = {}) {
+  constructor(options: GrokWriterOptions) {
     this.#options = options
     this.#logger = options.logger ?? consoleLogger
     if (options.model) {
@@ -92,7 +92,7 @@ export class GrokWriter implements Writer {
         model: this.#model,
         instructions: request.instructions,
         prompt: request.prompt,
-        maxOutputTokens: ENGINE_CONFIG.writerMaxOutputTokens,
+        maxOutputTokens: this.#options.maxOutputTokens,
         maxRetries: this.#options.maxRetries ?? 1,
         timeout: this.#options.timeoutMs ?? 60_000,
         abortSignal: options.signal,
