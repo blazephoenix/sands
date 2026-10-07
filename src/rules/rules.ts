@@ -17,12 +17,7 @@
 import type { CodexSlice } from "@/codex/slice"
 import { namedEntries } from "@/codex/slice"
 import { hiddenTruth, type Brief } from "@/domain/brief"
-import {
-  liveOfKinds,
-  type Band,
-  type Entry,
-  type EntryOfKind,
-} from "@/domain/entry"
+import { liveOfKinds, type Entry, type EntryOfKind } from "@/domain/entry"
 import {
   RULE_LABELS,
   type Discovery,
@@ -134,41 +129,35 @@ export function voiceGuidelines(brief: Brief): string[] {
     .filter(Boolean)
 }
 
-const REPUTATION_QUESTIONS: Record<
-  "contempt" | "deference" | "coldness" | "warmth",
-  { question: string; label: string }
-> = {
-  contempt: {
-    question:
-      "Does any character in `drafts[i]` treat `player_character` with open contempt: insults, jeering, or refusing a fair request?",
-    label: "Does a character treat the Player character with open contempt?",
-  },
-  deference: {
-    question:
-      "Does any character in `drafts[i]` treat `player_character` with special deference: gifts, flattery or favours?",
-    label:
-      "Does a character treat the Player character with special deference?",
-  },
-  coldness: {
-    question:
-      "Does any character in `drafts[i]` treat `player_character` with suspicion or coldness the scene gives them no reason for?",
-    label:
-      "Does a character treat the Player character with unearned suspicion or coldness?",
-  },
-  warmth: {
-    question:
-      "Does any character in `drafts[i]` treat `player_character` with warmth or trust: confiding freely, or going out of their way to help?",
-    label: "Does a character treat the Player character with warmth or trust?",
-  },
+/**
+ * Knowledge the Draft's characters hold that is not theirs to give this Turn:
+ * live Knowledge Entries of the characters in the Codex slice or named in the
+ * Draft, neither allowed this Turn nor already revealed.
+ */
+function withheldKnowledge(context: SceneContext, draft: string) {
+  const { entries, state } = context
+  const people = liveOfKinds(entries, ["character", "npc"])
+  const present = new Set([
+    ...context.slice.writer.map((e) => e.id),
+    ...namedEntries(draft, people).map((e) => e.id),
+  ])
+  const allowed = new Set([
+    ...context.allowedReveals.map((k) => k.id),
+    ...Object.values(state.knowledgeRevealed).flat(),
+  ])
+  const byId = new Map(entries.map((e) => [e.id, e]))
+  return liveOfKinds(entries, ["knowledge"])
+    .filter(
+      (k): k is EntryOfKind<"knowledge"> =>
+        k.kind === "knowledge" &&
+        present.has(k.data.characterId) &&
+        !allowed.has(k.id)
+    )
+    .map((k) => ({
+      character: byId.get(k.data.characterId)?.name ?? "",
+      fact: k.data.fact,
+    }))
 }
-
-/** What each Band forbids, in two concrete questions (research §2). */
-const REPUTATION_BY_BAND: Record<Band, (keyof typeof REPUTATION_QUESTIONS)[]> =
-  {
-    high: ["contempt", "coldness"],
-    normal: ["contempt", "deference"],
-    low: ["deference", "warmth"],
-  }
 
 /** Replaces the `drafts[i]` placeholder with the Draft's index. */
 function at(text: string, index: number) {
@@ -292,18 +281,26 @@ export function ruleQuestions(
     "the Draft invents a place that is not in the Codex. Mention only known places."
   )
 
-  // Knowledge.
-  add(
-    "knowledge",
-    "Does a character reveal information that is not allowed?",
-    "Does a character in `drafts[i]` reveal information that is not in `allowed_reveals` or `knowledge_revealed`?",
-    {
-      true: "A character states or gives away information: a fact about a character, meaning what they look like, carry, did, saw or know, or where they are or went, that is not in `allowed_reveals` or `knowledge_revealed`.",
-      false:
-        "Every such fact a character gives is in `allowed_reveals`, `knowledge_revealed` or `codex` without a [HIDDEN] mark. Manner, mood, weather and scenery are not information.",
-    },
-    "a character reveals a fact beyond the Allowed reveals. Give each reveal exactly as written and add no new fact about any character."
-  )
+  // Knowledge: only facts recorded as Knowledge. A character saying something
+  // new about themselves is not a reveal.
+  const withheld = withheldKnowledge(context, draft)
+  if (withheld.length > 0) {
+    add(
+      "knowledge",
+      "Does a character reveal Knowledge that is not allowed?",
+      {
+        question:
+          "Does a character in `drafts[i]` give away a fact in `knowledge`?",
+        knowledge: withheld,
+      },
+      {
+        true: "A character states or gives away a fact in `knowledge`, in any words.",
+        false:
+          "No fact in `knowledge` is given away. A character saying something new about themselves, their past or what they want is not a reveal, and neither are manner, mood, weather and scenery.",
+      },
+      "a character gives away Knowledge they would not give up yet. Leave it out; they may say other things about themselves."
+    )
+  }
   add(
     "knowledge",
     "Does the narration give away the Hidden truth?",
@@ -423,21 +420,19 @@ export function ruleQuestions(
     )
   }
 
-  // Reputation: two concrete questions for the Band.
-  for (const key of REPUTATION_BY_BAND[directive.band]) {
-    const { question, label } = REPUTATION_QUESTIONS[key]
-    add(
-      "reputation",
-      label,
-      question,
-      {
-        true: "A character behaves that way toward the Player character.",
-        false:
-          "No character does. Behaviour `reputation_band.guidance` allows is not a violation, and neither is a reaction the scene itself gives a reason for.",
-      },
-      `characters do not treat the Player character as the ${directive.band} Band says. ${directive.bandGuidance}`
-    )
-  }
+  // Reputation: the Pushover question, the same in every Band. Characters may
+  // feel strongly either way; they may not give in for no reason.
+  add(
+    "reputation",
+    "Does a character give in to the Player character without a reason?",
+    "Does a character in `drafts[i]` agree with, give in to, or flatter `player_character` against their own wants, with no reason in the story?",
+    {
+      true: "A character agrees, gives in or flatters against their own wants, and nothing in the scene or the story so far gives them a reason.",
+      false:
+        "Every character who agrees, helps or flatters has a reason in the story: their personality, their interests, how they regard `player_character`, or what just happened. Refusing, bargaining, hostility and strong feeling in either direction are not giving in.",
+    },
+    "a character gives in to the Player character without a reason. Have them weigh what is asked against their own wants."
+  )
 
   // Voice: one question per guideline.
   for (const guideline of voiceGuidelines(brief)) {

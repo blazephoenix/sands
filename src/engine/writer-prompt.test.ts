@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest"
 import { codexSlice } from "@/codex/slice"
 import { londonBrief, londonEntries } from "@/test/london"
 
+import { ENGINE_CONFIG } from "./config"
+
 import { buildDirective, renderDirective } from "./direct"
 import { startingState } from "./initial-state"
 import { writerRequest, WRITER_HIDDEN_MARKER } from "./writer-prompt"
@@ -15,6 +17,7 @@ const directive = buildDirective({
   entries,
   state,
   resolution: null,
+  playerInput: null,
   metExitConditionIds: [],
 })
 const slice = codexSlice({
@@ -61,18 +64,41 @@ describe("the Writer's request (spec §9.1 step 5)", () => {
     )
   })
 
-  it("tells the Writer the rules the Judge holds it to", () => {
+  it("casts the Writer as a novelist playing everyone but the Player character", () => {
     const { instructions } = request()
-    expect(instructions).toMatch(/about 150 words/)
-    expect(instructions).toMatch(/only what the Player's input says/)
-    expect(instructions).toMatch(/no new fact about any character/i)
-    expect(instructions).toContain(WRITER_HIDDEN_MARKER)
+    expect(instructions).toMatch(
+      /^You are a talented novelist writing an ongoing interactive story\. A Player plays Jacob Flannery\. You write everyone and everything else\./
+    )
+    expect(instructions).not.toMatch(/\{player\}|\{words\}/)
   })
 
-  it("tells the Writer to break the Passage up and end on something the Player can act on", () => {
+  it("caps the Passage at the configured length", () => {
+    expect(request().instructions).toContain(
+      `Keep each Passage under ${ENGINE_CONFIG.passageWords} words.`
+    )
+  })
+
+  it("gives characters their own wants and the right to refuse", () => {
     const { instructions } = request()
-    expect(instructions).toMatch(/blank line/)
-    expect(instructions).toMatch(/dialogue/i)
-    expect(instructions).toMatch(/end on something the Player can act on/i)
+    expect(instructions).toMatch(
+      /No character is Jacob Flannery's servant or cheerleader\./
+    )
+    expect(instructions).toMatch(/They may refuse, bargain, stall/)
+    expect(instructions).toMatch(/## Before writing each Passage/)
+  })
+
+  it("restates Sands' constraints as things the Writer builds on", () => {
+    const { instructions } = request()
+    expect(instructions).toMatch(/The Brief and the Codex are true\./)
+    expect(instructions).toMatch(
+      /Values marked "SECRET" are the Hidden truth\./
+    )
+    expect(instructions).toMatch(/Show what the Directive says happened\./)
+    expect(instructions).toMatch(
+      /Never write Jacob Flannery's actions, dialogue, or thoughts beyond what the Player's input says\./
+    )
+    expect(instructions).toMatch(/blank lines/)
+    expect(instructions).not.toMatch(/new fact/i)
+    expect(WRITER_HIDDEN_MARKER).toMatch(/^SECRET\b/)
   })
 })

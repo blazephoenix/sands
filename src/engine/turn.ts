@@ -246,6 +246,7 @@ export async function runTurn(
       entries,
       state,
       resolution,
+      playerInput: input,
       metExitConditionIds: [...metExitConditions(turns)],
     })
     const allowedReveals = resolution?.allowedReveals ?? []

@@ -178,6 +178,8 @@ These are the two Grok Drafts from the latency call, with 2 Drafts in the state 
 
 The Drafter dominates, and output tokens drive it: about 20 ms per output token at low effort. A Story logic retry would add about 29 s (the call plus validation), so a run that needs both retries would take about 1 min 50 s. The World call drafted 5 new Locations where its instructions asked for 3 to 4.
 
+**Reasoning Writer (#18): not yet measured.** The Writer moved to `grok-4.20-0309-reasoning` so its "before writing" checklist runs, with a 300-word Passage cap and a 6,000-token output ceiling that includes reasoning. The change was made in a session with no `XAI_API_KEY`, so no Round has been timed. To measure: play one Turn of a seed World with test mode on and read the `[writer]` log lines. Each line now carries `reasoning_tokens` alongside `output_tokens` and `latency_ms`; a Round's wall clock is the slower of its two Drafts. Record the result here. If a one-Round Turn runs well past ADR-0003's 3–5 s, write an ADR that supersedes that target, or drop to one Draft per Round.
+
 ## 4. AI SDK 7
 
 Sources: the bundled docs in `node_modules/ai/docs/` (also at https://ai-sdk.dev/docs), `node_modules/@ai-sdk/xai/docs/01-xai.mdx`, `node_modules/@ai-sdk/openai/docs/03-openai.mdx`, and `node_modules/ai/dist/index.d.ts`.

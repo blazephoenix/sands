@@ -32,7 +32,14 @@ export const ENGINE_CONFIG = {
   /** Only a Rule failure at p >= 0.8 becomes a line of Retry feedback (spec §10.4). */
   retryFeedbackFloor: 0.8,
   choiceConfidenceFloor: 0.6,
-  passageWords: 150,
+  /** The Passage cap the Writer is told: "Keep each Passage under {words} words." */
+  passageWords: 300,
+  /**
+   * The Writer's output-token ceiling. A reasoning Writer's thinking counts
+   * against it, so it leaves room for the reasoning as well as a Passage of
+   * `passageWords`; a runaway Draft is still cut, not waited for.
+   */
+  writerMaxOutputTokens: 6000,
 } as const
 
 export function bandFor(reputation: number): Band {

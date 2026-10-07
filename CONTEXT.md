@@ -123,7 +123,7 @@ A number tracking how the story's characters regard the Player character, read t
 _Avoid_: score, standing, karma
 
 **Band**:
-The coarse level of Reputation (high, normal, low) that governs what characters reveal and how they behave.
+The coarse level of Reputation (high, normal, low) that governs what characters reveal and how they lean toward the Player character: a lean, not a mandate.
 _Avoid_: tier, level
 
 **Classification**:

@@ -50,6 +50,7 @@ function scene(
     entries,
     state,
     resolution,
+    playerInput: options.turn?.input ?? null,
     metExitConditionIds: [],
   })
   return {
@@ -146,18 +147,48 @@ describe("Rule questions (spec §10.3)", () => {
     ])
   })
 
-  it("Knowledge: what characters reveal, with information defined, and what the narrator gives away", () => {
-    const knowledge = byRule(ruleQuestions(scene(), 0, DRAFT), "knowledge")
-    expect(knowledge).toHaveLength(2)
-    expect(knowledge[0].question.criteria?.true).toMatch(
-      /what they look like, carry, did, saw or know, or where they are or went/
+  it("Knowledge: only Knowledge Entries not allowed this Turn, and what the narrator gives away", () => {
+    const opening = byRule(ruleQuestions(scene(), 0, DRAFT), "knowledge")
+    expect(opening).toHaveLength(2)
+    const [reveal, narration] = opening
+    expect(reveal.question.instructions).toMatchObject({
+      knowledge: [
+        {
+          character: "Nell Garvey",
+          fact: "She saw a young clerk leave Carrow's warehouse at dawn.",
+        },
+        {
+          character: "Dr. Henry Pryce",
+          fact: "The same blade killed all three men.",
+        },
+      ],
+    })
+    expect(reveal.question.criteria?.false).toMatch(
+      /something new about themselves, their past or what they want/
     )
-    expect(knowledge[0].question.criteria?.false).toMatch(
-      /Manner, mood, weather and scenery are not information/
-    )
-    expect(asked(knowledge[1].question)).toMatch(
+    expect(asked(narration.question)).toMatch(
       /^Leaving aside what characters say aloud, does the narrator/
     )
+  })
+
+  it("Knowledge: a Turn's Allowed reveals are not withheld, and a Draft naming no one who knows anything has no reveal question", () => {
+    const [reveal] = byRule(
+      ruleQuestions(scene({ turn: questionNell }), 0, DRAFT),
+      "knowledge"
+    )
+    expect(reveal.question.instructions).toMatchObject({
+      knowledge: [
+        {
+          character: "Dr. Henry Pryce",
+          fact: "The same blade killed all three men.",
+        },
+      ],
+    })
+    expect(
+      byRule(ruleQuestions(scene(), 0, "The fog lifted."), "knowledge").map(
+        (q) => asked(q.question)
+      )
+    ).toEqual([expect.stringMatching(/^Leaving aside/)])
   })
 
   it("asks the Outcome question only after the Opening, and Agency against the input or against arriving", () => {
@@ -205,24 +236,17 @@ describe("Rule questions (spec §10.3)", () => {
     ).toEqual(["Does the Draft conflict with Nell Garvey?"])
   })
 
-  it("Reputation: two concrete questions written for the Band", () => {
-    const labels = (reputation: number) =>
-      byRule(
+  it("Reputation: one Pushover question in every Band", () => {
+    for (const reputation of [10, 50, 80]) {
+      const questions = byRule(
         ruleQuestions(scene({ state: { reputation } }), 0, DRAFT),
         "reputation"
-      ).map((q) => asked(q.question))
-    expect(labels(50)).toEqual([
-      expect.stringMatching(/open contempt/),
-      expect.stringMatching(/special deference/),
-    ])
-    expect(labels(80)).toEqual([
-      expect.stringMatching(/open contempt/),
-      expect.stringMatching(/suspicion or coldness/),
-    ])
-    expect(labels(10)).toEqual([
-      expect.stringMatching(/special deference/),
-      expect.stringMatching(/warmth or trust/),
-    ])
+      )
+      expect(questions.map((q) => asked(q.question))).toEqual([
+        "Does a character in `drafts[0]` agree with, give in to, or flatter `player_character` against their own wants, with no reason in the story?",
+      ])
+      expect(questions[0].feedback).toMatch(/gives in .* without a reason/)
+    }
   })
 
   it("Ending only on a Turn that decided one", () => {

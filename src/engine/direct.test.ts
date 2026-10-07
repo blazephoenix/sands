@@ -23,10 +23,12 @@ describe("the Opening's Directive (spec §9.0)", () => {
     entries: codex(),
     state: state(),
     resolution: null,
+    playerInput: null,
     metExitConditionIds: [],
   })
 
   it("asks for the first scene at the start Location, with the first Arc under way and nothing to reveal", () => {
+    expect(renderDirective(directive)).not.toMatch(/reveal|found this Turn/i)
     expect(directive.kind).toBe("opening")
     expect(directive.location.name).toBe("Scotland Yard")
     expect(directive.arc).toMatchObject({ number: 1, name: "Introduction" })
@@ -51,6 +53,7 @@ describe("the Opening's Directive (spec §9.0)", () => {
         entries: codex(),
         state: state(),
         resolution: null,
+        playerInput: null,
         metExitConditionIds: ["mk-exit-1"],
       }).arc.exitConditions
     ).toEqual([])
@@ -65,6 +68,7 @@ describe("a Turn's Directive (spec §9.1 step 4)", () => {
       state?: PlayerState
       classification?: "on_script" | "off_script" | "reckless"
       deathRoll?: number
+      playerInput?: string
     } = {}
   ) {
     const resolution = resolve({
@@ -80,11 +84,12 @@ describe("a Turn's Directive (spec §9.1 step 4)", () => {
       entries: codex(),
       state: resolution.state,
       resolution,
+      playerInput: options.playerInput ?? "I look around.",
       metExitConditionIds: [],
     })
   }
 
-  it("gives each Allowed reveal as the exact fact to convey, and forbids new facts about any character", () => {
+  it("gives each Allowed reveal as the exact fact to convey, and leaves characters free to say new things about themselves", () => {
     const directive = directiveFor(
       { kind: "question" },
       { kind: "entry", id: "mk-nell" },
@@ -98,7 +103,44 @@ describe("a Turn's Directive (spec §9.1 step 4)", () => {
     ])
     const text = renderDirective(directive)
     expect(text).toContain(find<"knowledge">("mk-k-nell").data.fact)
-    expect(text).toMatch(/no new fact about any character/i)
+    expect(text).not.toMatch(/new fact/i)
+  })
+
+  it("gives a narrated action as the Player character's action as typed, to show with the characters' reactions", () => {
+    const directive = directiveFor(
+      { kind: "other" },
+      { kind: "none" },
+      { playerInput: "I light my pipe and wait." }
+    )
+    const text = renderDirective(directive)
+    expect(text).toContain("I light my pipe and wait.")
+    expect(text).toMatch(/show it, and how the characters present react/i)
+    expect(text).not.toMatch(/changes nothing code tracks/)
+  })
+
+  it("carries no reveal lines on a Turn with no Clues or Knowledge in play", () => {
+    const text = renderDirective(
+      directiveFor({ kind: "other" }, { kind: "none" })
+    )
+    expect(text).not.toMatch(/reveal|found this Turn/i)
+  })
+
+  it("describes each Band as a lean, not a mandate", () => {
+    const at = (reputation: number) =>
+      directiveFor(
+        { kind: "other" },
+        { kind: "none" },
+        { state: state({ reputation }) }
+      ).bandGuidance
+    expect(at(80)).toBe(
+      "Characters are inclined to trust the Player character, each in their own way."
+    )
+    expect(at(50)).toBe(
+      "Characters judge the Player character on what they have seen and heard, through their own personality and wants."
+    )
+    expect(at(10)).toBe(
+      "Characters are wary of the Player character, each in their own way."
+    )
   })
 
   it("names the Discoverable Clues with what each reveals", () => {
@@ -124,7 +166,7 @@ describe("a Turn's Directive (spec §9.1 step 4)", () => {
     expect(directive.outcome).toMatch(/St Katharine Docks/)
     expect(directive.location.name).toBe("St Katharine Docks")
     expect(directive.band).toBe("low")
-    expect(directive.bandGuidance).toMatch(/distrust/)
+    expect(directive.bandGuidance).toMatch(/wary/)
   })
 
   it("describes the Band the Turn is played in, before its penalty, as the reveals do", () => {
@@ -189,6 +231,7 @@ describe("a Turn's Directive (spec §9.1 step 4)", () => {
         pacingNudge: { active: true, reason: "No progress in three Turns." },
       }),
       resolution: null,
+      playerInput: null,
       metExitConditionIds: [],
     })
     expect(directive.pacingNudge).toMatch(/opportunity/)

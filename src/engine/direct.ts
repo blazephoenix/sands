@@ -2,10 +2,11 @@
  * The Directive builder (spec §9.1 step 4; CONTEXT.md: Directive): what code
  * tells the Writer for one Turn. Pure.
  *
- * The Writer embellished Allowed reveals with new facts in the smoke test
- * (research §2), so each reveal is given as the exact fact to convey, and the
- * Directive forbids any new fact about any character. The wording names
- * story mechanics only, never one genre's furniture.
+ * Each Allowed reveal is given as the exact fact to convey. Characters may
+ * still say new things about themselves, their past and what they want, so
+ * long as nothing contradicts the Brief or the Codex. Reveal lines appear only
+ * on a Turn with Knowledge or Clues in play. The wording names story
+ * mechanics only, never one genre's furniture.
  */
 import type { Brief } from "@/domain/brief"
 import {
@@ -20,12 +21,12 @@ import type { Ending, PlayerState } from "@/domain/session"
 import { bandFor, ENGINE_CONFIG } from "./config"
 import type { Resolution } from "./resolve"
 
-/** How characters treat the Player character in each Band. The Reputation Rule is written from these. */
+/** How each Band leans the characters toward the Player character: a lean, not a mandate. */
 export const BAND_GUIDANCE: Record<Band, string> = {
-  high: "The story's characters trust and respect the Player character: they are warm and forthcoming, and may go out of their way to help.",
+  high: "Characters are inclined to trust the Player character, each in their own way.",
   normal:
-    "The story's characters treat the Player character fairly: civil and businesslike, neither hostile nor especially generous.",
-  low: "The story's characters distrust the Player character: they are cold, guarded and slow to help, and give up nothing they do not have to.",
+    "Characters judge the Player character on what they have seen and heard, through their own personality and wants.",
+  low: "Characters are wary of the Player character, each in their own way.",
 }
 
 export type Directive = {
@@ -39,8 +40,13 @@ export type Directive = {
     /** The current Arc's live Exit conditions not yet met. */
     exitConditions: string[]
   }
-  /** What code decided happened, to narrate. Null for the Opening. */
+  /** What code decided happened, to narrate. Null for the Opening and for a narrated action. */
   outcome: string | null
+  /**
+   * For an action that changes nothing code tracks: the Player character's
+   * action as typed, the beat to play. Null otherwise.
+   */
+  beat: string | null
   allowedReveals: { character: string; fact: string }[]
   discoverableClues: { name: string; reveals: string }[]
   band: Band
@@ -59,6 +65,8 @@ export type DirectiveInput = {
   state: PlayerState
   /** The resolved Outcome; null for the Opening. */
   resolution: Resolution | null
+  /** The Player's input; null for the Opening. */
+  playerInput: string | null
   /** Exit conditions the Arc check has found met. */
   metExitConditionIds: readonly string[]
 }
@@ -89,6 +97,8 @@ export function buildDirective(input: DirectiveInput): Directive {
   // The Band the Turn is played in, as the resolver revealed by it.
   const band = resolution?.band ?? bandFor(state.reputation)
   const ending = state.ending === "none" ? null : state.ending
+  const action = resolution?.outcome.action ?? null
+  const narrated = action?.kind === "narrated"
 
   return {
     kind: resolution ? "turn" : "opening",
@@ -110,7 +120,8 @@ export function buildDirective(input: DirectiveInput): Directive {
         )
         .map((e) => e.data.condition.trim() || e.name),
     },
-    outcome: resolution?.outcome.action?.summary ?? null,
+    outcome: narrated ? null : (action?.summary ?? null),
+    beat: narrated ? (input.playerInput?.trim() ?? "") : null,
     allowedReveals: (resolution?.allowedReveals ?? []).map((k) => ({
       character: byId.get(k.data.characterId)?.name ?? "",
       fact: k.data.fact,
@@ -142,6 +153,10 @@ export function renderDirective(directive: Directive): string {
     lines.push(
       `Write the opening scene as a cold open: ${player} at ${directive.location.name}, with Arc ${directive.arc.number} (${directive.arc.name}) under way and the world already in motion. Make plain what ${player} is here to do, as the Brief and this Arc give it, and end on something the Player can act on. ${player} does nothing beyond arriving and says nothing; the Player acts next.`
     )
+  } else if (directive.beat !== null) {
+    lines.push(
+      `What ${player} does: ${directive.beat}\nShow it, and how the characters present react.`
+    )
   } else {
     lines.push(`What happened (narrate it): ${directive.outcome ?? "—"}`)
   }
@@ -159,17 +174,12 @@ export function renderDirective(directive: Directive): string {
     )
     for (const reveal of directive.allowedReveals)
       lines.push(`- ${reveal.character}: ${reveal.fact}`)
-  } else {
-    lines.push("Nothing may be revealed this Turn.")
   }
   if (directive.discoverableClues.length > 0) {
     lines.push("May be found this Turn, exactly as written and nothing more:")
     for (const clue of directive.discoverableClues)
       lines.push(`- ${clue.name}: ${clue.reveals}`)
   }
-  lines.push(
-    "Add no new fact about any character: nothing new about what they look like, carry, did, saw or know, or where they are or went. Manner, mood, weather and scenery are free."
-  )
   lines.push(
     `How characters behave (${directive.band} Band): ${directive.bandGuidance}`
   )

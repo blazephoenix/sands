@@ -284,8 +284,8 @@ A Session never starts blank. As soon as it is created, the harness plays its **
    - **on_script / tangential:** no penalty.
    - **removed:** reputation ≤ 0 or off-script count ≥ 4 after this turn's changes → `removed`.
    - **Order:** the intent and the classification both apply; a classification never cancels the intent (an off-script move still moves the player, then costs 10). A reckless action rolls for death first; lethal ends the session and nothing else resolves. Otherwise the intent resolves, then the classification's penalty, then the removed check. The Outcome records the intent's result and the classification's effect separately.
-4. **Direct (code, pure).** Build the directive: current arc and its unmet exit conditions, allowed reveals, discoverable clues, reputation band plus behavior guidance for that band, warnings to deliver, pacing nudge if set, the outcome to narrate, and the ending if one was decided.
-5. **Write (Grok, two drafts in parallel).** Input: brief YAML (hidden fields marked), codex slice (§9.3), voice guidance, last 4 passages, player input, directive. Target length about 150 words. Use a fast non-reasoning Grok model (exact model chosen by the day-1 latency test; configurable via env).
+4. **Direct (code, pure).** Build the directive: current arc and its unmet exit conditions, allowed reveals, discoverable clues, reputation band plus the lean for that band (high: inclined to trust; normal: judge on what they have seen and heard; low: wary; each character in their own way), warnings to deliver, pacing nudge if set, the outcome to narrate, and the ending if one was decided. An action that changes nothing code tracks reaches the Writer as the player character's action as typed, to show along with how the characters present react. Reveal and clue lines appear only when the turn has some in play. Characters may say new things about themselves, their past and what they want, as long as nothing contradicts the brief or the codex (#18).
+5. **Write (Grok, two drafts in parallel).** Input: brief YAML (hidden fields marked), codex slice (§9.3), voice guidance, last 4 passages, player input, directive. Passage cap from config (`passageWords`, 300). The Writer instructions are the Author's SillyTavern-style prompt generalized to every character in the scene (#18): characters with their own wants who may refuse, persistent consequences, and a "before writing" checklist answered in the model's reasoning. Use a reasoning Grok model (`grok-4.20-0309-reasoning`, configurable via env) so the checklist runs; the output-token ceiling (`writerMaxOutputTokens`) leaves room for its reasoning.
 6. **Jev call 2 — judge both drafts in one request.** All rule questions (§10) for each draft, plus one discovery `noul` per allowed reveal and per discoverable clue ("did this draft reveal it?"), plus the unplanned-clue check (§10).
    - If one or both drafts pass, ship the passing draft with the lower highest-violation score.
    - If both fail, build feedback from the clearly failed rules (§10.4) and write two new drafts. Maximum 3 rounds. After round 3, ship the draft with the lowest highest-violation score and set `flagged`.
@@ -355,13 +355,13 @@ The wordings below include the rewordings the smoke test proposed (research §2)
 | Character drift | Per non-player character named in the draft (matched in code by full name, alias, given name or surname), with their entry beside the question: "Does anything `character.name` says or does go against `character.personality` or `character.backstory`?" The `false` criterion: behaviour the entry allows is not drift. |
 | Arc | "Does the draft depict events from `later_arcs`?" and "Does the draft contradict `current_arc`?" (split per §10.1: one condition per question) |
 | Location | "Does the draft take place somewhere other than `current_location`?", "Does the draft describe `current_location` against its description?" and "Does the draft name a place a character could travel to that is not in `known_places`?" (`known_places` is every live Location, since the slice holds only nearby ones. Detail inside a location, such as a back office, is description and allowed.) |
-| Knowledge | "Does a character reveal information that is not in `allowed_reveals` or `knowledge_revealed`?" and "Leaving aside what characters say aloud, does the narrator state or hint at `hidden_truth` beyond what `clues_found` supports?" (reworded: the first wording fired on dialogue). **Information** means a fact about a character: what they look like, carry, did, saw, know, or where they are or went. Manner, mood, weather and scenery are not information. The criteria spell this out, because the Writer embellishes Allowed reveals with such facts (smoke test, §9.5). |
+| Knowledge | Only when the scene's characters (those in the codex slice or named in the draft) hold knowledge entries neither allowed this turn nor already revealed, with those facts beside the question: "Does a character give away a fact in `knowledge`?" A character saying something new about themselves, their past or what they want is not a reveal (#18). And "Leaving aside what characters say aloud, does the narrator state or hint at `hidden_truth` beyond what `clues_found` supports?" (reworded: the first wording fired on dialogue). Until #18 the first question counted any new fact about a character as information; it threw out Drafts where characters talked about themselves. |
 | Unplanned clue | "Does the draft present a fact pointing to `hidden_truth` that is not one of the discoverable or found clues?" (Replaces the blocking part of `docs/requirements.md` §8 step 8.) |
 | Outcome | "Does the draft contradict `outcome`?" |
 | Agency | "Does the player character say or do more than `player_input`?" |
 | Period | "Does the draft contain anachronisms for `setting`?" |
 | Codex | One question per live Entry the draft names (location, character, NPC, faction, object), with the Entry beside it: "Does the draft state something that conflicts with `entry`?" (proposed entries are canon), and, when any Entry is removed, "Does the draft mention anything in `rejected_names`?" |
-| Reputation | Two concrete questions for the current Band, each naming behaviour the Band forbids: high, open contempt and unearned suspicion or coldness; normal, open contempt and special deference (gifts, flattery, favours); low, special deference and warmth or trust. |
+| Reputation | One **Pushover** question in every Band: "Does a character agree with, give in to, or flatter the player character against their own wants, with no reason in the story?" Characters may feel strongly in either direction; the rule stops sycophancy (#18). |
 | Voice | Only if the brief has voice guidance: one question per guideline (the guidelines split by line and sentence), with the guideline beside it: "Does the draft break `guideline`?" |
 | Ending | Only on ending turns: "Does the draft narrate an ending other than `ending`?" |
 
@@ -431,7 +431,8 @@ Each rule has a feedback template. A Rule question the draft fails at p ≥ 0.8 
 | Jev noul fail / Unsure band | p ≥ 0.5 / 0.35–0.65 |
 | Retry feedback floor | p ≥ 0.8 |
 | Jev choice confidence floor | 0.6 |
-| Passage length target | ~150 words |
+| Passage cap | under 300 words (`passageWords`) |
+| Writer output-token ceiling | 6,000, reasoning included (`writerMaxOutputTokens`) |
 
 Environment: `XAI_API_KEY`, `WRITER_MODEL`, `OPENAI_API_KEY`, `DRAFTER_MODEL`, `TYPESAFE_API_KEY`, `TYPESAFE_BASE_URL` (`https://api.typesafe.ai`, also the SDK's default) and `TYPESAFE_DEFAULT_MODEL` (`jev-1.13.0`, pinned; `jev-latest` points to it today). All three are the names the TypeSafe SDK reads, so the client needs no configuration in code, `DB_URL`.
 
@@ -475,7 +476,7 @@ Domain vocabulary is defined in `CONTEXT.md`. Where the requirements use other w
 
 1. **Re-verify §10 against the official Jev docs:** resolved 2026-09-24. §10.1 is rewritten from https://docs.typesafe.ai and the SDK types. The endpoint, question shapes, answer shapes and `jev-1.13.0` pin were right; the fail and Unsure thresholds are our design, not a Jev convention; compound Rule questions must be split. Sources: `docs/research/2026-09-24-engine-libraries.md`.
 2. **Jev endpoint:** resolved. `https://api.typesafe.ai` (`POST /v1/systemone`), per https://docs.typesafe.ai/api.
-3. **Writer and Drafter model names:** resolved 2026-09-24 by the latency test: `WRITER_MODEL=grok-4.20-0309-non-reasoning` (about 3.1 s per ~140-word Draft) and `DRAFTER_MODEL=gpt-5.6-sol` (4.6 s for one small structured-output call at the default reasoning effort).
+3. **Writer and Drafter model names:** resolved 2026-09-24 by the latency test: `WRITER_MODEL=grok-4.20-0309-non-reasoning` (about 3.1 s per ~140-word Draft), changed by #18 to `grok-4.20-0309-reasoning` and `DRAFTER_MODEL=gpt-5.6-sol` (4.6 s for one small structured-output call at the default reasoning effort).
 
 ### Next step
 

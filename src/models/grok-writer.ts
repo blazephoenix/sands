@@ -2,7 +2,8 @@
  * The real Writer: Grok through the AI SDK's xAI provider
  * (docs/research/2026-09-24-engine-libraries.md §4). `xai(id)` uses the
  * Responses API and reads `XAI_API_KEY` itself; the model is `WRITER_MODEL`,
- * a fast non-reasoning Grok. Server-only: the key must never reach a browser.
+ * a reasoning Grok, so it thinks through the characters before it drafts
+ * (#18). Server-only: the key must never reach a browser.
  *
  * Every call logs the model id the provider reports (`response.modelId`),
  * the way the Judge logs Jev's version. A failed call is retried once (spec
@@ -11,6 +12,8 @@
  */
 import { xai } from "@ai-sdk/xai"
 import { generateText, type LanguageModel } from "ai"
+
+import { ENGINE_CONFIG } from "@/engine/config"
 
 import { consoleLogger, type ModelLogger } from "./logger"
 import {
@@ -25,13 +28,13 @@ export interface GrokWriterOptions {
   model?: LanguageModel
   /** Retries after the first attempt. Default 1 (spec §13). */
   maxRetries?: number
-  /** Timeout per call in milliseconds. Default 30 000; a Draft takes about 3 s. */
+  /**
+   * Timeout per call in milliseconds. Default 60 000: a reasoning Draft takes
+   * longer than the ~3 s a non-reasoning one did.
+   */
   timeoutMs?: number
   logger?: ModelLogger
 }
-
-/** Room for a ~150-word Passage and then some; a runaway Draft is cut, not waited for. */
-const MAX_OUTPUT_TOKENS = 600
 
 export class GrokWriter implements Writer {
   readonly #model: LanguageModel
@@ -89,9 +92,9 @@ export class GrokWriter implements Writer {
         model: this.#model,
         instructions: request.instructions,
         prompt: request.prompt,
-        maxOutputTokens: MAX_OUTPUT_TOKENS,
+        maxOutputTokens: ENGINE_CONFIG.writerMaxOutputTokens,
         maxRetries: this.#options.maxRetries ?? 1,
-        timeout: this.#options.timeoutMs ?? 30_000,
+        timeout: this.#options.timeoutMs ?? 60_000,
         abortSignal: options.signal,
       })
     } catch (error) {
@@ -108,7 +111,8 @@ export class GrokWriter implements Writer {
     }
     this.#logger.info(
       `[writer] model=${result.response.modelId} requested=${this.requestedModel} ` +
-        `input_tokens=${usage.inputTokens} output_tokens=${usage.outputTokens} latency_ms=${latencyMs}`
+        `input_tokens=${usage.inputTokens} output_tokens=${usage.outputTokens} ` +
+        `reasoning_tokens=${result.usage.outputTokenDetails.reasoningTokens ?? 0} latency_ms=${latencyMs}`
     )
     return {
       text: result.text.trim(),
