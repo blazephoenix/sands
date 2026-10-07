@@ -2,9 +2,12 @@
 
 // From @aceternity/text-generate-effect, adapted: typography comes from the
 // caller (no hard-coded size, weight or colours), the stagger is a prop, the
-// reveal can be completed early, it reports completion, and it honours
-// prefers-reduced-motion.
+// reveal can be completed early, it reports completion, it honours
+// prefers-reduced-motion, and each line of `words` is its own paragraph (the
+// stagger runs across them in reading order).
 import { useEffect, useMemo } from "react"
+
+import { passageParagraphs } from "@/lib/passage"
 import {
   motion,
   stagger as staggerBy,
@@ -34,12 +37,15 @@ export const TextGenerateEffect = ({
 }) => {
   const [scope, animate] = useAnimate()
   const reduced = useReducedMotion()
-  const wordsArray = useMemo(() => words.split(" "), [words])
+  const paragraphs = useMemo(
+    () => passageParagraphs(words).map((paragraph) => paragraph.split(" ")),
+    [words]
+  )
   const now = instant || !!reduced
 
   useEffect(() => {
     const controls = animate(
-      "span",
+      "[data-word]",
       { opacity: 1, filter: filter ? "blur(0px)" : "none" },
       now ? { duration: 0 } : { duration, delay: staggerBy(stagger) }
     )
@@ -56,14 +62,19 @@ export const TextGenerateEffect = ({
 
   return (
     <span ref={scope} className={className}>
-      {wordsArray.map((word, idx) => (
-        <motion.span
-          key={word + idx}
-          className="opacity-0"
-          style={{ filter: filter ? "blur(10px)" : "none" }}
-        >
-          {word}{" "}
-        </motion.span>
+      {paragraphs.map((paragraphWords, p) => (
+        <span key={p} className="block not-first:mt-4">
+          {paragraphWords.map((word, idx) => (
+            <motion.span
+              key={word + idx}
+              data-word
+              className="opacity-0"
+              style={{ filter: filter ? "blur(10px)" : "none" }}
+            >
+              {word}{" "}
+            </motion.span>
+          ))}
+        </span>
       ))}
     </span>
   )

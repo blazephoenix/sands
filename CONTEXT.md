@@ -51,7 +51,7 @@ One Player input and everything the harness does in response to it, ending in on
 _Avoid_: step, round (reserved for one writing attempt within a Turn), move
 
 **Opening**:
-Turn 0 of every Session: the Writer sets the first scene, like the first page of a novel, before the Player acts. It is written and judged like any Turn, but nothing is read from the Player and no Outcome is resolved.
+Turn 0 of every Session: the Writer sets the first scene as a cold open, the world already in motion and what the Player character is there to do made plain, before the Player acts. It is written and judged like any Turn, but nothing is read from the Player and no Outcome is resolved.
 _Avoid_: intro, prologue, first message
 
 **Player**:

@@ -30,6 +30,7 @@ import { TextGenerateEffect } from "@/components/ui/text-generate-effect"
 import type { TurnPhase } from "@/domain/events"
 import { turnLabel, type Turn } from "@/domain/session"
 import { isTypingTarget } from "@/lib/keyboard"
+import { passageParagraphs } from "@/lib/passage"
 import { cn } from "@/lib/utils"
 
 import type { TurnRun } from "./use-session"
@@ -124,16 +125,20 @@ export function TurnSection({
           {turn.playerInput}
         </p>
       )}
-      <p className="text-lg leading-8 text-pretty">
+      <div className="text-lg leading-8 text-pretty">
         {revealing ? (
           <>
             <PassageReveal text={turn.passage} onDone={onRevealed} />
             <span className="sr-only">{turn.passage}</span>
           </>
         ) : (
-          turn.passage
+          passageParagraphs(turn.passage).map((paragraph, p) => (
+            <p key={p} className="not-first:mt-4">
+              {paragraph}
+            </p>
+          ))
         )}
-      </p>
+      </div>
     </section>
   )
 }

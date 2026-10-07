@@ -34,6 +34,10 @@ describe("the Opening's Directive (spec §9.0)", () => {
     expect(directive.discoverableClues).toEqual([])
     expect(directive.outcome).toBeNull()
     expect(renderDirective(directive)).toMatch(/opening scene/i)
+    expect(renderDirective(directive)).toMatch(/cold open/i)
+    expect(renderDirective(directive)).toMatch(
+      /what Jacob Flannery is here to do/
+    )
     expect(renderDirective(directive)).toMatch(/does nothing beyond arriving/i)
   })
 

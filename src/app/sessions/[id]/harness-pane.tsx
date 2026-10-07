@@ -327,7 +327,7 @@ function DraftBlock({ draft, index }: { draft: Draft; index: number }) {
       </div>
       <p
         className={cn(
-          "text-sm leading-relaxed",
+          "text-sm leading-relaxed whitespace-pre-line",
           !draft.passed &&
             !draft.shipped &&
             "text-muted-foreground line-through"

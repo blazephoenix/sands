@@ -265,7 +265,7 @@ Target: **3–5 seconds** from submit to passage on a turn that needs no retry. 
 
 ### 9.0 The Opening (turn 0)
 
-A Session never starts blank. As soon as it is created, the harness plays its **Opening**: the Writer writes the first scene (the Player character at the start location, the first Arc under way) and the Judge rules on it like any Turn. There is no player input, so steps 2 and 3 below are skipped: nothing is read or classified, and no Outcome is resolved. The directive asks for an opening scene and allows no reveals. The Agency rule checks that the Player character does nothing beyond arriving. The Opening is turn 0, with `player_input` null. The Session page plays it automatically, with the same progress events and reveal as any Turn; a failure leaves the Session with no Turns and offers Retry.
+A Session never starts blank. As soon as it is created, the harness plays its **Opening**: the Writer writes the first scene as a cold open (the Player character at the start location, the first Arc under way and the world already in motion, what the Player character is there to do made plain, ending on something the Player can act on) and the Judge rules on it like any Turn. There is no player input, so steps 2 and 3 below are skipped: nothing is read or classified, and no Outcome is resolved. The directive asks for an opening scene and allows no reveals. The Agency rule checks that the Player character does nothing beyond arriving. The Opening is turn 0, with `player_input` null. The Session page plays it automatically, with the same progress events and reveal as any Turn; a failure leaves the Session with no Turns and offers Retry.
 
 ### 9.1 Critical path (before the passage appears)
 
@@ -296,7 +296,7 @@ A Session never starts blank. As soon as it is created, the harness plays its **
 
 8. **Extraction (Drafter):** named characters in the passage that are not in the codex become `npc` entries with `status = proposed`, `source = play`, `source_turn = idx`.
 9. **Arc check (Jev):** one `noul` per unmet exit condition of the current arc, using recent passages and state. When all are met, code advances `arc_index`.
-10. **Pacing check (Jev):** "Over the last 3 turns, has the player made progress toward the current arc's exit conditions?" If not, set `pacing_nudge`; the next directive tells the writer to surface an opportunity (a messenger, a chance meeting, an overheard remark). The nudge never advances an arc. Experimental.
+10. **Pacing check (Jev):** "Over the last 2 turns, has the player made progress toward the current arc's exit conditions?" If not, set `pacing_nudge`; the next directive tells the writer to surface an opportunity (a messenger, a chance meeting, an overheard remark). The nudge never advances an arc. Experimental.
 
 Results are written into the turn's `log_json` and `state_json`; `background_status` becomes `done` or `failed`.
 
@@ -425,7 +425,7 @@ Each rule has a feedback template. A Rule question the draft fails at p ≥ 0.8 
 | Recovery | +5 for finding a clue a decisive action requires |
 | Off-script threshold | 4 (warnings at 2 and 3) |
 | Death odds per arc | 20%, 35%, 50% (last value used for later arcs) |
-| Pacing window | 3 turns |
+| Pacing window | 2 turns |
 | Writer's recent passages | 4 |
 | Drafts per round / max rounds | 2 / 3 |
 | Jev noul fail / Unsure band | p ≥ 0.5 / 0.35–0.65 |
