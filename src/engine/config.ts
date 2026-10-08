@@ -40,6 +40,12 @@ export const ENGINE_CONFIG = {
    * `passageWords`; a runaway Draft is still cut, not waited for.
    */
   writerMaxOutputTokens: 6000,
+  /**
+   * How hard the Writer reasons. grok-4.7 defaults to "high", which ran past
+   * the 60 s timeout on both Drafts of a Round; "low" still runs the
+   * "before writing" checklist.
+   */
+  writerReasoning: "low",
 } as const
 
 export function bandFor(reputation: number): Band {

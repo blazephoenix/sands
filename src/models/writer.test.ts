@@ -91,9 +91,23 @@ describe("GrokWriter", () => {
       maxOutputTokens,
     }).write(request)
     expect(result.reasoning).toBe("Carrow resents the ask.")
+    expect(model.doGenerateCalls[0].reasoning).toBe("provider-default")
     expect(model.doGenerateCalls[0].providerOptions).toEqual({
       xai: { reasoningSummary: "auto" },
     })
+  })
+
+  it("sends the reasoning effort it is given", async () => {
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => generated("The fog lifted."),
+    })
+    await new GrokWriter({
+      model,
+      logger: logger(),
+      maxOutputTokens,
+      reasoning: "low",
+    }).write(request)
+    expect(model.doGenerateCalls[0].reasoning).toBe("low")
   })
 
   it("returns no reasoning when the model gives none", async () => {

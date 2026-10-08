@@ -37,6 +37,8 @@ export interface GrokWriterOptions {
   logger?: ModelLogger
   /** The output-token ceiling, reasoning included. The engine passes its config. */
   maxOutputTokens: number
+  /** Reasoning effort. Default "provider-default"; the engine passes its config. */
+  reasoning?: "provider-default" | "low" | "medium" | "high"
 }
 
 export class GrokWriter implements Writer {
@@ -96,6 +98,7 @@ export class GrokWriter implements Writer {
         instructions: request.instructions,
         prompt: request.prompt,
         maxOutputTokens: this.#options.maxOutputTokens,
+        reasoning: this.#options.reasoning ?? "provider-default",
         maxRetries: this.#options.maxRetries ?? 1,
         timeout: this.#options.timeoutMs ?? 60_000,
         abortSignal: options.signal,

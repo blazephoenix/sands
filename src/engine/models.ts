@@ -18,6 +18,7 @@ export function turnModels(): TurnModels {
   return {
     writer: new GrokWriter({
       maxOutputTokens: ENGINE_CONFIG.writerMaxOutputTokens,
+      reasoning: ENGINE_CONFIG.writerReasoning,
     }),
     judge: new TypeSafeJudge(),
     drafter: new OpenAIDrafter({ timeoutMs: NEW_CHARACTERS_TIMEOUT_MS }),
