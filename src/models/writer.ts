@@ -20,6 +20,11 @@ export interface WriterResult {
   }
   /** Wall-clock time of the call, including any retries. */
   readonly latencyMs: number
+  /**
+   * The model's reasoning summary, for the harness pane. Null when the model
+   * returns none, as one that keeps its reasoning encrypted does.
+   */
+  readonly reasoning: string | null
 }
 
 export interface Writer {

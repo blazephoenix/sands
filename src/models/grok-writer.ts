@@ -3,14 +3,17 @@
  * (docs/research/2026-09-24-engine-libraries.md §4). `xai(id)` uses the
  * Responses API and reads `XAI_API_KEY` itself; the model is `WRITER_MODEL`,
  * a reasoning Grok, so it thinks through the characters before it drafts
- * (#18). Server-only: the key must never reach a browser.
+ * (#18). It asks for a reasoning summary, which the harness pane shows under
+ * each Draft; xAI documents readable summaries for `grok-4.7` only, and other
+ * reasoning models return their reasoning encrypted. Server-only: the key must
+ * never reach a browser.
  *
  * Every call logs the model id the provider reports (`response.modelId`),
  * the way the Judge logs Jev's version. A failed call is retried once (spec
  * §13): the SDK retries transport failures, and an empty Draft is asked for
  * once more here. A second failure fails the Turn.
  */
-import { xai } from "@ai-sdk/xai"
+import { xai, type XaiLanguageModelResponsesOptions } from "@ai-sdk/xai"
 import { generateText, type LanguageModel } from "ai"
 
 import { consoleLogger, type ModelLogger } from "./logger"
@@ -96,6 +99,11 @@ export class GrokWriter implements Writer {
         maxRetries: this.#options.maxRetries ?? 1,
         timeout: this.#options.timeoutMs ?? 60_000,
         abortSignal: options.signal,
+        providerOptions: {
+          xai: {
+            reasoningSummary: "auto",
+          } satisfies XaiLanguageModelResponsesOptions,
+        },
       })
     } catch (error) {
       const latencyMs = Math.round(performance.now() - started)
@@ -119,6 +127,7 @@ export class GrokWriter implements Writer {
       model: result.response.modelId,
       usage,
       latencyMs,
+      reasoning: result.finalStep.reasoningText?.trim() || null,
     }
   }
 }

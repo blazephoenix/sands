@@ -104,6 +104,8 @@ export type RuleResult = z.infer<typeof ruleResultSchema>
 export const draftSchema = z.object({
   id: z.string(),
   text: z.string(),
+  /** The Writer's reasoning summary. Absent when the model returned none, and on Turns logged before #18. */
+  reasoning: z.string().optional(),
   rules: z.array(ruleResultSchema),
   /** The highest probability among its Rule results; the lower, the better. */
   highestViolation: z.number().min(0).max(1),

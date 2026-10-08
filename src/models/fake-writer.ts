@@ -55,6 +55,7 @@ export class FakeWriter implements Writer {
       model: this.model,
       usage: { inputTokens: 0, outputTokens: 0 },
       latencyMs: 0,
+      reasoning: null,
     }
   }
 }

@@ -72,6 +72,42 @@ describe("GrokWriter", () => {
     expect(log.lines[0]).toMatch(/ reasoning_tokens=0 /)
   })
 
+  it("asks for a reasoning summary and returns it with the Draft", async () => {
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => {
+        const result = generated("The fog lifted.")
+        return {
+          ...result,
+          content: [
+            { type: "reasoning" as const, text: "  Carrow resents the ask.  " },
+            ...result.content,
+          ],
+        }
+      },
+    })
+    const result = await new GrokWriter({
+      model,
+      logger: logger(),
+      maxOutputTokens,
+    }).write(request)
+    expect(result.reasoning).toBe("Carrow resents the ask.")
+    expect(model.doGenerateCalls[0].providerOptions).toEqual({
+      xai: { reasoningSummary: "auto" },
+    })
+  })
+
+  it("returns no reasoning when the model gives none", async () => {
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => generated("The fog lifted."),
+    })
+    const result = await new GrokWriter({
+      model,
+      logger: logger(),
+      maxOutputTokens,
+    }).write(request)
+    expect(result.reasoning).toBeNull()
+  })
+
   it("retries a failed call once, then succeeds", async () => {
     let calls = 0
     const model = new MockLanguageModelV4({

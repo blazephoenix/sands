@@ -292,6 +292,26 @@ function RuleRows({ draft }: { draft: Draft }) {
   )
 }
 
+/** The Writer's reasoning summary for one Draft, closed until asked for. */
+function ReasoningBlock({ reasoning }: { reasoning: string }) {
+  return (
+    <Collapsible className="group/reasoning flex flex-col">
+      <CollapsibleTrigger className="flex w-fit items-center gap-1 rounded-md px-1 py-0.5 text-xs text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50">
+        <ChevronRightIcon
+          aria-hidden
+          className="size-3.5 shrink-0 transition-transform duration-150 group-data-[open]/reasoning:rotate-90 motion-reduce:transition-none"
+        />
+        Reasoning
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <p className="mt-1 border-l-2 ps-3 text-xs leading-relaxed whitespace-pre-line text-muted-foreground">
+          {reasoning}
+        </p>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
 function DraftBlock({ draft, index }: { draft: Draft; index: number }) {
   const letter = String.fromCharCode(65 + index)
   const status = draft.shipped
@@ -335,6 +355,7 @@ function DraftBlock({ draft, index }: { draft: Draft; index: number }) {
       >
         {draft.text}
       </p>
+      {draft.reasoning ? <ReasoningBlock reasoning={draft.reasoning} /> : null}
       <RuleRows draft={draft} />
     </div>
   )

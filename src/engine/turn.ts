@@ -101,6 +101,7 @@ const discoveryKey = (draft: number, n: number) => `d${draft}_disc_${n}`
 type Judged = {
   id: string
   text: string
+  reasoning: string | null
   questions: RuleQuestion[]
   discovery: DiscoveryQuestion[]
   verdict: DraftVerdict
@@ -329,6 +330,7 @@ export async function runTurn(
         ({ questions: rules, discovery }, i) => ({
           id: `${turnId}-r${index}${String.fromCharCode(97 + i)}`,
           text: texts[i],
+          reasoning: written[i].reasoning,
           questions: rules,
           discovery,
           verdict: readDraft(
@@ -381,6 +383,7 @@ export async function runTurn(
       drafts: round.drafts.map((d): Draft => ({
         id: d.id,
         text: d.text,
+        ...(d.reasoning ? { reasoning: d.reasoning } : {}),
         rules: d.verdict.rules,
         highestViolation: d.verdict.highestViolation,
         passed: d.verdict.passed,
