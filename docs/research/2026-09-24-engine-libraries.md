@@ -1,4 +1,4 @@
-# Engine libraries: Jev, AI SDK 7, Next 16, Drizzle 0.45
+# Engine libraries: Jev, AI SDK 7, Next 16, Drizzle 0.45, BlockNote 0.54
 
 **Date:** 2026-09-24 · **Issue:** #1 · **Spec:** `docs/superpowers/specs/2026-09-23-creation-harness-design.md`
 
@@ -215,6 +215,73 @@ Sources: [orm.drizzle.team](https://orm.drizzle.team/docs), the installed `drizz
 - **Transactions are synchronous.** `db.transaction((tx) => { ...; return value })` wraps better-sqlite3's own transaction. Inside it, use `.run()`, `.all()` and `.get()`; a thrown error rolls back. The config is `{ behavior: "deferred" | "immediate" | "exclusive" }`, and nested transactions use savepoints. **Probe:** an `async` callback throws "Transaction function cannot return a promise". (`drizzle-orm/better-sqlite3/session.js`; [drizzle-orm#5063](https://github.com/drizzle-team/drizzle-orm/issues/5063); [better-sqlite3 caveats](https://github.com/WiseLibs/better-sqlite3/blob/master/docs/api.md#caveats)) The docs' examples are `async (tx)` and do not apply to this driver. Consequence: call the models first, then write the Turn row and state in one synchronous transaction. Spec §13 already wants that ("state is saved only when a passage ships").
 - **Migrations.** `drizzle-kit generate` writes SQL plus `meta/_journal.json` to `out` (`src/db/migrations` in `drizzle.config.ts`). Apply them with `drizzle-kit migrate` or with `migrate(db, { migrationsFolder })` from `drizzle-orm/better-sqlite3/migrator`, which is synchronous. ([Migrations](https://orm.drizzle.team/docs/migrations), `migrator.d.ts`) **Probe:** a missing folder throws "Can't find meta/_journal.json file".
 - **Server Components.** Queries through a synchronous driver finish during prerendering; call `connection()` first to keep them per request. (`next/dist/docs/01-app/03-api-reference/04-functions/connection.md`) This only matters if a page reads the database directly rather than through a Route Handler.
+
+## 7. BlockNote tables (research for #29)
+
+**Date:** 2026-10-12 · **Issue:** #29 (map #25, skeleton #24) · **Question:** can the skeleton's multi-column tables (Places, Rules, Promises, an agenda per Arc, Hidden truth, Endings, State flags) be native BlockNote tables in the Brief editor?
+
+Sources: [Tables](https://www.blocknotejs.org/docs/features/blocks/tables), [Document structure](https://www.blocknotejs.org/docs/foundations/document-structure), and the installed source: `@blocknote/core`, `@blocknote/react` and `@blocknote/shadcn` 0.54.2, `prosemirror-tables` 1.8.5, `prosemirror-transform` 1.12.1, `@tiptap/core` 3.31.3. Core paths below are under `node_modules/@blocknote/core/src/`. **Probe:** [`checks/blocknote-tables.check.ts`](checks/blocknote-tables.check.ts), a throwaway Vitest file (14 passing tests) that loads the app's real configs plus BlockNote's default `table` block into a headless editor. Run it with `pnpm exec vitest run --config docs/research/checks/vitest.config.ts`; the app's suite does not include it.
+
+**Verdict: native tables, with app-side work.** All five needs can be met. None is blocked by BlockNote. The one real cost is that **a table row has no identity**: no id, no props, nothing but its cells. Anything per row (a lock, a review status, the target of a validation issue) must be keyed by the row's content, such as its first cell, and kept outside the table. If rows must carry their own status in the document the way Entry headings do, rows as cards (sections) are the better fit.
+
+| # | Need | Answer |
+|---|---|---|
+| 1 | Hidden style in a cell | **Yes**, unchanged |
+| 2 | Rows → typed data → rows, unchanged | **Yes**; rows have no ids |
+| 3 | Locked row refuses edits via transaction filtering | **Partly**: works, but not with today's guard design |
+| 4 | Add, remove and reorder rows from the keyboard | **Partly**: the commands exist; no keys are bound |
+| 5 | Table inside a section run under a custom heading | **Partly**: BlockNote yes; today's section walker no |
+
+### 1. Hidden in a cell: Yes
+
+- A cell holds one `tableParagraph` whose content is `inline*` with no `marks` spec, so ProseMirror allows every mark, the `hidden` style included. (`blocks/Table/block.ts:302-306`, `:105`) Writing goes through `inlineContentToNodes(..., styleSchema)` (`api/nodeConversions/blockToNode.ts:246-256`). Reading goes through `contentNodeToInlineContent(..., styleSchema)` (`api/nodeConversions/nodeToBlock.ts:77`). A cell's content is the same `InlineContent[]` a paragraph has. ([Tables § Block Shape](https://www.blocknotejs.org/docs/features/blocks/tables))
+- **Probe:** a Hidden value loads and reads back with `styles: { hidden: true }`. The app's own `Mod-Shift-h` call, `editor.toggleStyles({ hidden: true })`, applies Hidden to a selection in a cell. Hidden on part of a cell splits the text the same way it does in a field. `hasHiddenStyle` and `inlineToText` from `src/editor/` read cells unchanged.
+- The formatting toolbar (with the app's eye button) is hidden only when the selection spans `text*` content, which cells are not. (`extensions/FormattingToolbar/FormattingToolbar.ts:27-42`) `HiddenButton` calls the same `toggleStyles` and does not filter by block type (`src/editor/menus.tsx:317-339`). Not checked in a browser: what the style looks like inside the table's DOM.
+
+### 2. Round trip: Yes
+
+- **Probe:** a Promises table (header row plus three typed rows, with Hidden and multi-line values) → table block → BlockNote's schema → typed rows gives equal rows. `headerRows: 1` survives even with `tables.headers` off (the default). Loading the stored document again changes nothing. An edit in one cell reads back as an edit of that row's field.
+- **Rows have no identity.** BlockNote rebuilds every row as `tableRow.createChecked({}, cells)` (`blockToNode.ts:285`). A row in the JSON is `{ cells }` only (`schema/blocks/types.ts:353-364`; probe). "Children of tables (rows / columns / cells) are not considered to be blocks (they don't have an id)". (`pm-nodes/README.md:141`) Today an issue carries a block id plus a field (`fieldBlockIds`). A row's issue would need the table's block id, a row index (or row key) and a column.
+- **Header text is editable**, so a reader must check the header row against the expected column titles (the probe does), or read by position.
+- Keep `tables.splitCells` off (the default, `editor/BlockNoteEditor.ts:444-448`). Merged cells bring `colspan`/`rowspan`, which breaks a one-cell-per-column reading. The column handle's menu can still add and delete columns (see 3 and 4).
+
+### 3. Locked rows by filtering transactions: Partly
+
+The mechanism works: `editor.onBeforeChange` is a `filterTransaction` plugin (`extensions/BlockChange/BlockChange.ts:21`). It also runs for `prosemirror-tables`' `fixTables` append. Three things differ from locked Entries:
+
+- **The lock cannot live in the row.** A row has no props (see 2), so nothing in the table can mark a row as locked. The lock set must come from outside, such as a prop on the section heading (the heading is the app's own block) or the server's record. The guard then names rows by content, for example the first cell's text.
+- **Today's guard design refuses too much in tables.** `installLockGuard` refuses any step whose range enters a locked node (`src/editor/extensions.ts:310-357`). Applied to rows, that refuses every row move in a table that holds a locked row, even a move that never passes the locked row. `prosemirror-tables`' `moveRow` replaces the whole table node (`prosemirror-tables/dist/index.js:1276`). BlockNote's drag path calls `updateBlock` with the reordered rows (`extensions/TableHandles/TableHandles.ts:488-498`), and `updateBlock` replaces every row between the first and last changed index (`api/blockManipulation/commands/updateBlock/updateBlock.ts:372-426`). **An invariant guard works:** refuse the transaction unless every locked row in `tr.before` exists, `eq`, in `tr.doc`.
+- **Probe**, with row "The locked chest" locked:
+
+  | Operation | Range guard (today's design) | Invariant guard |
+  |---|---|---|
+  | Type in the locked row | refused | refused |
+  | Toggle Hidden in the locked row | refused* | refused |
+  | Delete the locked row | refused | refused |
+  | Add a column | refused | refused |
+  | Type in, delete, or add next to an unlocked row | applied | applied |
+  | Move an unlocked row, crossing the locked row or not (prosemirror-tables or BlockNote's drag path) | **refused** | applied |
+
+  \* Only because the probe's range guard reads mark steps' `from`/`to` itself.
+- **A gap in today's `installLockGuard` (separate from tables):** it reads ranges from `step.getMap()`. `AddMarkStep` and `RemoveMarkStep` inherit `Step.getMap()`, which returns `StepMap.empty` (`prosemirror-transform/dist/index.js:341`). **Probe:** typing inside a locked Entry's field is refused, but making its text Hidden (or bold) through `toggleStyles` is applied. A row guard must not copy this, and the Entry guard should handle mark steps.
+
+### 4. Rows from the keyboard: Partly
+
+- **Default keys in a cell:** `Enter` moves to the cell below. `Tab`/`Shift-Tab` move to the next or previous cell and always return true. (`blocks/Table/TableExtension.ts:37-98`) `Tab` in the last cell adds no row: `goToNextCell(1)` has nowhere to go and returns false (probe). Outside tables, `Tab` nests blocks and `Shift-Mod-ArrowUp/Down` move blocks (`extensions/tiptap-extensions/KeyboardShortcuts/KeyboardShortcutsExtension.ts:960-996`). The app overrides the latter for sections (`src/editor/shortcuts.ts`).
+- **The row handles are mouse-only.** They appear and act from `mousemove`, `mousedown`, `mouseup`, `dragover` and `drop` listeners (`TableHandles.ts:174-185`), and the handle opens its menu as a drag handle (`@blocknote/react/src/components/TableHandles/TableHandle.tsx:56-104`).
+- **The commands exist and work with a text cursor in a cell.** **Probe:** `addRowAfter`, `addRowBefore`, `deleteRow` and `moveTableRow({ from, to })` from `@tiptap/pm/tables` (the same `prosemirror-tables` 1.8.5 BlockNote uses) all work through `editor.exec`. The table-handles extension also exposes `addRowOrColumn` and `removeRowOrColumn` (`TableHandles.ts:1029-1077`).
+- **What it takes:** bind keys in the app's `sectionsExtension` (for example "add row below", "delete row", and `Shift-Mod-ArrowUp/Down` moving the row when the cursor is in a table, where today it moves the whole section or block). Add the same actions to the `Mod-/` block menu. To stop column edits by mouse, pass row-only components to `TableHandlesController` (it takes `tableHandle`, `tableCellHandle` and `extendButton`, `TableHandlesController.tsx:30-33`), or have the guard refuse column-count changes.
+
+### 5. A table in a section run: Partly
+
+- **BlockNote: yes.** A table is an ordinary `blockContent` block. It can follow a custom heading and its field paragraphs as a sibling. Since `blockContainer` is `blockContent blockGroup?` (`pm-nodes/BlockContainer.ts:27`), it can also be a child of the heading; the docs show `children: Block[]` on tables too. **Probe:** both shapes load and keep their order.
+- **Today's app: no.** `walkSections` and `scanSections` end a section at the first block that is not a `Label: value` paragraph (`src/editor/field-line.ts:188-219`, `src/editor/extensions.ts:111-131`). So a table ends the Arc's run, and fields after it become prose. `documentToBrief` then drops the table silently: `proseText` reads only array content (`src/brief/from-document.ts:150-151`). **Probe:** walking `[arc, Description, table, Exit condition]` gives `section, prose:table, prose:paragraph`, and the agenda's text is nowhere in the draft.
+- **What it takes:** let both walkers treat a table block as part of the run (heading, then fields and tables). Moving a section, "Delete section", decorations, locks and conversion then carry the table with it. A sibling keeps the "headings have no children" rule of `docs/design/editor-design.md`; a child would bring back the nesting indent.
+
+### Probe caveats
+
+- **A headless editor has no plugins.** TipTap 3 attaches plugins when it creates the view (`@tiptap/core/src/Editor.ts:611-616`). So in an unmounted BlockNote editor, `onBeforeChange`, `fixTables` and the app's `appendTransaction` never run, and every guard appears to "allow". The probe does the same `state.reconfigure({ plugins })` without a DOM. Any future headless test of a guard needs this too.
+- **Not verified:** real key events (headless has no keydown, so the default keys above come from source), plugin views (the table handles), and how the style and table look in a browser.
 
 ## Plan impact for #3 and #4
 
