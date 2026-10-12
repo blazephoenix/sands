@@ -120,7 +120,7 @@ function after(state: Partial<PlayerState>) {
   insertTurn(db, { ...turn, state: { ...turn.state, ...state } })
 }
 
-describe("the Opening (spec §9.0; ADR-0014)", () => {
+describe("the Opening (spec §9.0)", () => {
   it("writes two Drafts, has the Judge rule on both in one call, and ships Turn 0 at the start Location", async () => {
     const fakeJudge = judge(null)
     const { events, last, writer } = await play(null, { judge: fakeJudge })

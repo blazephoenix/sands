@@ -1,6 +1,6 @@
 /**
  * The resolver (spec §9.1 step 3): what a Player's action achieves, decided
- * by code from the Judge's Reading (ADR-0001). Pure: the death roll comes in
+ * by code from the Judge's Reading. Pure: the death roll comes in
  * as a number from the Session's seeded generator (`rng.ts`), so a replayed
  * Session reproduces its Outcomes.
  *

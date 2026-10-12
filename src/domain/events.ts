@@ -1,5 +1,5 @@
 /**
- * NDJSON progress events for the long-running routes (ADR-0003, ADR-0010).
+ * NDJSON progress events for the long-running routes.
  * One JSON object per line. Every stream ends with exactly one `result` or
  * one `error` event. No prose is ever streamed.
  *

@@ -1,6 +1,6 @@
 /**
  * POST /api/sessions: start a Session in a World, copying every non-rejected
- * World Entry into it (ADR-0005). 409 if the World is not set up or not
+ * World Entry into it. 409 if the World is not set up or not
  * solvable.
  */
 import {

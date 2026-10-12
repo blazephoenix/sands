@@ -1,13 +1,13 @@
 /**
- * One Turn (spec §9.1), or the Opening (spec §9.0; ADR-0014), with progress
+ * One Turn (spec §9.1), or the Opening (spec §9.0), with progress
  * streamed as `TurnEvent`s:
  *
  *   [reading -> resolving] -> [writing -> judging] x up to 3 Rounds -> commit
  *
- * - **The Judge recognizes, code decides** (ADR-0001). The Reading is one
+ * - **The Judge recognizes, code decides.** The Reading is one
  *   Judge call; the Outcome, the Directive, which Draft ships and what the
  *   Discovery changes are pure functions.
- * - **Nothing unjudged ships** (ADR-0003). Each Round the Writer writes two
+ * - **Nothing unjudged ships.** Each Round the Writer writes two
  *   Drafts in parallel and the Judge rules on both in one call, with every
  *   Rule question and the Discovery questions. After three failed Rounds the
  *   least-violating Draft ships and the Turn is Flagged.
@@ -124,7 +124,7 @@ function waitFor(work: Promise<void>, signal: AbortSignal) {
  * Plays one Turn of a Session: the Opening when `input` is null. Never
  * throws: every outcome ends the stream with one `result` or one `error`
  * event (none when the Player has left). The route has already checked that
- * the request fits the Session (ADR-0014).
+ * the request fits the Session.
  */
 export async function runTurn(
   deps: TurnModels & { db: Db },

@@ -1,5 +1,5 @@
 /**
- * A Session's copy of its World's Entries (ADR-0005). Pure.
+ * A Session's copy of its World's Entries. Pure.
  *
  * Every non-rejected World template Entry is copied into a row owned by the
  * Session, pointing back at its template. References between Entries

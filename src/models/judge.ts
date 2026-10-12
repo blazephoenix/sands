@@ -1,6 +1,6 @@
 /**
  * The Judge (spec §5.1, §10): the model that turns prose and Player input
- * into facts. Code decides what those facts mean (ADR-0001).
+ * into facts. Code decides what those facts mean.
  *
  * One `ask` is one Jev request: one state and any number of named questions,
  * evaluated independently and in parallel, each answered under its own id

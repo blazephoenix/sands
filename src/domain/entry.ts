@@ -1,5 +1,5 @@
 /**
- * Entries: the items of the Codex (CONTEXT.md; spec §6 `entries`; ADR-0007).
+ * Entries: the items of the Codex (CONTEXT.md; spec §6 `entries`).
  *
  * Column names in spec §6 are snake_case; these contracts use the matching
  * camelCase names one-to-one (`world_id` -> `worldId`, `data_json` -> `data`,
@@ -21,7 +21,7 @@ export const ENTRY_KINDS = [
 export const entryKindSchema = z.enum(ENTRY_KINDS)
 export type EntryKind = z.infer<typeof entryKindSchema>
 
-/** ADR-0007: `world` Entries are things in the story; `story_logic` Entries are conditions code enforces. */
+/** `world` Entries are things in the story; `story_logic` Entries are conditions code enforces. */
 export const entryGroupSchema = z.enum(["world", "story_logic"])
 export type EntryGroup = z.infer<typeof entryGroupSchema>
 
@@ -159,7 +159,7 @@ export type EntryData<K extends EntryKind = EntryKind> = K extends EntryKind
 const entryBase = {
   id: entryId,
   worldId: entryId,
-  /** Null for a World template Entry; set for a Session's copy (ADR-0005). */
+  /** Null for a World template Entry; set for a Session's copy. */
   sessionId: entryId.nullable(),
   /** For Session copies: the World Entry it was copied from. Null for play inventions. */
   templateId: entryId.nullable(),

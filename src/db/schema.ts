@@ -10,7 +10,7 @@
  * in the database as well as in zod:
  * - a World past `draft` has a validated Brief;
  * - only play Entries have a source Turn; only Session copies point at a template;
- * - one Turn per `(session_id, idx)`, which refuses a second Opening (ADR-0014);
+ * - one Turn per `(session_id, idx)`, which refuses a second Opening;
  * - Turn 0, and only Turn 0, has no Player input.
  *
  * Imports are relative, not `@/`, so drizzle-kit can load this file on its own.
@@ -112,7 +112,7 @@ export const entries = sqliteTable(
     worldId: text("world_id")
       .notNull()
       .references(() => worlds.id, { onDelete: "cascade" }),
-    /** Null for a World template Entry; set for a Session's copy (ADR-0005). */
+    /** Null for a World template Entry; set for a Session's copy. */
     sessionId: text("session_id").references(() => sessions.id, {
       onDelete: "cascade",
     }),

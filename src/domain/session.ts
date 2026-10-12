@@ -1,6 +1,6 @@
 /**
  * Sessions and Turns (CONTEXT.md; spec §6 `sessions`, `turns`, Player state;
- * §9 for what a Turn log records; ADR-0003, ADR-0006).
+ * §9 for what a Turn log records).
  *
  * A Turn row is written only when a Passage ships. It holds the full Player
  * state after the Turn and the Turn's log. Background work (naming new

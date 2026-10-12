@@ -145,7 +145,7 @@ export function TurnSection({
 
 /**
  * The story column while the Opening is written: the label it will carry, the
- * live progress line, and nothing that pretends to be prose (ADR-0003). Its
+ * live progress line, and nothing that pretends to be prose. Its
  * height roughly matches a Passage, so the Opening does not shift the page
  * when it arrives. On failure: the cause and Retry; the Session has no Turns.
  */

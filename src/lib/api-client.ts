@@ -1,5 +1,5 @@
 /**
- * The client side of the route handlers (ADR-0010): typed JSON calls and typed
+ * The client side of the route handlers: typed JSON calls and typed
  * NDJSON progress streams. Every response is parsed with its zod contract, and
  * every failure becomes an `ApiError` whose message says what happened and
  * what to do.

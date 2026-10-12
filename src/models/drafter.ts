@@ -1,6 +1,6 @@
 /**
  * The Drafter (spec §5.1, §8 step 2): the model that proposes setup Entries,
- * and later names new characters found in Passages (ADR-0009).
+ * and later names new characters found in Passages.
  *
  * One `draft` is one structured-output call: instructions, a prompt and a
  * zod schema, answered with an object that fits the schema. The caller owns

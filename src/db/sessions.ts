@@ -1,6 +1,5 @@
 /**
- * Sessions and Turns in the database (spec §6 `sessions`, `turns`; ADR-0006,
- * ADR-0014).
+ * Sessions and Turns in the database (spec §6 `sessions`, `turns`).
  *
  * A Turn row is written only when a Passage ships. `(session_id, idx)` is
  * unique, so a second Opening (or any second Turn N) for one Session is
@@ -146,7 +145,7 @@ export function listPendingBackgroundTurns(db: Db, sessionId?: string): Turn[] {
     .map(turnFromRow)
 }
 
-/** Replaces a stored Turn (same id), e.g. to merge background results into it (ADR-0006). */
+/** Replaces a stored Turn (same id), e.g. to merge background results into it. */
 export function updateTurn(db: Db, turn: Turn): Turn {
   const { id, sessionId, idx, ...row } = turnToRow(turn)
   const result = db

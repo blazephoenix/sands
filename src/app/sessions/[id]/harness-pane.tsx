@@ -3,7 +3,7 @@
 /**
  * The harness pane (test mode): the Session's state after the latest Turn,
  * and a log of every finished Turn's inner workings, newest first. Finished
- * Turns only; nothing streams in here (ADR-0003). Background results fill in
+ * Turns only; nothing streams in here. Background results fill in
  * when the page's poll picks them up. Turn 0 reads "Opening": no reading and
  * no Outcome, but its Directive, Rounds, Drafts and Rule results as usual.
  */

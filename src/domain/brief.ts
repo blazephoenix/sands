@@ -86,7 +86,7 @@ export type BriefVoice = z.infer<typeof briefVoiceSchema>
 /**
  * Free prose outside typed blocks, grouped under its nearest preceding heading
  * (`heading: null` for prose before the first heading). Locked text that only
- * the Writer and the Judge read; code cannot act on it (ADR-0002).
+ * the Writer and the Judge read; code cannot act on it.
  */
 export const briefProseSectionSchema = z.object({
   heading: z.string().nullable(),
