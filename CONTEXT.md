@@ -69,11 +69,11 @@ What an Arc puts at risk, and how it worsens if the story stalls.
 _Avoid_: risk, threat, consequences
 
 **Ending**:
-One way a Session can conclude: listed in the Skeleton with its Ending trigger and Earliest Arc, or, in Playtest, an Invented Ending.
+One way a Session can conclude: listed in the Skeleton with its Ending trigger and Earliest Arc, or, in Playtest, an Invented Ending. A Session ends on nothing else; every other setback becomes a Complication.
 _Avoid_: outcome (reserved for a Turn's resolved result), conclusion
 
 **Ending trigger**:
-What must happen in play for an Ending to fire: Secrets the Player must have found, which code checks, and an event, which the Judge checks. Either part may be absent.
+What must happen in play for an Ending to fire: Secrets the Player must have found, which code checks, and an event in the Player's input, which the Judge checks (either part may be absent); or another character's Agenda reaching its final Step.
 _Avoid_: win condition, condition, Decisive action
 
 **State flag**:
@@ -85,7 +85,7 @@ The lines shown after an Ending: one per State flag, chosen by that flag's value
 _Avoid_: outro, recap
 
 **Warning beat**:
-The moment before an Ending that can fire early, when the Player sees one consequence and can commit or turn back.
+The moment before an Ending that can fire early, when the Player sees one consequence and chooses Commit or Turn back. Turning back drops the move; the Ending can warn again.
 _Avoid_: confirmation
 
 **Voice**:
@@ -109,7 +109,7 @@ The traits a character always shows, whatever happens.
 _Avoid_: personality, nature
 
 **Line**:
-Something a character will never do, whatever happens. A character may have more than one.
+Something a character will never do, whatever happens. A character may have more than one. It binds the Player character too: an input that would cross it becomes an Attempt the Player character balks at on the page, unless the Author forces it in Playtest.
 _Avoid_: limit, taboo, boundary
 
 **Want**:
@@ -171,7 +171,7 @@ One pass of the Writer producing Drafts in parallel and the Judge ruling on them
 _Avoid_: retry, attempt, iteration
 
 **Retry feedback**:
-The lines the Writer gets for its next Round: one per Rule question a Draft of the last Round failed clearly (p ≥ 0.8). Weaker failures still fail the Draft but add no line.
+The lines the Writer gets for its next Round: one per gating Rule a Draft of the last Round failed, and one per record-only Rule it failed clearly (p ≥ 0.8).
 _Avoid_: critique, hints
 
 **Unsure**:
@@ -187,7 +187,7 @@ The instructions code gives the Writer for one Turn: what happened, what may be 
 _Avoid_: prompt, instructions, context
 
 **Reading**:
-What the Judge takes from one Player input: its intent (the kind of action), its target (the Entry acted on) and its Classification. The Opening has none.
+What the Judge takes from one Player input: its intent (the kind of action), its target (the Entry acted on), and whether it is reckless or shows a character unwarranted hostility. The Opening has none.
 _Avoid_: parse, interpretation, intent (for the whole)
 
 **Allowed reveal**:
@@ -207,24 +207,24 @@ The part of a Session's Codex the Writer and the Judge see for one Turn, narrowe
 _Avoid_: context, window, relevant entries
 
 **Background work**:
-What the harness does after a Passage ships that only matters from the next Turn on: naming new characters, checking whether the current Arc's Function is met and checking pacing.
+What the harness does after a Passage ships that only matters from the next Turn on: Discovery, naming new characters, checking whether the current Arc's Function is met, recording and resolving Complications, setting State flags, and checking pacing.
 _Avoid_: post-processing, async jobs
 
 **Claim**:
-A Player input that states its own result. A Claim that fails becomes an Attempt.
+A Player input that states its own result beyond the Player character's own deeds. It stands only if the Judge's answers to its tests pass; one that fails becomes an Attempt. A Claim never finds a Clue.
 _Avoid_: claimed outcome, assertion
 
 **Attempt**:
-A Player input whose result the harness decides.
+A Player input whose result the harness decides: code decides where the Player character goes and which Clues become findable or may be given up; the Writer plays how characters respond.
 _Avoid_: try, action (for the whole input)
 
 **Outcome**:
 What code decided a Player's action achieved in this Turn, before any prose is written.
 _Avoid_: result, resolution, ending
 
-**Classification**:
-How an action relates to the story: on-script, tangential, off-script or reckless.
-_Avoid_: category, alignment
+**Complication**:
+A lasting setback play has caused, which every later Passage must carry until the story resolves it. Code decides one is due and how severe; the Writer writes what it is.
+_Avoid_: penalty, debuff, consequence (for a character's reaction in the moment)
 
 **Event**:
 An on-page change in what the story is about that forces a response. Reveals told in dialogue, and warnings of trouble to come, don't count.
@@ -357,5 +357,5 @@ The model that turns prose and player input into facts: whether a Draft breaks a
 _Avoid_: validator, critic, evaluator
 
 **Rule**:
-One check the Judge applies to every Draft, such as Character drift or Agency.
+One check the Judge applies to Drafts, such as Character drift or Agency. A gating Rule can reject a Draft; a record-only Rule is logged and fed back to the Writer but never rejects one.
 _Avoid_: guard, constraint, policy, World rule
