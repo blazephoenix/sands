@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * The Codex pane: this Session's copies of its World's Entries (ADR-0005) in
+ * The Codex pane: this Session's copies of its World's Entries in
  * the shared Entry editor, with filters by source and status. Edits and status
  * changes save through `PATCH /api/entries/[id]` and apply from the next Turn.
  * Entries the Writer invented in play carry "new, Turn N" until seen here.

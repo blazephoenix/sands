@@ -1,7 +1,7 @@
 /**
  * POST /api/sessions/[id]/turn: play one Turn (spec §9.1), or the Opening
- * with `input: null` (spec §9.0; ADR-0014). Streams NDJSON progress, then the
- * whole Turn; never prose (ADR-0003).
+ * with `input: null` (spec §9.0). Streams NDJSON progress, then the
+ * whole Turn; never prose, since the Player sees only judged Passages.
  *
  * Answers before streaming when the Turn cannot start:
  * - 404 for an unknown Session, including one whose World was deleted (the
@@ -10,7 +10,7 @@
  *   cleanly instead of saving it.
  * - 409 when the request does not fit the Session: it has ended, an Opening
  *   for a Session that has Turns, a Player input for one that has none, or
- *   another request is playing its Turn right now (the claim, ADR-0014).
+ *   another request is playing its Turn right now (the claim).
  * - 503 when the models are not configured.
  *
  * The shipped Turn's Background work (spec §9.2) outlives the response. The

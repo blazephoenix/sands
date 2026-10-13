@@ -22,7 +22,7 @@ beforeEach(() => {
   storeLondonWorld(db, { id: REVIEW, prefix: "wc", variant: "review" })
 })
 
-describe("starting a Session (ADR-0005)", () => {
+describe("starting a Session", () => {
   it("copies every Template Entry that is not removed, and stores the Session with them", () => {
     const templates = listWorldEntries(db, READY)
     const { session, entries } = startSession(db, {

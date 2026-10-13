@@ -1,5 +1,5 @@
 /**
- * Claims on playing a Session's next Turn (ADR-0014).
+ * Claims on playing a Session's next Turn.
  *
  * While one request plays a Session's Turn (the Opening included) it holds
  * the claim, so a second tab, a fast reload or a doubled effect gets 409

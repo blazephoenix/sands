@@ -1,5 +1,5 @@
 /**
- * The Reading (spec §9.1 step 2; ADR-0009): one Judge call of three choice
+ * The Reading (spec §9.1 step 2): one Judge call of three choice
  * questions about the Player's input, its intent, its target and its
  * Classification, each with an escape option. Building the questions and
  * reading the answers are pure; the Turn loop makes the call.

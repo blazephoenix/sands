@@ -1,5 +1,5 @@
 /**
- * Starting a Session (spec §6; ADR-0005): the Session row and its copies of
+ * Starting a Session (spec §6): the Session row and its copies of
  * every non-rejected World template Entry, written together. A World in
  * review becomes ready once its first Session starts.
  */

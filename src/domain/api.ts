@@ -1,5 +1,5 @@
 /**
- * Request and response bodies of the route handlers (spec §5.2; ADR-0010).
+ * Request and response bodies of the route handlers (spec §5.2).
  * The client parses every response with these, so a contract drift fails
  * loudly at the boundary. Streaming routes use `./events.ts`.
  */
@@ -142,7 +142,7 @@ export type CreateEntryRequest = z.infer<typeof createEntryRequestSchema>
 export const createEntryResponseSchema = patchEntryResponseSchema
 export type CreateEntryResponse = PatchEntryResponse
 
-/** POST /api/sessions: start a Session, copying every non-rejected World Entry into it (ADR-0005). */
+/** POST /api/sessions: start a Session, copying every non-rejected World Entry into it. */
 export const createSessionRequestSchema = z.object({
   worldId: z.string().min(1),
   mode: z.enum(["harness", "baseline"]).default("harness"),

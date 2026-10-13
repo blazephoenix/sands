@@ -1,3 +1,5 @@
+> **Superseded** on 2026-10-13 by [Map: the skeleton and Playtest, from a clean slate](https://github.com/blazephoenix/sands/issues/25). Read it only as history.
+
 # Living scenes: exits, momentum and novel prose — Design
 
 **Date:** 2026-09-24
@@ -32,7 +34,7 @@ Also seen: novel-style Drafts (varied paragraphs, dialogue) pass Momentum and Kn
 
 ## 3. Design
 
-The Writer invents what happens (the Author's choice: Writer-led, no new Entries, no setup change). Code still decides every Outcome (ADR-0001); the Judge still guards the Brief.
+The Writer invents what happens (the Author's choice: Writer-led, no new Entries, no setup change). Code still decides every Outcome; the Judge still guards the Brief.
 
 ### 3.1 Exits in the Directive
 
@@ -88,7 +90,7 @@ The Opening's line becomes "the world is already in motion when the Player chara
 
 The Session page already shows clickable suggestions after the Opening (`FirstActionHints`: two fixed lines, "I look around." and "I wait and listen."). It becomes:
 
-- **Built by code** from the Codex and the latest Turn (pure, unit-tested): "Go to {exit}" per exit, then "Talk to {name}" per non-player character the latest Passage names; at most four, exits first. Nothing model-written reaches the Player unjudged (ADR-0003).
+- **Built by code** from the Codex and the latest Turn (pure, unit-tested): "Go to {exit}" per exit, then "Talk to {name}" per non-player character the latest Passage names; at most four, exits first. Nothing model-written reaches the Player unjudged.
 - **Shown under the latest Passage after every Turn**, not only the Opening, while the Player has not started typing. A click fills the input; it does not send.
 - Same component and look as today, so no prototype round; the Author can ask for one.
 
@@ -105,7 +107,7 @@ The Author's request: Passages read like a book, not one paragraph tag.
 
 - **Which passing Draft ships:** still the lower highest violation. The Author chose Momentum as a Rule over re-weighting the choice.
 - **Background work and the Pacing nudge (#5):** unaffected. Momentum asks for something to happen in every Passage; the nudge asks for Arc progress after two stalled Turns. Both keep.
-- **No new Entry kinds, no setup change, no new ADR.** This tunes Rules and prompts inside ADR-0001 and ADR-0003.
+- **No new Entry kinds, no setup change, no new ADR.** This tunes Rules and prompts inside the existing decisions: code decides every Outcome, and nothing unjudged reaches the Player.
 
 ## 5. Testing
 

@@ -1,3 +1,5 @@
+> **Superseded** on 2026-10-13 by [Map: the skeleton and Playtest, from a clean slate](https://github.com/blazephoenix/sands/issues/25). Read it only as history.
+
 # Requirements: Creation Harness MVP
 
 **Due:** Friday

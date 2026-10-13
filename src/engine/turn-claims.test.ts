@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { claimTurn } from "./turn-claims"
 
-describe("claims on playing a Turn (ADR-0014)", () => {
+describe("claims on playing a Turn", () => {
   it("lets one request at a time play a Session's Turn", () => {
     const release = claimTurn("s-claims-1")
     expect(release).toBeTypeOf("function")

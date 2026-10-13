@@ -11,8 +11,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Domain language and past decisions
 
 - [CONTEXT.md](CONTEXT.md): the ubiquitous language. Read it before naming anything.
-- [docs/adr/](docs/adr/): settled decisions. Check for a relevant ADR before re-deciding something.
-- [docs/superpowers/specs/2026-09-23-creation-harness-design.md](docs/superpowers/specs/2026-09-23-creation-harness-design.md): the design. It and the ADRs take precedence over `docs/requirements.md`.
+- [docs/adr/](docs/adr/): settled decisions, numbered from `0001` again since 2026-10-13. Check for a relevant ADR before re-deciding something.
+- [Map: the skeleton and Playtest, from a clean slate](https://github.com/blazephoenix/sands/issues/25): open decisions. Its "Decisions so far" links the settled ones. It and the ADRs take precedence over the 2026-09-23 and 2026-09-24 design specs and `docs/requirements.md`, which are superseded and history only.
 - How to use these: [docs/agents/domain.md](docs/agents/domain.md). Record new terms and decisions with `/domain-modeling`.
 - [docs/design/](docs/design/): the UI bar every change must meet (`ux-bar.md`) and the shared editor's design (`editor-design.md`).
 - [docs/research/](docs/research/): checked facts about the libraries we build on (Jev, AI SDK 7, Next 16, Drizzle 0.45) and the Judge smoke test. Read the relevant section before working in `src/models/`, `src/engine/`, `src/setup/` or `src/db/`; it outranks memory and training data. Update it when you learn more instead of starting a new file.
@@ -21,6 +21,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Rules
 
 - Package manager is **pnpm**. Use `pnpm dlx` / `pnpm exec`, never `npm` or `npx`.
-- No server actions: the client calls route handlers (ADR-0010).
+- No server actions: the client calls route handlers.
 - Dates and times go through dayjs, via `src/lib/time.ts`; never the built-in `Date`.
 - Jev work: use the `typesafe-ai` skill; https://docs.typesafe.ai is the source of truth.

@@ -1,6 +1,6 @@
 /**
- * Streaming NDJSON responses for the long-running routes (setup, Turn), per
- * ADR-0010. One JSON object per line; progress only, never prose (ADR-0003).
+ * Streaming NDJSON responses for the long-running routes (setup, Turn).
+ * One JSON object per line; progress only, never prose.
  *
  *   return ndjsonResponse<SetupEvent>(async (emit, elapsed) => {
  *     emit({ type: "step", step: "parse", status: "started", attempt: 1, maxAttempts: 1, detail: null, at: elapsed() })

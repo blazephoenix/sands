@@ -1,5 +1,5 @@
 /**
- * The seeded random generator (ADR-0001, spec §2 principle 3). A Session's
+ * The seeded random generator (spec §2 principle 3). A Session's
  * seed and a Turn's index give that Turn's roll, so a Replay with the same
  * seed reproduces every death roll, whatever happened in between. Pure.
  */

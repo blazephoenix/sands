@@ -1,5 +1,5 @@
 /**
- * The SQLite database (spec §5: Drizzle over better-sqlite3; ADR-0011).
+ * The SQLite database (spec §5: Drizzle over better-sqlite3).
  *
  * `getDb()` opens `DB_URL` once per server process, with WAL and foreign keys
  * on, and applies any pending migrations from `src/db/migrations/` before
