@@ -283,6 +283,21 @@ The mechanism works: `editor.onBeforeChange` is a `filterTransaction` plugin (`e
 - **A headless editor has no plugins.** TipTap 3 attaches plugins when it creates the view (`@tiptap/core/src/Editor.ts:611-616`). So in an unmounted BlockNote editor, `onBeforeChange`, `fixTables` and the app's `appendTransaction` never run, and every guard appears to "allow". The probe does the same `state.reconfigure({ plugins })` without a DOM. Any future headless test of a guard needs this too.
 - **Not verified:** real key events (headless has no keydown, so the default keys above come from source), plugin views (the table handles), and how the style and table look in a browser.
 
+## 8. BlockNote tracked suggestions (found for #27)
+
+**Date:** 2026-10-13 · **Issue:** #27 (map #25) · **Question:** does BlockNote ship tracked suggestions (inline insertions and deletions the Author accepts or rejects in place), and is that inside the MPL-2.0 packages ADR-0001 allows?
+
+Source: the installed `@blocknote/core` 0.54.2 (`"license": "MPL-2.0"`). Paths are under `node_modules/@blocknote/core/`. Read from source; no probe.
+
+**Verdict: yes, under MPL-2.0, but it needs Yjs collaboration set up.**
+
+- **It is in core.** `SuggestionsExtension` (`src/y/extensions/Suggestions.ts`) offers `enableSuggestions`, `viewSuggestions`, `disableSuggestions`, `applySuggestion(start, end?)`, `revertSuggestion(start, end?)`, `applyAllSuggestions` and `revertAllSuggestions` (`:91-131`). They wrap `acceptChanges` and `rejectChanges` from `@y/prosemirror` and act on `insertion`, `deletion` and `modification` marks (`:79-83`). No `@blocknote/xl-*` package is involved.
+- **It needs Yjs v14 collaboration.** It is exported only from `@blocknote/core/y`; the `@blocknote/core/yjs` (Yjs v13) entry has none of it. The extension throws without a `suggestionDoc` in the collaboration options (`:20-23`). In suggestion mode the editor writes to that second Yjs document and shows how it differs from the main one as marks (`:91-111`).
+- **Its dependencies are not installed.** `@y/y` (`^14.0.0-rc.23`) and `@y/prosemirror` (`^2.0.0-6`) are optional peer dependencies of `@blocknote/core`, and `node_modules/@y` does not exist. The app has no Yjs dependency today.
+- **No UI ships.** `@blocknote/react` and `@blocknote/shadcn` have no accept or reject controls. The app would build them, finding the suggestion under the cursor with `getSuggestionAtSelection` or `getSuggestionAtCoords`.
+- **Accept and reject take document ranges, not ids.** Code that tracks one suggestion per Harvest item would keep its own map from item to range.
+- **Not verified:** how code, rather than a person typing in suggestion mode, writes a suggestion; and how suggestions behave inside table cells.
+
 ## Plan impact for #3 and #4
 
 - **#4, Rules:** split the compound questions (Arc, Location). Move Character drift, Codex and Reputation to structured instructions that carry the relevant Entry or Band behaviours, as proposed above. Test each Rule's questions against a few real Drafts before tuning thresholds.
