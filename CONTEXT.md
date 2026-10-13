@@ -25,12 +25,12 @@ The first Arc in which a planned moment may happen: a Promise paying off, a Secr
 _Avoid_: not before
 
 **Hidden text**:
-Text anywhere in the Skeleton that the Author marks as not to be told.
+Text anywhere in the Skeleton that the Author marks as not to be told. The Writer never states it outright, but it may show through how characters behave. What the Player can earn is a Secret, not Hidden text.
 _Avoid_: Hidden field, spoiler, private field
 
 **Secret**:
-One row of the Hidden truth: what is true, who knows it, how it surfaces, its Earliest Arc, and what the Player can do with it.
-_Avoid_: twist, reveal, mystery
+One row of the Hidden truth: what is true, who knows it, how it surfaces, its Earliest Arc, and what the Player can do with it. The Player earns it through its Clues: it is found once they are (all of them, or the number the Author sets), and never before its Earliest Arc. Misleading material is not a Secret; it belongs in a character's Believes or in direction for the Writer.
+_Avoid_: twist, reveal, mystery, red herring
 
 **Hidden truth**:
 All the Secrets of a Skeleton taken together; what the Player must earn through play rather than be told.
@@ -73,8 +73,8 @@ One way a Session can conclude: listed in the Skeleton with its Ending trigger a
 _Avoid_: outcome (reserved for a Turn's resolved result), conclusion
 
 **Ending trigger**:
-What must happen in play for an Ending to fire.
-_Avoid_: win condition, condition
+What must happen in play for an Ending to fire: Secrets the Player must have found, which code checks, and an event, which the Judge checks. Either part may be absent.
+_Avoid_: win condition, condition, Decisive action
 
 **State flag**:
 A named fact the Skeleton tracks about a Session, with a fixed set of values that play sets.
@@ -191,7 +191,7 @@ What the Judge takes from one Player input: its intent (the kind of action), its
 _Avoid_: parse, interpretation, intent (for the whole)
 
 **Allowed reveal**:
-A piece of Knowledge a character may give up this Turn: at or below the current Band, and not yet revealed.
+A Clue a character holds and may give up this Turn, not yet found.
 _Avoid_: unlocked knowledge, available secret
 
 **Discoverable Clue**:
@@ -221,14 +221,6 @@ _Avoid_: try, action (for the whole input)
 **Outcome**:
 What code decided a Player's action achieved in this Turn, before any prose is written.
 _Avoid_: result, resolution, ending
-
-**Reputation**:
-A number tracking how the story's characters regard the Player character, read through its Band.
-_Avoid_: score, standing, karma
-
-**Band**:
-The coarse level of Reputation (high, normal, low) that governs what characters reveal and how they behave.
-_Avoid_: tier, level
 
 **Classification**:
 How an action relates to the story: on-script, tangential, off-script or reckless.
@@ -311,24 +303,12 @@ An Entry for a thing in the story: a Place, character, NPC, faction, Clue or obj
 _Avoid_: asset, element
 
 **Story logic entry**:
-An Entry for a condition code enforces: a Function, a piece of Knowledge or a Decisive action.
+An Entry for a condition code enforces, such as a Function or an Ending trigger.
 _Avoid_: plan, rule (reserved for the Judge's checks), mechanic
 
 **Clue**:
-A discoverable fact placed at a Place, or held by a character who gives it up as Knowledge. It may point to the Hidden truth, or be a labelled Red herring.
-_Avoid_: evidence (as a noun for one item), hint
-
-**Red herring**:
-A Clue the Author marks as misleading. It can be found, but no Decisive action may require it.
-_Avoid_: decoy, false clue
-
-**Knowledge**:
-One fact one character knows, with the lowest Band at which they will reveal it.
-_Avoid_: knowledge map (the whole set), dialogue tree
-
-**Decisive action**:
-A story-critical action declared as data: who it targets, which Clues it requires, and what success and a wrong target mean. Its verb comes from the Skeleton: an arrest, a duel, a confession, a heist.
-_Avoid_: capture condition, win condition, key action
+One piece through which a Secret surfaces: found at a Place, or given up by a character who knows the Secret. Setup proposes Clues from the Secret's How it surfaces, and the Author accepts each.
+_Avoid_: evidence (as a noun for one item), hint, Knowledge, red herring
 
 **Template Entry**:
 An Entry a World holds, which every new Session copies.
@@ -341,15 +321,15 @@ _Avoid_: instance, clone, override
 ### Setup
 
 **Setup**:
-The one-time step that turns a Skeleton into a World: the Drafter proposes Entries, the Judge checks them against the Skeleton, and code checks Solvability.
+The one-time step that turns a Skeleton into a World: the Drafter proposes Entries, the Judge checks them against the Skeleton, and code checks Playability.
 _Avoid_: generation, expansion, onboarding
 
-**Solvability**:
-Whether a World or Session can be won as its Entries stand: some Decisive action wins the story, some Place is where the Player begins, every Decisive action can be completed with Clues the Player can reach, and every Arc has a Function.
-_Avoid_: validity, completeness
+**Playability**:
+Whether a World or Session can be played to every listed Ending as its Entries stand. Code alone checks it. An Invented Ending is not checked until the Author keeps it.
+_Avoid_: Solvability, validity, completeness
 
 **Gap**:
-One reason a World is not solvable, stated so the Author can fix it.
+One reason a World is not playable, stated so the Author can fix it.
 _Avoid_: error, failure, issue
 
 ### Evaluation
