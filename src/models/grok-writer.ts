@@ -5,6 +5,11 @@
  * `XAI_API_KEY` itself; the model is `WRITER_MODEL`. Server-only: the key
  * must never reach a browser.
  *
+ * Grok 4.5 and later always reason before answering, at "high" effort unless
+ * told otherwise, which put an Opening past a minute. The Writer caps it at
+ * "low", the least those models allow (reasoning cannot be turned off).
+ * There is no timeout: a slow Passage is waited for, not thrown away.
+ *
  * Every call logs the model id the provider reports. The SDK retries
  * transport failures once; a reply that is not the schema, or has an empty
  * Passage, is asked for once more here. A second failure fails the Turn.
@@ -26,13 +31,14 @@ import {
   type WriterResult,
 } from "./writer"
 
+/** The least reasoning Grok 4.5 and later accept. */
+const REASONING_EFFORT = "low"
+
 export interface GrokWriterOptions {
   /** Defaults to `xai(WRITER_MODEL)`. Tests pass a mock model. */
   model?: LanguageModel
   /** Transport retries after the first attempt. Default 1. */
   maxRetries?: number
-  /** Timeout per call in milliseconds. Default 60 000. */
-  timeoutMs?: number
   logger?: ModelLogger
 }
 
@@ -107,8 +113,8 @@ export class GrokWriter implements Writer {
         output: Output.object({ schema: writerOutputSchema }),
         maxOutputTokens: MAX_OUTPUT_TOKENS,
         maxRetries: this.#options.maxRetries ?? 1,
-        timeout: this.#options.timeoutMs ?? 60_000,
         abortSignal: options.signal,
+        providerOptions: { xai: { reasoningEffort: REASONING_EFFORT } },
       })
     } catch (error) {
       this.#logger.error(
@@ -125,7 +131,8 @@ export class GrokWriter implements Writer {
     }
     this.#logger.info(
       `[writer] model=${result.response.modelId} requested=${this.requestedModel} ` +
-        `input_tokens=${usage.inputTokens} output_tokens=${usage.outputTokens} latency_ms=${latencyMs}`
+        `effort=${REASONING_EFFORT} input_tokens=${usage.inputTokens} output_tokens=${usage.outputTokens} ` +
+        `reasoning_tokens=${result.usage.outputTokenDetails?.reasoningTokens ?? 0} latency_ms=${latencyMs}`
     )
     const output = result.output
     if (!output.passage.trim()) throw new UnusableReply("an empty Passage")

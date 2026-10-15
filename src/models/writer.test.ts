@@ -57,11 +57,12 @@ describe("GrokWriter", () => {
       usage: { inputTokens: 900, outputTokens: 180 },
     })
     expect(log.lines[0]).toMatch(
-      /^\[writer\] model=mock-grok requested=mock-grok input_tokens=900 output_tokens=180 latency_ms=\d+$/
+      /^\[writer\] model=mock-grok requested=mock-grok effort=low input_tokens=900 output_tokens=180 reasoning_tokens=0 latency_ms=\d+$/
     )
     const call = model.doGenerateCalls[0]
     expect(JSON.stringify(call.prompt)).toContain(request.instructions)
     expect(call.responseFormat).toMatchObject({ type: "json" })
+    expect(call.providerOptions).toEqual({ xai: { reasoningEffort: "low" } })
   })
 
   it("retries a failed call once, then succeeds", async () => {
