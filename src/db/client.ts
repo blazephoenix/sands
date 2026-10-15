@@ -14,9 +14,10 @@
  */
 import path from "node:path"
 
-import { drizzle } from "drizzle-orm/node-postgres"
+import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core"
+import type { Pool } from "pg"
 
 /** The database or a transaction inside it, on either driver. */
 export type Db = PgDatabase<PgQueryResultHKT>
@@ -28,11 +29,13 @@ export const MIGRATIONS_FOLDER = path.join(
   "migrations"
 )
 
+type ServerDb = NodePgDatabase & { $client: Pool }
+
 declare global {
-  var __sandsDb: { url: string; db: Promise<Db> } | undefined
+  var __sandsDb: { url: string; db: Promise<ServerDb> } | undefined
 }
 
-async function open(url: string): Promise<Db> {
+async function open(url: string): Promise<ServerDb> {
   const db = drizzle({ connection: { connectionString: url } })
   try {
     await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER })
@@ -60,4 +63,13 @@ export function getDb(): Promise<Db> {
   })
   globalThis.__sandsDb = { url, db }
   return db
+}
+
+/** Closes the server's pool, so a script can exit. The next `getDb()` opens it again. */
+export async function closeDb() {
+  const current = globalThis.__sandsDb
+  globalThis.__sandsDb = undefined
+  if (!current) return
+  const db = await current.db.catch(() => null)
+  await db?.$client.end()
 }

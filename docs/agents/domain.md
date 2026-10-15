@@ -7,8 +7,7 @@ This is a **single-context** repo: one glossary and one ADR directory.
 ## Before exploring, read these
 
 - **`CONTEXT.md`** at the repo root. The ubiquitous language, with the wording to avoid for each term.
-- **`docs/adr/`**. Read the ADRs that touch the area you are about to work in. Numbering restarted at `0001` on 2026-10-13; the old set is in git history.
-- **[Map: the skeleton and Playtest, from a clean slate](https://github.com/blazephoenix/sands/issues/25)**. Open decisions, and an index of the settled ones under "Decisions so far". Check its open tickets before deciding something it already asks. The 2026-09-23 and 2026-09-24 design specs in `docs/superpowers/specs/` and `docs/requirements.md` are superseded; read them only as history.
+- **`docs/adr/`**. Read the ADRs that touch the area you are about to work in. Only ADR-0001 and ADR-0002 stand; every other decision was cleared on 2026-10-15 when Sands was stripped to the Skeleton and the Writer, and is in git history only. Do not treat deleted ADRs, the old specs or the map in issue #25 as precedent.
 
 ## Use the glossary's vocabulary
 

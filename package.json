@@ -14,8 +14,7 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "smoke:judge": "tsx --env-file-if-exists=.env.local scripts/smoke-judge.ts",
-    "seed:worlds": "tsx --env-file-if-exists=.env.local scripts/seed-worlds.ts"
+    "seed:fixtures": "tsx --env-file-if-exists=.env.local scripts/seed-fixtures.ts"
   },
   "dependencies": {
     "@ai-sdk/xai": "^5.0.5",
