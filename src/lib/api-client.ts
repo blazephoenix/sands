@@ -15,9 +15,10 @@ import {
   getWorldResponseSchema,
   listWorldsResponseSchema,
   playTurnResponseSchema,
+  saveSkeletonResponseSchema,
   type CreateSessionRequest,
-  type CreateWorldRequest,
   type PlayTurnRequest,
+  type SaveSkeletonRequest,
 } from "@/domain/api"
 import { sessionSchema, turnSchema } from "@/domain/session"
 
@@ -166,12 +167,23 @@ export const api = {
     apiFetch("/api/worlds", listWorldsResponseSchema, { signal }),
 
   /** POST /api/worlds: a new World with an empty Skeleton. */
-  createWorld: (body: CreateWorldRequest = {}, signal?: AbortSignal) =>
+  createWorld: (signal?: AbortSignal) =>
     apiFetch("/api/worlds", createWorldResponseSchema, {
       method: "POST",
-      body,
       signal,
     }),
+
+  /** PUT /api/worlds/[id]/skeleton: autosave of the Skeleton editor's documents. */
+  saveSkeleton: (
+    worldId: string,
+    body: SaveSkeletonRequest,
+    options: { signal?: AbortSignal; keepalive?: boolean } = {}
+  ) =>
+    apiFetch(
+      `/api/worlds/${enc(worldId)}/skeleton`,
+      saveSkeletonResponseSchema,
+      { method: "PUT", body, ...options }
+    ),
 
   /** GET /api/worlds/[id]: the World, its Skeleton's issues and its Sessions. */
   getWorld: (id: string, signal?: AbortSignal) =>

@@ -12,6 +12,7 @@ import { closeDb, getDb } from "@/db/client"
 import { listWorldsWithSessionCounts, updateWorld } from "@/db/worlds"
 import { FIXTURES } from "@/fixtures"
 import { nowIso } from "@/lib/time"
+import { skeletonToDocument } from "@/skeleton/document"
 import { plainText } from "@/skeleton/hidden-text"
 import { createWorld } from "@/worlds/worlds"
 
@@ -23,14 +24,13 @@ async function main() {
     const name = plainText(skeleton.story.title).trim()
     const world = existing.find((row) => row.world.name === name)?.world
     if (!world) {
-      await createWorld(db, { name, skeleton })
+      await createWorld(db, { skeleton })
       console.info(`[seed] added “${name}”`)
     } else if (replace) {
       await updateWorld(db, {
         ...world,
         skeleton,
-        // The editor rebuilds its document from the Skeleton.
-        skeletonDoc: [],
+        document: skeletonToDocument(skeleton),
         updatedAt: nowIso(),
       })
       console.info(`[seed] replaced the Skeleton of “${name}”`)

@@ -6,8 +6,8 @@
  */
 import { getDb } from "@/db/client"
 import { listWorldsWithSessionCounts } from "@/db/worlds"
-import { createWorldRequestSchema, type WorldSummary } from "@/domain/api"
-import { handle, readJson } from "@/server/http"
+import type { WorldSummary } from "@/domain/api"
+import { handle } from "@/server/http"
 import { isPlayable } from "@/skeleton/check"
 import { createWorld } from "@/worlds/worlds"
 
@@ -24,8 +24,7 @@ export const GET = handle(async () => {
   return Response.json({ worlds })
 })
 
-export const POST = handle(async (request: Request) => {
-  const body = await readJson(request, createWorldRequestSchema)
-  const world = await createWorld(await getDb(), { name: body.name ?? "" })
+export const POST = handle(async () => {
+  const world = await createWorld(await getDb())
   return Response.json({ world }, { status: 201 })
 })

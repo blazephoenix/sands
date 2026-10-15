@@ -28,6 +28,7 @@ import {
 
 import type { ReachedEnding, WriterLog } from "../domain/session"
 import type { Skeleton } from "../domain/skeleton"
+import type { SkeletonDocument } from "../skeleton/document"
 
 const timestamps = {
   createdAt: timestamp("created_at", {
@@ -43,9 +44,9 @@ const timestamps = {
 export const worlds = pgTable("worlds", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
-  /** The Skeleton editor's BlockNote document. */
-  skeletonDoc: jsonb("skeleton_doc").$type<unknown[]>().notNull(),
-  /** The Skeleton read from that document on its last save. */
+  /** The Skeleton editor's documents. */
+  document: jsonb("document").$type<SkeletonDocument>().notNull(),
+  /** The Skeleton read from those documents on their last save. */
   skeleton: jsonb("skeleton").$type<Skeleton>().notNull(),
   ...timestamps,
 })

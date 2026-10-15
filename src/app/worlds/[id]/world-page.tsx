@@ -57,7 +57,10 @@ import type { GetWorldResponse } from "@/domain/api"
 import { worldDisplayName } from "@/domain/world"
 import { api, ApiError, isAbortError } from "@/lib/api-client"
 import { useSingleKeyShortcut } from "@/lib/keyboard"
+import type { SkeletonIssue } from "@/skeleton/check"
 import { plainText } from "@/skeleton/hidden-text"
+
+import { isRowSection, issueTarget } from "./skeleton/sections"
 
 import { WorldSessions, WorldSessionsSkeleton } from "./world-sessions"
 
@@ -172,6 +175,17 @@ function LoadError({
       </Alert>
     </PageFrame>
   )
+}
+
+/** The Skeleton editor, open where an issue is. */
+function issueHref(world: GetWorldResponse["world"], issue: SkeletonIssue) {
+  const { section, row } = issueTarget(issue)
+  const search = new URLSearchParams({ section })
+  if (row !== null && isRowSection(section)) {
+    const id = world.document[section][row]?.id
+    if (id) search.set("row", id)
+  }
+  return `${skeletonHref(world.id)}?${search}`
 }
 
 function LoadedWorld({ data }: { data: GetWorldResponse }) {
@@ -299,7 +313,14 @@ function LoadedWorld({ data }: { data: GetWorldResponse }) {
           <AlertDescription>
             <ul className="list-disc pl-4">
               {blocking.slice(0, ISSUES_SHOWN).map((issue) => (
-                <li key={`${issue.path}-${issue.message}`}>{issue.message}</li>
+                <li key={`${issue.path}-${issue.message}`}>
+                  <Link
+                    href={issueHref(world, issue)}
+                    className="underline-offset-4 hover:underline"
+                  >
+                    {issue.message}
+                  </Link>
+                </li>
               ))}
             </ul>
             {blocking.length > ISSUES_SHOWN ? (

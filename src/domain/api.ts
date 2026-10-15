@@ -4,6 +4,8 @@
  */
 import { z } from "zod"
 
+import { skeletonDocumentSchema } from "@/skeleton/document"
+
 import { sessionSchema, turnSchema } from "./session"
 import { worldSchema } from "./world"
 
@@ -35,11 +37,6 @@ export const listWorldsResponseSchema = z.object({
   worlds: z.array(worldSummarySchema),
 })
 
-export const createWorldRequestSchema = z.object({
-  name: z.string().max(200).optional(),
-})
-export type CreateWorldRequest = z.infer<typeof createWorldRequestSchema>
-
 export const createWorldResponseSchema = z.object({ world: worldSchema })
 
 /** A row of a World's Sessions. */
@@ -57,6 +54,19 @@ export const getWorldResponseSchema = z.object({
   sessions: z.array(sessionSummarySchema),
 })
 export type GetWorldResponse = z.infer<typeof getWorldResponseSchema>
+
+/** The editor's documents, saved whole. */
+export const saveSkeletonRequestSchema = z.object({
+  document: skeletonDocumentSchema,
+})
+export type SaveSkeletonRequest = z.infer<typeof saveSkeletonRequestSchema>
+
+/** The saved World and every issue its Skeleton now has, notes on unread text included. */
+export const saveSkeletonResponseSchema = z.object({
+  world: worldSchema,
+  issues: z.array(skeletonIssueSchema),
+})
+export type SaveSkeletonResponse = z.infer<typeof saveSkeletonResponseSchema>
 
 export const createSessionRequestSchema = z.object({
   worldId: z.string().min(1),

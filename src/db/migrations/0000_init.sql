@@ -24,7 +24,7 @@ CREATE TABLE "turns" (
 CREATE TABLE "worlds" (
 	"id" text PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
-	"skeleton_doc" jsonb NOT NULL,
+	"document" jsonb NOT NULL,
 	"skeleton" jsonb NOT NULL,
 	"created_at" timestamp with time zone NOT NULL,
 	"updated_at" timestamp with time zone NOT NULL

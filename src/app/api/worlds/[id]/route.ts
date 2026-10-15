@@ -10,7 +10,7 @@ import { listSessionSummaries } from "@/db/sessions"
 import { getWorld } from "@/db/worlds"
 import type { GetWorldResponse } from "@/domain/api"
 import { handle } from "@/server/http"
-import { checkSkeleton } from "@/skeleton/check"
+import { documentIssues } from "@/skeleton/issues"
 import { deleteWorld } from "@/worlds/worlds"
 
 type Context = { params: Promise<{ id: string }> }
@@ -22,7 +22,7 @@ export const GET = handle(async (_request: Request, { params }: Context) => {
   const sessions = await listSessionSummaries(db, world.id)
   return Response.json({
     world,
-    issues: checkSkeleton(world.skeleton),
+    issues: documentIssues(world.document),
     sessions: sessions.map(({ session, turnCount }) => ({
       id: session.id,
       ending: session.ending,

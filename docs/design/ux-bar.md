@@ -22,7 +22,7 @@ Reach every state in the real app before calling a change done: an empty databas
 ## Responsiveness
 
 - Every click or key gets visible feedback within 100 ms.
-- Entry status changes are optimistic, with an Undo toast. A failed request rolls back and says why.
+- Reversible changes (deleting a Skeleton row) take effect at once, with an Undo toast. A failed request says why and keeps the person's work.
 - Nothing the Author or Player types is ever lost: autosave, input preserved on failure, a guard before leaving with unsaved changes.
 - No layout shift when content arrives or state changes: reserve space.
 
@@ -46,9 +46,9 @@ Reach every state in the real app before calling a change done: an empty databas
 
 ## Copy
 
-- UI text uses `CONTEXT.md` vocabulary: Passage (not message), Session (not run), Round (not retry), Entry (not card), Judge (not validator), Author, Player, Codex.
+- UI text uses `CONTEXT.md` vocabulary: Passage (not message), Session (not run), Choice (not option), Skeleton (not brief), Author, Player.
 - Plain sentences. No exclamation marks. Errors state the cause and the next step.
-- **Delete** is permanent (a World); **Remove** is an Entry's restorable review status. Never use one for the other.
+- **Delete** removes something; when it can be undone, the toast offers Undo. A World's delete is permanent and confirmed first.
 
 ## Verification (every ticket)
 

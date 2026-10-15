@@ -1,5 +1,5 @@
 {
-  "id": "f29010eb-e936-497d-924f-7af54f365447",
+  "id": "4b55c2f2-6a9e-4492-9a34-0ca532ee90ec",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -73,12 +73,8 @@
           "name": "sessions_world_id_worlds_id_fk",
           "tableFrom": "sessions",
           "tableTo": "worlds",
-          "columnsFrom": [
-            "world_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["world_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -176,12 +172,8 @@
           "name": "turns_session_id_sessions_id_fk",
           "tableFrom": "turns",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -217,8 +209,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "skeleton_doc": {
-          "name": "skeleton_doc",
+        "document": {
+          "name": "document",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
