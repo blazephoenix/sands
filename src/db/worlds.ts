@@ -1,55 +1,32 @@
 /**
- * Worlds in the database (spec §6 `worlds`). The rules for creating a World
- * and saving its Brief live in `src/worlds/`.
- *
- * Rows convert to and from the `World` contract one-to-one and are parsed
- * with `worldSchema` on the way in and out, so a stored World reads back
- * exactly as written.
+ * Worlds in the database. Rows convert to and from the `World` contract
+ * one-to-one and are parsed with `worldSchema` on the way in and out, so a
+ * stored World reads back exactly as written.
  */
 import { count, desc, eq } from "drizzle-orm"
 
-import type { WorldSummary } from "@/domain/api"
 import { worldSchema, type World } from "@/domain/world"
-import { nowIso } from "@/lib/time"
+import { toIso } from "@/lib/time"
 
 import type { Db } from "./client"
 import { StoreError } from "./errors"
 import { sessions, worlds, type WorldRow } from "./schema"
 
-export function worldFromRow(row: WorldRow): World {
+function worldFromRow(row: WorldRow): World {
   return worldSchema.parse({
-    id: row.id,
-    name: row.name,
-    briefDoc: row.briefDoc,
-    brief: row.briefJson,
-    setupStatus: row.setupStatus,
-    solvability: row.solvabilityJson,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
+    ...row,
+    createdAt: toIso(row.createdAt),
+    updatedAt: toIso(row.updatedAt),
   } satisfies World)
 }
 
-function worldToRow(world: World): WorldRow {
-  const parsed = worldSchema.parse(world)
-  return {
-    id: parsed.id,
-    name: parsed.name,
-    briefDoc: parsed.briefDoc,
-    briefJson: parsed.brief,
-    setupStatus: parsed.setupStatus,
-    solvabilityJson: parsed.solvability,
-    createdAt: parsed.createdAt,
-    updatedAt: parsed.updatedAt,
-  }
-}
-
-export function findWorld(db: Db, id: string): World | null {
-  const row = db.select().from(worlds).where(eq(worlds.id, id)).get()
+export async function findWorld(db: Db, id: string): Promise<World | null> {
+  const [row] = await db.select().from(worlds).where(eq(worlds.id, id))
   return row ? worldFromRow(row) : null
 }
 
-export function getWorld(db: Db, id: string): World {
-  const world = findWorld(db, id)
+export async function getWorld(db: Db, id: string): Promise<World> {
+  const world = await findWorld(db, id)
   if (!world)
     throw new StoreError(
       "not_found",
@@ -58,56 +35,33 @@ export function getWorld(db: Db, id: string): World {
   return world
 }
 
-export function insertWorld(db: Db, world: World): World {
-  db.insert(worlds).values(worldToRow(world)).run()
+export async function insertWorld(db: Db, world: World): Promise<World> {
+  await db.insert(worlds).values(worldSchema.parse(world))
   return getWorld(db, world.id)
 }
 
 /** Replaces a stored World with this one (same id). */
-export function updateWorld(db: Db, world: World): World {
-  const { id, ...row } = worldToRow(world)
-  db.update(worlds).set(row).where(eq(worlds.id, id)).run()
+export async function updateWorld(db: Db, world: World): Promise<World> {
+  const { id, ...row } = worldSchema.parse(world)
+  await db.update(worlds).set(row).where(eq(worlds.id, id))
   return getWorld(db, id)
 }
 
-/**
- * Deletes a World row. The foreign keys cascade to its Sessions, their Turns
- * and every Entry, templates and Session copies alike, in the same statement.
- */
-export function deleteWorldRow(db: Db, id: string): void {
-  db.delete(worlds).where(eq(worlds.id, id)).run()
+/** Deletes a World; the foreign keys cascade to its Sessions and their Turns. */
+export async function deleteWorldRow(db: Db, id: string): Promise<void> {
+  await db.delete(worlds).where(eq(worlds.id, id))
 }
 
-/** The Worlds home rows, most recently updated first. */
-export function listWorldSummaries(db: Db): WorldSummary[] {
-  return db
-    .select({
-      id: worlds.id,
-      name: worlds.name,
-      setupStatus: worlds.setupStatus,
-      sessionCount: count(sessions.id),
-      createdAt: worlds.createdAt,
-      updatedAt: worlds.updatedAt,
-    })
+/** Every World with its Session count, most recently updated first. */
+export async function listWorldsWithSessionCounts(db: Db) {
+  const rows = await db
+    .select({ world: worlds, sessionCount: count(sessions.id) })
     .from(worlds)
     .leftJoin(sessions, eq(sessions.worldId, worlds.id))
     .groupBy(worlds.id)
     .orderBy(desc(worlds.updatedAt), desc(worlds.createdAt))
-    .all()
-}
-
-/**
- * Returns every World left `drafting` to `draft`, and says how many. Called
- * once when the server starts (`src/instrumentation.ts`): setup runs inside
- * the server process and holds nothing on disk but the claim, so any claim
- * left then belongs to a run that died with the previous process. Only the
- * World's status and update time change; setup stores no Entries until it
- * has finished.
- */
-export function releaseInterruptedSetups(db: Db): number {
-  return db
-    .update(worlds)
-    .set({ setupStatus: "draft", updatedAt: nowIso() })
-    .where(eq(worlds.setupStatus, "drafting"))
-    .run().changes
+  return rows.map((row) => ({
+    world: worldFromRow(row.world),
+    sessionCount: row.sessionCount,
+  }))
 }

@@ -40,3 +40,8 @@ export function formatDayAndTime(iso: string) {
 export function formatTimeWithSeconds(iso: string | number) {
   return dayjs(iso).format("LTS")
 }
+
+/** A timestamp as Postgres returns it ("2026-10-15 10:00:00.123+00") as the ISO string the contracts carry. */
+export function toIso(value: string) {
+  return dayjs(value).toISOString()
+}

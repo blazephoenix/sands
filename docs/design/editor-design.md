@@ -1,27 +1,26 @@
-# Editor design — chosen from the prototype
+# Skeleton editor design
 
-Decided 2026-09-23 by the Author, from the UI prototype on branch `prototype/brief-editor` (variant **D**; run `pnpm prototype:brief` in a checkout of that branch, open `/prototype/brief-editor?variant=D`). The prototype code is throwaway; rebuild it properly.
+Decided 2026-10-15 by the Author from the `?variant=` prototypes for [How the skeleton looks in the editor](https://github.com/blazephoenix/sands/issues/36): variant D (one section at a time), laid out in three panes to use the width. Replaces the Brief and Entry editor design, which went with the strip (tag `pre-strip`).
 
-**The editor looks like BlockNote's basic example: a plain document.** No form controls inside blocks: no switches, toggles, buttons, `<input>`s or card chrome.
+## Layout: three panes
 
-## Brief surface
+`/worlds/[id]/skeleton?section=…&row=…`. The section and row live in the URL, so a link (from an issue on the World page, say) opens a row.
 
-- **Section heading blocks** are the only custom blocks: `setting`, `character`, `arc`, `ending`, `location`, `voice`. Each renders, non-editable, a small muted uppercase kind label with its lucide icon (e.g. `👤 CHARACTER · Player character`), then (for named kinds: Character, Arc, Location) the name as editable inline content in a large semibold line. They have **no children**, so there is no nesting indent or vertical line.
-- **Fields are ordinary paragraphs** that follow a section heading and read `Label: value`, with the label bold. A second line inside one field is Shift+Enter (soft break). Labels are case-insensitive; the known labels per kind are the typed fields; any other label is a custom field (becomes `key_facts`); a near-miss of a known label (edit distance ≤ 2, e.g. "Personalty") is reported as a probable typo.
-- **Anything that is not `Label: value`** (another paragraph, a heading, a list, a quote) is **free prose** and ends the current section. Free prose is grouped under its nearest standard heading, as before.
-- **Hidden is a text style** (`hidden`, boolean), applied to selected text from a button with an eye icon in BlockNote's formatting toolbar, with the tooltip "Hidden: the Writer never states this". A field is Hidden if its value carries the style. Render: muted text with a dashed underline, from tokens.
-- **Player character** is a prop on the `character` heading, toggled from the ⠿ drag-handle menu ("Player character", checked state) and shown in the heading's kind label.
-- **Slash menu** has a "Brief" group (Setting, Character, Arc, Ending, Location, Voice, each with icon and one-line description) that inserts the heading plus its template `Label:` lines, followed by BlockNote's default items.
-- **Conversion** walks the flat document with these rules; errors still carry the block id (the heading's or the field paragraph's) so pages can highlight them.
+1. **Sections**, left: Story, Play settings, Characters, Places, World rules, Promises, Arcs, Hidden truth, Endings, State flags, Voice and canon. A row count for row sections; a mark when the section has issues (destructive when one stops play).
+2. **Rows**, middle, for row sections only: each row by name ("Untitled character" when it has none), Arcs numbered in story order, a mark for issues, and a menu with Move up, Move down and Delete. Add from the header's `+` or the button under the list. Endings carries the "Writer may invent endings" switch at the foot. Delete takes effect at once, with Undo in a toast.
+3. **Document**, right: one BlockNote document (ADR-0001). Story, Play settings and Voice and canon span the middle and right panes, since they have no rows. Above the document, the issues that belong to it.
 
-## Entry surface (Codex pane; and the Edit view of one Entry in setup review)
+Below `md` the panes stack.
 
-Same pattern, same look:
+## The document
 
-- One section heading block per Entry kind. The non-editable label line carries kind icon and kind, plus plain-text status bits: handle (C1), source, status, and a Jev-flag marker (e.g. `🔎 CLUE · C1 · setup · proposed · ⚑ Judge flag`). Hovering the flag marker may show the failed question and probability. The name is the editable inline content.
-- Fields are `Label: value` paragraphs, including kind-specific data (`Red herring: yes`, `Min band: normal`, `Requires: @C1, @C3`); conversion validates values per kind and reports bad ones inline.
-- **Approve, Remove** (and Restore) live in the ⠿ menu of the Entry heading; pages may add keyboard shortcuts. No buttons in the block. UI wording is Approve/Approved and Remove/Removed/Restore; data statuses stay `accepted`/`rejected`.
-- The setup review page is NOT this document view: it is a sidebar list plus one Entry card (`src/app/worlds/[id]/setup`). It uses the Entry editor only to edit a single Entry.
-- Locked Entries: heading and fields read-only (the editor refuses edits inside them), shown with a lock icon in the label line, not greyed out.
-- `@` mentions are inline content inside field values, limited to existing non-rejected Entries; a mention of a since-rejected Entry renders as broken.
-- World / Story logic grouping headings are non-editable section dividers.
+- **A row** is its name as a heading (the placeholder asks for it: "Character name", "The Secret: what is true"), then one `Label: value` paragraph per field, then, for characters and Arcs, a captioned table: Ties (Toward, Wants from them, Friction, Starts as) or Agendas (Character, Want this Arc, Steps in order, If blocked).
+- **A field** starts with its label and a colon, in any case. Paragraphs and list items below it continue it, one line each. Text before the first label, or under a heading that isn't the row's name or its table's caption, stays in the document but the Writer won't read it; the editor says so as a note.
+- **Hidden text** is a style: select and press Mod-Shift-H, or the eye button in BlockNote's formatting toolbar. It renders muted with a dashed underline, and reaches the Writer as `<hidden>…</hidden>`.
+- Everything else is BlockNote as it ships: slash menu, side menu, formatting toolbar, tables with a header row.
+
+Conversion lives in `src/skeleton/document.ts`, works on the documents' JSON (no editor needed, so the server converts what it stores), and round-trips every fixture unchanged.
+
+## Saving
+
+Autosave, debounced, one request at a time, retrying with backoff on failure; the header shows Saving, Saved or Not saved, and is also Save now (Mod-S). Leaving with unsaved edits warns; leaving inside the app saves first. The World's name is the Story's Title.

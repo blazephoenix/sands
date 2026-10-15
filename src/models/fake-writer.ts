@@ -1,24 +1,25 @@
 /**
- * A Writer for tests: no network, scripted Drafts, and each call recorded.
+ * A Writer for tests: no network, scripted replies, and each call recorded.
  *
  * A list answers successive calls in order, and running out is an error, so
- * an unexpected extra Draft fails the test. An `Error` in the script is
- * thrown instead of answered. A function computes each Draft from the
- * request and the call's index.
+ * an unexpected extra call fails the test. An `Error` in the script is thrown
+ * instead of answered. A function computes each reply from the request and
+ * the call's index. A plain string is a Passage with two stock choices.
  *
- *   const writer = new FakeWriter({ drafts: ["Draft A", "Draft B"] })
+ *   const writer = new FakeWriter({ replies: ["The door opens.", { passage, choices: [], ending }] })
  */
 import {
   WriterError,
   type Writer,
+  type WriterOutput,
   type WriterRequest,
   type WriterResult,
 } from "./writer"
 
-type Scripted = string | Error
+type Scripted = string | WriterOutput | Error
 
 export interface FakeWriterOptions {
-  drafts?:
+  replies?:
     readonly Scripted[] | ((request: WriterRequest, call: number) => Scripted)
 }
 
@@ -39,19 +40,24 @@ export class FakeWriter implements Writer {
     options.signal?.throwIfAborted()
     const call = this.calls.length
     this.calls.push(request)
-    const script = this.#options.drafts
+    const script = this.#options.replies
     let answer: Scripted
     if (typeof script === "function") answer = script(request, call)
     else if (script) {
       if (call >= script.length)
         throw new WriterError(
-          `FakeWriter has ${script.length} Drafts; call ${call + 1} was not expected.`
+          `FakeWriter has ${script.length} replies; call ${call + 1} was not expected.`
         )
       answer = script[call]
-    } else answer = `Draft ${call + 1}.`
+    } else answer = `Passage ${call + 1}.`
     if (answer instanceof Error) throw answer
+    const output: WriterOutput =
+      typeof answer === "string"
+        ? { passage: answer, choices: ["Go on", "Wait"], ending: null }
+        : answer
     return {
-      text: answer,
+      output,
+      rawOutput: JSON.stringify(output),
       model: this.model,
       usage: { inputTokens: 0, outputTokens: 0 },
       latencyMs: 0,

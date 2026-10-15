@@ -2,10 +2,12 @@
  * Small helpers for route handlers: JSON errors with a stated cause, body
  * parsing with zod, and one wrapper that turns thrown errors into responses.
  */
+import { AISDKError } from "ai"
 import { z } from "zod"
 
-import type { ApiErrorBody } from "@/domain/api"
 import { StoreError } from "@/db/errors"
+import type { ApiErrorBody } from "@/domain/api"
+import { WriterError } from "@/models/writer"
 
 export class HttpError extends Error {
   constructor(
@@ -56,7 +58,7 @@ const STORE_STATUS: Record<StoreError["code"], number> = {
   invalid: 422,
 }
 
-/** Wraps a handler so HttpError, StoreError and unexpected errors all become JSON error responses. */
+/** Wraps a handler so HttpError, StoreError, Writer failures and unexpected errors all become JSON error responses. */
 export function handle<Args extends unknown[]>(
   fn: (...args: Args) => Promise<Response>
 ) {
@@ -68,6 +70,16 @@ export function handle<Args extends unknown[]>(
         return apiError(error.status, error.code, error.message)
       if (error instanceof StoreError)
         return apiError(STORE_STATUS[error.code], error.code, error.message)
+      if (error instanceof WriterError)
+        return apiError(503, "writer_unavailable", error.message)
+      if (AISDKError.isInstance(error)) {
+        console.error("[sands] Writer call failed", error)
+        return apiError(
+          502,
+          "writer_failed",
+          "The Writer did not answer. Nothing was saved; try again."
+        )
+      }
       console.error("[sands] unhandled route error", error)
       return apiError(
         500,

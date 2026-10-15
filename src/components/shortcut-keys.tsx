@@ -3,7 +3,7 @@
 import * as React from "react"
 
 import { Kbd, KbdGroup } from "@/components/ui/kbd"
-import { isMacPlatform, shortcutKeys } from "@/editor/shortcuts"
+import { isMacPlatform, shortcutKeys } from "@/lib/shortcuts"
 
 const subscribe = () => () => {}
 

@@ -3,7 +3,7 @@
 /**
  * Page-provided parts of the app header, so pages never edit the shell:
  *
- *   <ShellBreadcrumbs items={worldCrumbs(world, "Setup")} />
+ *   <ShellBreadcrumbs items={worldCrumbs(world, "Skeleton")} />
  *   <ShellActions>
  *     <Button>Start</Button>
  *   </ShellActions>
@@ -24,7 +24,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { worldHref } from "@/components/worlds/world-links"
-import { worldDisplayName, type SetupStatus } from "@/domain/world"
+import { worldDisplayName } from "@/domain/world"
 
 type Slots = {
   breadcrumbs: HTMLElement | null
@@ -60,7 +60,7 @@ export function useShellSlots() {
   return slots
 }
 
-/** Header actions for the current page (e.g. Run setup, Start, the test-mode switch, the Codex toggle). */
+/** Header actions for the current page (e.g. New Session, the harness pane switch). */
 export function ShellActions({ children }: { children: React.ReactNode }) {
   const { actions } = useShellSlots()
   return actions ? createPortal(children, actions) : null
@@ -108,17 +108,15 @@ export function ShellBreadcrumbs({ items }: { items: Crumb[] }) {
 }
 
 /**
- * Breadcrumbs for a page of a World: the World's name, linking to where the
- * World opens (`worldHref`: the World page once it is ready), then the page.
- * A Session page reads World › Session N.
+ * Breadcrumbs for a page of a World: the World's name, linking to the World
+ * page, then the page. A Session page reads World › Session N.
  */
 export function worldCrumbs(
-  world: { id: string; name: string; setupStatus: SetupStatus },
-  page: "Brief" | "Setup" | { session: string }
+  world: { id: string; name: string },
+  page: "Skeleton" | { session: string }
 ): Crumb[] {
-  const worldCrumb: Crumb = {
-    label: worldDisplayName(world.name),
-    href: worldHref(world),
-  }
-  return [worldCrumb, { label: typeof page === "string" ? page : page.session }]
+  return [
+    { label: worldDisplayName(world.name), href: worldHref(world.id) },
+    { label: typeof page === "string" ? page : page.session },
+  ]
 }

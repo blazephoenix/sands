@@ -1,39 +1,32 @@
 /**
- * The client side of the route handlers: typed JSON calls and typed
- * NDJSON progress streams. Every response is parsed with its zod contract, and
- * every failure becomes an `ApiError` whose message says what happened and
- * what to do.
+ * The client side of the route handlers: typed JSON calls. Every response is
+ * parsed with its zod contract, and every failure becomes an `ApiError` whose
+ * message says what happened and what to do.
  *
  *   const { world } = await api.getWorld(id)
  *   await api.deleteWorld(id)
- *   for await (const event of api.streamSetup(id, { signal })) { ... }
  */
 import { z } from "zod"
 
 import {
   apiErrorBodySchema,
-  createEntryResponseSchema,
-  createSessionResponseSchema,
   createWorldResponseSchema,
+  getSessionResponseSchema,
   getWorldResponseSchema,
   listWorldsResponseSchema,
-  patchEntryResponseSchema,
-  saveBriefResponseSchema,
-  type CreateEntryRequest,
+  playTurnResponseSchema,
+  saveSkeletonResponseSchema,
   type CreateSessionRequest,
-  type CreateWorldRequest,
-  type PatchEntryRequest,
-  type SaveBriefRequest,
-  type TurnRequest,
+  type PlayTurnRequest,
+  type SaveSkeletonRequest,
 } from "@/domain/api"
-import { setupEventSchema, turnEventSchema } from "@/domain/events"
-import { getSessionResponseSchema } from "@/domain/session-view"
+import { sessionSchema, turnSchema } from "@/domain/session"
 
 export class ApiError extends Error {
   constructor(
     /** HTTP status, or 0 when the request never got an answer. */
     readonly status: number,
-    /** Stable code: the route's error code, or `network`, `contract`, `stream_incomplete`, `aborted`. */
+    /** Stable code: the route's error code, or `network`, `contract`, `aborted`. */
     readonly code: string,
     message: string
   ) {
@@ -160,154 +153,63 @@ export async function apiSend(
   await send(path, options, "application/json")
 }
 
-/**
- * Reads an NDJSON body, yielding each event parsed with `schema`. The stream
- * must end with a `result` or `error` event; if the connection drops first, it
- * throws `ApiError("stream_incomplete")`.
- */
-export async function* readNdjson<S extends z.ZodType<{ type: string }>>(
-  response: Response,
-  schema: S,
-  path = "stream"
-): AsyncGenerator<z.infer<S>> {
-  if (!response.body)
-    throw new ApiError(
-      response.status,
-      "contract",
-      "The server sent no progress. Try again."
-    )
-  const reader = response.body.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ""
-  let finished = false
-  try {
-    while (true) {
-      const { value, done } = await reader.read()
-      buffer += decoder.decode(value, { stream: !done })
-      const lines = buffer.split("\n")
-      buffer = lines.pop() ?? ""
-      if (done && buffer.trim()) lines.push(buffer)
-      for (const line of lines) {
-        if (!line.trim()) continue
-        let raw: unknown
-        try {
-          raw = JSON.parse(line)
-        } catch {
-          throw new ApiError(
-            0,
-            "contract",
-            "The server sent progress this page cannot read. Try again."
-          )
-        }
-        const event = parseContract(schema, raw, path)
-        if (event.type === "result" || event.type === "error") finished = true
-        yield event
-      }
-      if (done) break
-    }
-  } catch (error) {
-    if (isAbortError(error))
-      throw new ApiError(0, "aborted", "The request was cancelled.")
-    throw error
-  } finally {
-    reader.releaseLock()
-  }
-  if (!finished) {
-    throw new ApiError(
-      0,
-      "stream_incomplete",
-      "The connection closed before the server finished. Nothing was saved; try again."
-    )
-  }
-}
-
-/** POSTs (or otherwise calls) a streaming route and yields its typed events. */
-export async function* streamRoute<S extends z.ZodType<{ type: string }>>(
-  path: string,
-  schema: S,
-  options: RequestOptions = {}
-): AsyncGenerator<z.infer<S>> {
-  const response = await send(
-    path,
-    { method: "POST", ...options },
-    "application/x-ndjson"
-  )
-  yield* readNdjson(response, schema, path)
-}
-
 const enc = encodeURIComponent
 
-/** Typed calls for the shared routes, plus the two streaming routes (setup and Turn). */
-export const api = {
-  getWorld: (id: string, signal?: AbortSignal) =>
-    apiFetch(`/api/worlds/${enc(id)}`, getWorldResponseSchema, { signal }),
+const startSessionResponseSchema = z.object({
+  session: sessionSchema,
+  turns: z.array(turnSchema),
+})
 
+/** Typed calls for every route. */
+export const api = {
   /** GET /api/worlds: the Worlds home list. */
   listWorlds: (signal?: AbortSignal) =>
     apiFetch("/api/worlds", listWorldsResponseSchema, { signal }),
 
-  /** POST /api/worlds: a new World in draft, its Brief the new-Brief template unless one is given. */
-  createWorld: (body: CreateWorldRequest = {}, signal?: AbortSignal) =>
+  /** POST /api/worlds: a new World with an empty Skeleton. */
+  createWorld: (signal?: AbortSignal) =>
     apiFetch("/api/worlds", createWorldResponseSchema, {
       method: "POST",
-      body,
       signal,
     }),
 
-  /** PUT /api/worlds/[id]/brief: autosave of the Brief document and the World's name. */
-  saveBrief: (
+  /** PUT /api/worlds/[id]/skeleton: autosave of the Skeleton editor's documents. */
+  saveSkeleton: (
     worldId: string,
-    body: SaveBriefRequest,
+    body: SaveSkeletonRequest,
     options: { signal?: AbortSignal; keepalive?: boolean } = {}
   ) =>
-    apiFetch(`/api/worlds/${enc(worldId)}/brief`, saveBriefResponseSchema, {
-      method: "PUT",
-      body,
-      ...options,
-    }),
+    apiFetch(
+      `/api/worlds/${enc(worldId)}/skeleton`,
+      saveSkeletonResponseSchema,
+      { method: "PUT", body, ...options }
+    ),
 
-  /** DELETE /api/worlds/[id]: the World for good, with its Sessions, Turns and Entries. 409 while setup runs. */
+  /** GET /api/worlds/[id]: the World, its Skeleton's issues and its Sessions. */
+  getWorld: (id: string, signal?: AbortSignal) =>
+    apiFetch(`/api/worlds/${enc(id)}`, getWorldResponseSchema, { signal }),
+
+  /** DELETE /api/worlds/[id]: the World for good, with its Sessions and Turns. */
   deleteWorld: (id: string, signal?: AbortSignal) =>
     apiSend(`/api/worlds/${enc(id)}`, { method: "DELETE", signal }),
 
-  patchEntry: (id: string, body: PatchEntryRequest, signal?: AbortSignal) =>
-    apiFetch(`/api/entries/${enc(id)}`, patchEntryResponseSchema, {
-      method: "PATCH",
-      body,
-      signal,
-    }),
-
-  createEntry: (body: CreateEntryRequest, signal?: AbortSignal) =>
-    apiFetch("/api/entries", createEntryResponseSchema, {
+  /** POST /api/sessions: a new Session and its Opening. Takes as long as the Writer does. */
+  startSession: (body: CreateSessionRequest, signal?: AbortSignal) =>
+    apiFetch("/api/sessions", startSessionResponseSchema, {
       method: "POST",
       body,
       signal,
     }),
 
-  createSession: (body: CreateSessionRequest, signal?: AbortSignal) =>
-    apiFetch("/api/sessions", createSessionResponseSchema, {
-      method: "POST",
-      body,
-      signal,
-    }),
-
+  /** GET /api/sessions/[id]: the Session and its Turns. */
   getSession: (id: string, signal?: AbortSignal) =>
     apiFetch(`/api/sessions/${enc(id)}`, getSessionResponseSchema, { signal }),
 
-  /** POST /api/worlds/[id]/setup. */
-  streamSetup: (worldId: string, options: { signal?: AbortSignal } = {}) =>
-    streamRoute(`/api/worlds/${enc(worldId)}/setup`, setupEventSchema, {
-      signal: options.signal,
-    }),
-
-  /** POST /api/sessions/[id]/turn. */
-  streamTurn: (
-    sessionId: string,
-    body: TurnRequest,
-    options: { signal?: AbortSignal } = {}
-  ) =>
-    streamRoute(`/api/sessions/${enc(sessionId)}/turn`, turnEventSchema, {
+  /** POST /api/sessions/[id]/turns: one Turn. Takes as long as the Writer does. */
+  playTurn: (sessionId: string, body: PlayTurnRequest, signal?: AbortSignal) =>
+    apiFetch(`/api/sessions/${enc(sessionId)}/turns`, playTurnResponseSchema, {
+      method: "POST",
       body,
-      signal: options.signal,
+      signal,
     }),
 }
