@@ -76,12 +76,16 @@ import type { GetSessionResponse } from "@/domain/api"
 import type { Turn } from "@/domain/session"
 import { api, ApiError, isAbortError } from "@/lib/api-client"
 import { isTypingTarget, useSingleKeyShortcut } from "@/lib/keyboard"
-import { passageParagraphs } from "@/lib/passage"
 import { formatDayAndTime } from "@/lib/time"
 import { cn } from "@/lib/utils"
 import { plainText } from "@/skeleton/hidden-text"
 
 import { HarnessPane, turnLabel } from "./harness-pane"
+import {
+  PassageText,
+  usePassageMatchers,
+  type PassageMatchers,
+} from "./passage-text"
 import { useHarnessSwitch } from "./harness-switch"
 
 /** The prose column: about 65 characters a line. */
@@ -217,6 +221,11 @@ function SessionView({
     plainText(session.skeleton.playSettings.playerCharacter).trim() ||
     "your character"
   const world = { id: session.worldId, name: data.worldName }
+  const glossary = React.useMemo(
+    () => turns.flatMap((turn) => turn.glossary),
+    [turns]
+  )
+  const matchers = usePassageMatchers(session.skeleton, glossary)
   const sessionLabel = `Session started ${formatDayAndTime(session.createdAt)}`
 
   // On load: the latest Passage in view and the cursor in the input.
@@ -366,6 +375,7 @@ function SessionView({
           <TurnSection
             key={turn.id}
             turn={turn}
+            matchers={matchers}
             revealing={revealing === turn.id}
             onRevealed={() => {
               setRevealing(null)
@@ -469,11 +479,13 @@ function SessionView({
 
 function TurnSection({
   turn,
+  matchers,
   revealing,
   onRevealed,
   ref,
 }: {
   turn: Turn
+  matchers: PassageMatchers
   revealing: boolean
   onRevealed: () => void
   ref?: React.Ref<HTMLElement>
@@ -495,11 +507,11 @@ function TurnSection({
         {revealing ? (
           <PassageReveal text={turn.passage} onDone={onRevealed} />
         ) : (
-          passageParagraphs(turn.passage).map((paragraph, p) => (
-            <p key={p} className="not-first:mt-4">
-              {paragraph}
-            </p>
-          ))
+          <PassageText
+            passage={turn.passage}
+            matchers={matchers}
+            known={turn.known}
+          />
         )}
       </div>
     </section>

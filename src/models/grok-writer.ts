@@ -42,8 +42,12 @@ export interface GrokWriterOptions {
   logger?: ModelLogger
 }
 
-/** Room for a long Passage, its choices and an Epilogue; a runaway reply is cut, not waited for. */
-const MAX_OUTPUT_TOKENS = 2_000
+/**
+ * Room for the reasoning, which counts against this (about 800 to 1,500
+ * tokens at low effort), then a long Passage, its Choices, notes and an
+ * Epilogue. A runaway reply is cut, not waited for.
+ */
+const MAX_OUTPUT_TOKENS = 8_000
 
 export class GrokWriter implements Writer {
   readonly #model: LanguageModel

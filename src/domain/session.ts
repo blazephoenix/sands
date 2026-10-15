@@ -36,6 +36,21 @@ export const writerLogSchema = z.object({
 })
 export type WriterLog = z.infer<typeof writerLogSchema>
 
+/** What the Player character knows about one character, as of a Turn. */
+export const characterKnowledgeSchema = z.object({
+  /** The character's name as the Skeleton gives it. */
+  character: z.string().min(1),
+  knows: z.string(),
+})
+export type CharacterKnowledge = z.infer<typeof characterKnowledgeSchema>
+
+/** A word in a Passage a reader may not know, with its meaning in this story. */
+export const glossaryTermSchema = z.object({
+  term: z.string().min(1),
+  definition: z.string().min(1),
+})
+export type GlossaryTerm = z.infer<typeof glossaryTermSchema>
+
 export const turnSchema = z
   .object({
     id: z.string().min(1),
@@ -49,6 +64,10 @@ export const turnSchema = z
     choices: z.array(z.string()),
     /** The Ending this Passage reached, or null. */
     ending: reachedEndingSchema.nullable(),
+    /** Everything the Player character knows about each character met, as of this Turn. */
+    known: z.array(characterKnowledgeSchema),
+    /** Words first defined in this Passage. */
+    glossary: z.array(glossaryTermSchema),
     log: writerLogSchema,
     createdAt: z.iso.datetime(),
   })

@@ -53,7 +53,13 @@ export class FakeWriter implements Writer {
     if (answer instanceof Error) throw answer
     const output: WriterOutput =
       typeof answer === "string"
-        ? { passage: answer, choices: ["Go on", "Wait"], ending: null }
+        ? {
+            passage: answer,
+            choices: ["Go on", "Wait"],
+            ending: null,
+            characterNotes: [],
+            glossary: [],
+          }
         : answer
     return {
       output,

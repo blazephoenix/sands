@@ -29,6 +29,21 @@ export const writerOutputSchema = z.object({
     })
     .nullable()
     .describe("The Ending this Passage concludes the story on, or null."),
+  characterNotes: z
+    .array(
+      z.object({
+        character: z.string().describe("The name exactly as in the Skeleton."),
+        knows: z.string(),
+      })
+    )
+    .describe(
+      "For each character the Player character met or learned something new about in this Passage: everything they now know about that character."
+    ),
+  glossary: z
+    .array(z.object({ term: z.string(), definition: z.string() }))
+    .describe(
+      "Words in this Passage a reader today may not know, each with a short definition."
+    ),
 })
 export type WriterOutput = z.infer<typeof writerOutputSchema>
 

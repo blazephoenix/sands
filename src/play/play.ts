@@ -18,7 +18,13 @@ import {
   touchSession,
 } from "@/db/sessions"
 import { getWorld } from "@/db/worlds"
-import type { ReachedEnding, Session, Turn } from "@/domain/session"
+import type {
+  CharacterKnowledge,
+  GlossaryTerm,
+  ReachedEnding,
+  Session,
+  Turn,
+} from "@/domain/session"
 import type { EndingKind, Skeleton } from "@/domain/skeleton"
 import { newId } from "@/lib/ids"
 import { nowIso } from "@/lib/time"
@@ -87,23 +93,90 @@ export function cleanChoices(choices: readonly string[], ended: boolean) {
   return out.slice(0, MAX_CHOICES)
 }
 
+/**
+ * The Player character's knowledge of each character after a Passage: the
+ * last Turn's, with the Writer's new notes replacing a character's entry.
+ * Notes are matched to the Skeleton's characters by name or alias; a note on
+ * anyone else is dropped, and logged.
+ */
+export function mergeKnowledge(
+  skeleton: Skeleton,
+  previous: readonly CharacterKnowledge[],
+  notes: WriterOutput["characterNotes"]
+): { known: CharacterKnowledge[]; log: string[] } {
+  const byName = new Map<string, string>()
+  for (const character of skeleton.characters) {
+    const name = plainText(character.name).trim()
+    if (!name) continue
+    for (const alias of [name, ...plainText(character.aliases).split(/[;,\n]/)])
+      if (alias.trim()) byName.set(nameKey(alias), name)
+  }
+  const known = [...previous]
+  const log: string[] = []
+  for (const note of notes) {
+    const name = byName.get(nameKey(note.character))
+    const knows = note.knows.trim()
+    if (!name) {
+      log.push(
+        `The Writer noted “${note.character.trim()}”, who isn't a Skeleton character, so the note was dropped.`
+      )
+      continue
+    }
+    if (!knows) continue
+    const at = known.findIndex((k) => k.character === name)
+    if (at === -1) known.push({ character: name, knows })
+    else known[at] = { character: name, knows }
+  }
+  return { known, log }
+}
+
+/** New words the Passage really uses, each defined once per Session. */
+export function cleanGlossary(
+  passage: string,
+  previous: readonly Turn[],
+  glossary: WriterOutput["glossary"]
+): GlossaryTerm[] {
+  const seen = new Set(
+    previous.flatMap((turn) => turn.glossary.map((g) => g.term.toLowerCase()))
+  )
+  const text = passage.toLowerCase()
+  const out: GlossaryTerm[] = []
+  for (const entry of glossary) {
+    const term = entry.term.trim()
+    const definition = entry.definition.trim()
+    const key = term.toLowerCase()
+    if (!term || !definition || seen.has(key) || !text.includes(key)) continue
+    seen.add(key)
+    out.push({ term, definition })
+  }
+  return out
+}
+
 function turnFrom(
   sessionId: string,
-  index: number,
+  previous: readonly Turn[],
   playerInput: string | null,
   request: { instructions: string; prompt: string },
   result: WriterResult,
   skeleton: Skeleton
 ): Turn {
   const { ending, notes } = resolveEnding(skeleton, result.output.ending)
+  const passage = result.output.passage.trim()
+  const knowledge = mergeKnowledge(
+    skeleton,
+    previous.at(-1)?.known ?? [],
+    result.output.characterNotes
+  )
   return {
     id: newId("t"),
     sessionId,
-    index,
+    index: previous.length,
     playerInput,
-    passage: result.output.passage.trim(),
+    passage,
     choices: cleanChoices(result.output.choices, ending !== null),
     ending,
+    known: knowledge.known,
+    glossary: cleanGlossary(passage, previous, result.output.glossary),
     log: {
       instructions: request.instructions,
       prompt: request.prompt,
@@ -112,7 +185,7 @@ function turnFrom(
       inputTokens: result.usage.inputTokens,
       outputTokens: result.usage.outputTokens,
       latencyMs: result.latencyMs,
-      notes,
+      notes: [...notes, ...knowledge.log],
     },
     createdAt: nowIso(),
   }
@@ -143,7 +216,7 @@ export async function startSession(
   const sessionId = newId("s")
   const request = writerRequest(world.skeleton, [], null)
   const result = await writer.write(request, options)
-  const opening = turnFrom(sessionId, 0, null, request, result, world.skeleton)
+  const opening = turnFrom(sessionId, [], null, request, result, world.skeleton)
   const now = nowIso()
   const session: Session = {
     id: sessionId,
@@ -182,7 +255,7 @@ export async function playTurn(
   const result = await writer.write(request, options)
   const turn = turnFrom(
     sessionId,
-    turns.length,
+    turns,
     playerInput,
     request,
     result,

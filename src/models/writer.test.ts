@@ -13,6 +13,8 @@ const reply: WriterOutput = {
   passage: "The fog lifted.",
   choices: ["Follow the lamp", "Call out"],
   ending: null,
+  characterNotes: [],
+  glossary: [],
 }
 
 function generated(text: string) {

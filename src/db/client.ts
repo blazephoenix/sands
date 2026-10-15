@@ -7,11 +7,14 @@
  * pending migrations from `src/db/migrations/` before the first query, so
  * `pnpm dev` needs no manual step beyond `docker compose up -d`. The handle
  * lives on `globalThis`, so every route handler (each its own module graph in
- * dev) shares one pool and it survives hot reloads.
+ * dev) shares one pool and it survives hot reloads. Outside production, a
+ * migration added while the server runs is applied before the next query,
+ * so new code never meets an old schema.
  *
  * Every function that reads or writes takes a `Db`, which is either the
  * database or a transaction inside it.
  */
+import { readFileSync } from "node:fs"
 import path from "node:path"
 
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres"
@@ -32,7 +35,17 @@ export const MIGRATIONS_FOLDER = path.join(
 type ServerDb = NodePgDatabase & { $client: Pool }
 
 declare global {
-  var __sandsDb: { url: string; db: Promise<ServerDb> } | undefined
+  var __sandsDb:
+    { url: string; migrations: number; db: Promise<ServerDb> } | undefined
+}
+
+/** How many migrations exist on disk; a new file means the schema moved on. */
+function migrationCount() {
+  if (process.env.NODE_ENV === "production") return 0
+  const journal = JSON.parse(
+    readFileSync(path.join(MIGRATIONS_FOLDER, "meta", "_journal.json"), "utf8")
+  ) as { entries: unknown[] }
+  return journal.entries.length
 }
 
 async function open(url: string): Promise<ServerDb> {
@@ -54,14 +67,17 @@ export function getDb(): Promise<Db> {
       "DATABASE_URL is not set on the server. Add it to .env.local (see .env.example), run `docker compose up -d`, and restart."
     )
   }
+  const migrations = migrationCount()
   const current = globalThis.__sandsDb
-  if (current?.url === url) return current.db
+  if (current?.url === url && current.migrations === migrations)
+    return current.db
+  if (current) void current.db.then((old) => old.$client.end()).catch(() => {})
   const db = open(url)
   // A failed open is not cached, so the next request tries again.
   db.catch(() => {
     if (globalThis.__sandsDb?.db === db) globalThis.__sandsDb = undefined
   })
-  globalThis.__sandsDb = { url, db }
+  globalThis.__sandsDb = { url, migrations, db }
   return db
 }
 

@@ -9,7 +9,14 @@ import { testDb } from "@/test/db"
 import { playableSkeleton } from "@/test/skeletons"
 import { createWorld } from "@/worlds/worlds"
 
-import { cleanChoices, playTurn, resolveEnding, startSession } from "./play"
+import {
+  cleanChoices,
+  cleanGlossary,
+  mergeKnowledge,
+  playTurn,
+  resolveEnding,
+  startSession,
+} from "./play"
 
 let db: Db
 let worldId: string
@@ -90,6 +97,8 @@ describe("playing a Turn", () => {
           passage: "The key turns.",
           choices: ["Leave"],
           ending: { name: "found", kind: "neutral" },
+          characterNotes: [],
+          glossary: [],
         },
       ],
     })
@@ -175,5 +184,78 @@ describe("cleanChoices", () => {
       "d",
     ])
     expect(cleanChoices(["a"], true)).toEqual([])
+  })
+})
+
+describe("what the Player character knows", () => {
+  it("carries notes forward, replaces a character's entry, and matches aliases", () => {
+    const skeleton = playableSkeleton()
+    skeleton.characters[1].aliases = "The Rival"
+    const first = mergeKnowledge(
+      skeleton,
+      [],
+      [
+        { character: "ada", knows: "Herself." },
+        { character: "the rival", knows: "Guarded." },
+      ]
+    )
+    expect(first.known).toEqual([
+      { character: "Ada", knows: "Herself." },
+      { character: "Ben", knows: "Guarded." },
+    ])
+    const second = mergeKnowledge(skeleton, first.known, [
+      { character: "Ben", knows: "Guarded, and hiding a key." },
+      { character: "Cyd", knows: "A stranger." },
+    ])
+    expect(second.known[1]).toEqual({
+      character: "Ben",
+      knows: "Guarded, and hiding a key.",
+    })
+    expect(second.log).toEqual([
+      "The Writer noted “Cyd”, who isn't a Skeleton character, so the note was dropped.",
+    ])
+  })
+
+  it("keeps each Turn's knowledge and gives the next Turn the latest", async () => {
+    const writer = new FakeWriter({
+      replies: [
+        {
+          passage: "Ben waits on the lino.",
+          choices: ["Talk"],
+          ending: null,
+          characterNotes: [{ character: "Ben", knows: "Waiting." }],
+          glossary: [
+            { term: "lino", definition: "Linoleum floor covering." },
+            { term: "tannoy", definition: "Not in this Passage." },
+          ],
+        },
+        "Ben shrugs.",
+      ],
+    })
+    const { session, turns } = await startSession(db, writer, worldId)
+    expect(turns[0].known).toEqual([{ character: "Ben", knows: "Waiting." }])
+    expect(turns[0].glossary).toEqual([
+      { term: "lino", definition: "Linoleum floor covering." },
+    ])
+    const { turn } = await playTurn(db, writer, session.id, "Talk")
+    expect(turn.known).toEqual(turns[0].known)
+    expect(writer.calls[1].prompt).toContain("- **Ben:** Waiting.")
+    expect(writer.calls[1].prompt).toContain("# Words already defined\n\nlino")
+  })
+})
+
+describe("cleanGlossary", () => {
+  it("keeps new words the Passage uses, once per Session", () => {
+    expect(
+      cleanGlossary(
+        "The Lino shone.",
+        [],
+        [
+          { term: "lino", definition: "Floor covering." },
+          { term: "LINO", definition: "Again." },
+          { term: "", definition: "x" },
+        ]
+      )
+    ).toEqual([{ term: "lino", definition: "Floor covering." }])
   })
 })

@@ -26,7 +26,12 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core"
 
-import type { ReachedEnding, WriterLog } from "../domain/session"
+import type {
+  CharacterKnowledge,
+  GlossaryTerm,
+  ReachedEnding,
+  WriterLog,
+} from "../domain/session"
 import type { Skeleton } from "../domain/skeleton"
 import type { SkeletonDocument } from "../skeleton/document"
 
@@ -81,6 +86,8 @@ export const turns = pgTable(
     passage: text("passage").notNull(),
     choices: jsonb("choices").$type<string[]>().notNull(),
     ending: jsonb("ending").$type<ReachedEnding>(),
+    known: jsonb("known").$type<CharacterKnowledge[]>().notNull().default([]),
+    glossary: jsonb("glossary").$type<GlossaryTerm[]>().notNull().default([]),
     log: jsonb("log").$type<WriterLog>().notNull(),
     createdAt: timestamps.createdAt,
   },
