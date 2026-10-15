@@ -140,6 +140,10 @@ _Avoid_: universe, setting (reserved for the story's overall where), game, book
 A World whose Skeleton has nothing that stops a Session from starting: a Title, a Premise, a Player character with a card, at least one Arc, and at least one Ending, each with a name, a Kind and a Trigger.
 _Avoid_: ready, valid, complete
 
+**Story map**:
+The Author's map of a World's Skeleton: the Arcs in story order, each Ending forking off at its Earliest Arc, and the Secrets and Promises beside theirs.
+_Avoid_: story tree, flowchart, graph
+
 **Session**:
 One playthrough of a World, from its first Turn to its Ending. It plays the World's Skeleton as it stood when the Session started.
 _Avoid_: run, playthrough, game, save

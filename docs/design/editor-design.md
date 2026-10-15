@@ -24,3 +24,15 @@ Conversion lives in `src/skeleton/document.ts`, works on the documents' JSON (no
 ## Saving
 
 Autosave, debounced, one request at a time, retrying with backoff on failure; the header shows Saving, Saved or Not saved, and is also Save now (Mod-S). Leaving with unsaved edits warns; leaving inside the app saves first. The World's name is the Story's Title.
+
+## Story map
+
+Decided 2026-10-15 by the Author from the `/prototype/story-tree` variants: variant B, the branch diagram, turned vertical. `/worlds/[id]/map`, reached from the World page's "Story map" button (`m`) and the Skeleton editor's header, next to Play.
+
+- **What it shows:** the Skeleton as a map. The Arc spine runs top to bottom in story order, under a Start node with the Story's Title. Each Ending forks off sideways from its Earliest Arc as a leaf, marked by Kind with an icon, a label, a token colour and a line style (good solid, bad destructive, neutral dashed), and says "can fire from Arc N on". Secrets and Promises are small markers beside their Earliest Arc. The State flags are listed below the map.
+- **Earliest Arc:** matched to an Arc by name. Blank places the item at the first Arc; a name that matches no Arc also places it at the first Arc, with a warning mark (the Skeleton check already reports it as an issue that blocks play).
+- **Details:** selecting a node shows it in full in the right-hand pane, Hidden text muted as in the editor, with "Edit in Skeleton" opening the editor on that row.
+- **Moving around:** drag or scroll to pan; zoom with the buttons, Ctrl/Cmd + wheel, or `+` / `-` / `0`. The diagram is one tab stop; arrow keys move by position (Up/Down along the spine, Right into an Arc's Endings, Left to its markers), Enter or Space selects. No animation, so reduced motion needs nothing more.
+- **States:** a loading skeleton, not found, an error with Retry, and an Empty state when there are no Arcs, linking to the editor's Arcs.
+
+Geometry and arrow-key moves live in `src/app/worlds/[id]/map/diagram-layout.ts`, tested with the placement rules in `story-map.test.ts`.

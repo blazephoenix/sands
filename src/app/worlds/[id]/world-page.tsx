@@ -1,8 +1,8 @@
 "use client"
 
 /**
- * The World page: the World's Sessions, New Session to start another, and
- * Edit Skeleton. While the Skeleton has issues that block play, New Session
+ * The World page: the World's Sessions, New Session to start another, Edit
+ * Skeleton and the Story map. While the Skeleton has issues that block play, New Session
  * is disabled and the page lists what to fix.
  *
  * States: loading (Skeleton rows), not found, error with Retry, no Sessions
@@ -17,6 +17,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   CircleAlertIcon,
+  GitBranchIcon,
   PencilIcon,
   PlayIcon,
   SearchXIcon,
@@ -52,7 +53,11 @@ import {
   DeleteWorldDialog,
   WorldActionsMenu,
 } from "@/components/worlds/delete-world"
-import { sessionHref, skeletonHref } from "@/components/worlds/world-links"
+import {
+  sessionHref,
+  skeletonHref,
+  storyMapHref,
+} from "@/components/worlds/world-links"
 import type { GetWorldResponse } from "@/domain/api"
 import { worldDisplayName } from "@/domain/world"
 import { api, ApiError, isAbortError } from "@/lib/api-client"
@@ -66,6 +71,7 @@ import { WorldSessions, WorldSessionsSkeleton } from "./world-sessions"
 
 const NEW_SESSION_SHORTCUT = "n"
 const EDIT_SKELETON_SHORTCUT = "e"
+const STORY_MAP_SHORTCUT = "m"
 /** Enough issues to start fixing; the editor shows every one. */
 const ISSUES_SHOWN = 5
 
@@ -228,6 +234,10 @@ function LoadedWorld({ data }: { data: GetWorldResponse }) {
     event.preventDefault()
     router.push(skeletonHref(world.id))
   })
+  useSingleKeyShortcut(STORY_MAP_SHORTCUT, (event) => {
+    event.preventDefault()
+    router.push(storyMapHref(world.id))
+  })
 
   const busyIcon = starting ? (
     <Spinner data-icon="inline-start" aria-hidden />
@@ -256,6 +266,25 @@ function LoadedWorld({ data }: { data: GetWorldResponse }) {
           <TooltipContent>
             Open the Skeleton editor
             <ShortcutKeys shortcut={EDIT_SKELETON_SHORTCUT} />
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<Link href={storyMapHref(world.id)} />}
+                aria-keyshortcuts={STORY_MAP_SHORTCUT}
+              />
+            }
+          >
+            <GitBranchIcon data-icon="inline-start" aria-hidden />
+            Story map
+          </TooltipTrigger>
+          <TooltipContent>
+            See the Arcs and where each Ending forks off
+            <ShortcutKeys shortcut={STORY_MAP_SHORTCUT} />
           </TooltipContent>
         </Tooltip>
         <Tooltip>

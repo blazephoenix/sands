@@ -113,7 +113,7 @@ export function ShellBreadcrumbs({ items }: { items: Crumb[] }) {
  */
 export function worldCrumbs(
   world: { id: string; name: string },
-  page: "Skeleton" | { session: string }
+  page: "Skeleton" | "Story map" | { session: string }
 ): Crumb[] {
   return [
     { label: worldDisplayName(world.name), href: worldHref(world.id) },

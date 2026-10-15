@@ -21,6 +21,7 @@ import {
   ArrowUpIcon,
   CircleAlertIcon,
   EllipsisIcon,
+  GitBranchIcon,
   PlayIcon,
   PlusIcon,
   SearchXIcon,
@@ -63,7 +64,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { worldHref } from "@/components/worlds/world-links"
+import { storyMapHref, worldHref } from "@/components/worlds/world-links"
 import type { World } from "@/domain/world"
 import { DocumentEditor, HIDDEN_SHORTCUT } from "@/editor"
 import { api, ApiError, isAbortError } from "@/lib/api-client"
@@ -367,6 +368,23 @@ function Editor({ world }: { world: World }) {
             void autosave.flush()
           }}
         />
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<Link href={storyMapHref(world.id)} />}
+              />
+            }
+          >
+            <GitBranchIcon data-icon="inline-start" aria-hidden />
+            Story map
+          </TooltipTrigger>
+          <TooltipContent>
+            See the Arcs and where each Ending forks off
+          </TooltipContent>
+        </Tooltip>
         <Tooltip>
           <TooltipTrigger
             render={
