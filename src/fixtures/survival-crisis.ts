@@ -1,630 +1,575 @@
-/** Fixture: a survival crisis on a failing ship; tests persistent state, time pressure, resource counts and consistent consequences. */
+/** Fixture: a survival crisis aboard the Gun Club's projectile, adapted from Jules Verne's Round the Moon (1870); tests persistent state, time pressure, resource counts and consistent consequences. */
 import type { Skeleton } from "@/domain/skeleton"
 import { hidden } from "@/skeleton/hidden-text"
 
 /** Joins a multi-line field: one value per line. */
 const lines = (...values: string[]) => values.join("\n")
 
+const ARC_1 = "The Leak and the Cold"
+const ARC_2 = "Behind the Moon"
+const ARC_3 = "The Fall"
+
 export const survivalCrisis: Skeleton = {
   story: {
-    title: "Sixteen Hours Out",
+    title: "Round the Moon",
     premise:
-      "An ice hauler is holed and adrift, its captain dead, with ten hours of air for six crew and a tug sixteen hours away. As acting master, you decide who breathes, what gets spent and who you can trust, and every call stays on the board.",
-    genre: "Survival thriller",
+      "Four days out of Florida, the Gun Club's projectile has missed the Moon and is plunging into her shadow with a frozen valve bleeding its gas into space. As Impey Barbicane you split the gas, chlorate, potash, water and twenty rockets between the cold, the air and one narrow chance of getting home, while your old rival Captain Nicholl checks every figure and Michel Ardan would rather fall onto the Moon. Every count stays on the board.",
+    genre: "Survival adventure",
     theme:
-      "What the one in charge owes the people who must obey: arithmetic against loyalty.",
+      "The arithmetic of air against the pride of three men: whose figures you trust, and who pays when they are wrong.",
     setting:
-      "The Meridian Slow, a sixty-year-old water-ice hauler, cramped and hand-repaired, eleven days out from Harrow Deep refinery and alone.",
+      "The aluminium projectile fired from the Columbiad at Stones Hill, Florida: one padded cabin for three men and a dog, rounding the Moon's north pole, her dark far side and her south pole, then falling to the Pacific.",
     period:
-      "A far future of slow cargo routes between the outer belt and the refineries.",
-    basedOn: "Original",
+      "December 186-. Play runs from 6 a.m. on 6 December to 29 December.",
+    basedOn:
+      "Round the Moon by Jules Verne (1870); Project Gutenberg #83; public domain",
   },
   playSettings: {
-    playerCharacter: "Ines Marr",
-    pointOfView: "Second person, present tense: you are Ines Marr.",
+    playerCharacter: "Impey Barbicane",
+    pointOfView: "Second person, present tense: you are Impey Barbicane.",
     opening: lines(
-      "Start mid-alarm at H+0, seconds after the strike. Klaxons, frost, the captain dead on the Bridge.",
-      "You are at Bulkhead 4's panel in the Galley; the seal cycle is counting down from ninety seconds. Through the port, Rafi lies on the Hydroponics deck, one leg pinned under a fallen rack.",
-      "Teodor reads the first numbers over the comm; Wen offers to run for Rafi. Holding the bulkhead open long enough to drag him through vents 6 person-hours of air; sealing it now leaves him on a one-hour mask behind it.",
-      "End on that choice, with both costs in numbers."
+      "Start at 6:00 a.m. on 6 December, seconds after the projectile passes the Moon's north pole and plunges into her shadow: the sun cut off like a blow, black outside, frost starting on the side scuttles.",
+      "The burner is out: Nicholl put it out to find a hiss, and he has found it. The receiver's filling valve, outside by the top scuttle, has frozen open; gas is bleeding into space at 2 gas-hours every hour. The thermometer reads +5°C and falling. Diana whines at the floor. Ardan is already at the top scuttle's bolts.",
+      "Nicholl reads the counts in one breath: gas, air, chlorate, potash, rockets, water, and the twelve hours until the sun comes back.",
+      "End on the first hard choice, each cost in numbers: shut the master valve and let Nicholl bypass it by touch (3 hours with no flame: the cabin falls to −10°C, no oxygen made); turn the burner's flame on the pipe to thaw it (2 hours, 6 gas-hours gone); or Ardan's arm out of the top scuttle (one minute: 6 man-hours of air, 10°C, and his left hand)."
     ),
     offscreenScenes:
-      "Only as what Ines hears on the comm or reads on the ship board. The clock, the counts and every other crew member's Agenda keep moving while she is elsewhere.",
+      "Earth cannot be heard from the projectile, and nothing said aboard reaches it. While Barbicane is busy at a scuttle or asleep, Nicholl's and Ardan's Agendas keep moving: show the results when he looks up. Maston appears only in Barbicane's thoughts until the Susquehanna's boat reaches the projectile; the Ending's Passage may cut to the boat for a few lines.",
     claims:
-      "The Player states Ines's own actions, words and orders. Never whether a crew member obeys, whether a repair works, or any count: counts change only by the World rules.",
+      "The Player states Barbicane's own actions, words, orders and calculations. Never whether Nicholl or Ardan obeys, whether a repair works, what a sighting shows, or any count: counts change only by the World rules.",
   },
   characters: [
     {
-      name: "Ines Marr",
-      aliases: "Ines; the master; Marr",
-      role: "First officer; acting master of the Meridian Slow since the captain died at H+0. The Player character.",
-      core: "Steady under noise. Counts before she speaks. Takes the weight of a call herself rather than spreading it.",
-      want: "Bring the crew and the ship to Harrow Deep.",
-      wantPriority: "The crew over the ship; the ship over the cargo.",
-      fearOrWeakness:
-        "Freezing while others wait on her: she was never meant to be master.",
-      lines: lines(
-        "Never takes a seat in the escape pod while any crew member is still aboard the ship.",
-        "Never leaves a living crew member to die without telling them to their face or over the comm."
-      ),
-      speech: "Short orders, numbers first. 'Teodor. Air, power, clock. Go.'",
-      knows:
-        "The ship's layout; everything on the ship board; the pod has three seats; the tug is the only ship in range.",
-      believes:
-        "That the reactor scrammed because of the strike, as Teodor says.",
-      ties: [
-        {
-          toward: "Teodor Asante",
-          wants: "The truth about what the ship can still do.",
-          friction: "He has served longer and second-guesses her out loud.",
-          startsAs: "Trusted shipmates of six years",
-        },
-        {
-          toward: "Selin Kovac",
-          wants: "Her to follow the master's orders, not the owners'.",
-          friction: "Selin answers to Calloway-Brandt, and says so.",
-          startsAs: "Polite, wary colleagues",
-        },
-      ],
-    },
-    {
-      name: "Teodor Asante",
-      aliases: "Teo; the chief",
-      role: "Chief engineer, 58. The only one who knows the reactor and the scrubber by hand.",
-      core: "Gruff, exact, proud of a ship he has kept alive for twenty years. Jokes when he is afraid.",
-      want: "Save the Meridian Slow and everyone aboard her; to him the pod is a coffin with a window.",
+      name: "Impey Barbicane",
+      aliases:
+        "Barbicane; President Barbicane; the President of the Gun Club; the president",
+      role: "President of the Gun Club of Baltimore, who built the Columbiad; in command of the projectile. The Player character.",
+      core: "Cold, calm, exact. Thinks in figures and says little. The worse the news, the steadier he gets.",
+      want: "Bring the projectile and all three men through, and learn what the Moon truly is.",
       wantPriority:
-        "The ship first, because he believes saving her saves everyone; his own life last.",
-      fearOrWeakness: "Being useless. His hands shake and he hides why.",
+        "His companions' lives over the Moon; the Moon over his own comfort.",
+      fearOrWeakness:
+        "An error in his own figures, with other men paying for it. A scientist's hunger: he will stay at a scuttle when he should be working.",
       lines: lines(
-        "Never gets into the escape pod.",
-        "Never lies about a number on the board."
+        "Never leaves a living companion to the ether to save himself.",
+        "Never draws lots for a man's life."
       ),
       speech:
-        "Slow and dry; does the sums aloud. 'Fifty-four person-hours, six of us. That's nine hours. Divided by optimism, still nine.'",
-      knows: lines(
-        "Every system aboard and every World rule's cost; that the pod holds the last catalyst cartridge.",
-        hidden(
-          "He took a heavy radiation dose in a crawlway eleven years ago. One more hour in the Reactor crawlway will kill him within hours. Only Ferraz knows."
-        )
-      ),
-      believes: `That the strike scrammed the reactor. ${hidden("It was Selin's override.")}`,
+        "Brief, measured, formal; 'my friends'. 'Let us act as if we were about to reach it.'",
+      knows:
+        "Every part of the projectile and its stores; every rule of the gas, the air and the rockets; that the great meteor of the first night deviated the projectile; the projectile's height over the north pole, which he took at 6 a.m.",
+      believes:
+        "That the deviated projectile can only fall onto the Moon or circle her for ever. False: its ellipse brings it back to the dead point, and from there home (the first Secret).",
       ties: [
         {
-          toward: "Ines Marr",
-          wants: "Her to commit to saving the ship, not just the people.",
-          friction: "He fears she will take the pod's arithmetic.",
-          startsAs: "Trusted shipmates of six years",
-        },
-        {
-          toward: "Rafi Odede",
-          wants: "Him alive, and learning.",
-          friction: "Rafi copies his risks.",
-          startsAs: "Mentor and apprentice",
-        },
-        {
-          toward: "Selin Kovac",
-          wants: "Her out of his engine room.",
+          toward: "Captain Nicholl",
+          wants: "His exact hands and his honest counts.",
           friction:
-            "He blames the company's cost-cutting for the ship's state.",
-          startsAs: "Cold",
+            "Twenty years of rivalry; Nicholl checks every number Barbicane gives.",
+          startsAs: "Reconciled rivals: civil, wary, keeping score",
+        },
+        {
+          toward: "Michel Ardan",
+          wants: "Obedience when the numbers say no.",
+          friction: "Ardan dares; Barbicane calculates.",
+          startsAs: "Devoted friends since Tampa",
+        },
+        {
+          toward: "J. T. Maston",
+          wants: "To come home to him.",
+          friction: "He refused Maston a place in the projectile.",
+          startsAs: "Oldest friends",
         },
       ],
     },
     {
-      name: "Selin Kovac",
-      aliases: "Kovac; the agent",
-      role: "Calloway-Brandt Haulage's cargo agent aboard. Outranks nobody, but the owners listen to her.",
-      core: "Polished, reasonable, always has a procedure to quote. Never raises her voice.",
-      want: `In public: get the injured and a company witness off in the pod, by procedure. ${hidden("In truth: reach Harrow Deep first in the pod with the Bridge log core, so the record shows an accident and not her override.")}`,
+      name: "Captain Nicholl",
+      aliases: "Nicholl",
+      role: "Of Philadelphia, maker of armour-plate; for twenty years Barbicane's rival, who bet against the Columbiad and challenged him to a duel in Skersnaw wood until Ardan reconciled them. Keeps the gas, the air apparatus and the potash.",
+      core: "Methodical, economical, exact. Brave without show: at Skersnaw he was found freeing a bird from a spider's web instead of hunting his enemy. Business-like even about death.",
+      want: "All three home alive, and his own figures to be the ones that were right.",
+      wantPriority:
+        "His companions' lives over his own; being proved right over being comfortable.",
+      fearOrWeakness:
+        "Being a passenger in Barbicane's triumph; owing anyone anything. Overruled without figures, he digs in.",
+      lines: lines(
+        "Never lies about a count.",
+        "Never strikes a man first.",
+        "Never takes more than his share of air or water."
+      ),
+      speech:
+        "Short, dry, business-like; figures first. 'Twenty-six gas-hours, leaking two an hour. I'll have that in writing, if you please.'",
+      knows: lines(
+        "The gas receiver, its couplings and valves, and the oxygen apparatus by hand; how to bypass the frozen valve; the count of every store.",
+        hidden(
+          "If his own count shows the air cannot carry three men to the sea, he means to go out through the entrance plate himself."
+        )
+      ),
+      believes:
+        "That the projectile missed the Moon through Barbicane's aiming of the Columbiad. False: the great meteor of the first night pulled it off course.",
+      ties: [
+        {
+          toward: "Impey Barbicane",
+          wants: "To be shown the figures and treated as an equal, not a hand.",
+          friction:
+            "The wagers, the duel at Skersnaw, nine thousand dollars paid at departure; he checks Barbicane's every number.",
+          startsAs: "Reconciled rivals: civil, wary, keeping score",
+        },
+        {
+          toward: "Michel Ardan",
+          wants: "Him to keep his hands off the apparatus.",
+          friction: "Ardan spends what Nicholl is saving.",
+          startsAs: "Grateful friends: Ardan stopped the duel",
+        },
+      ],
+    },
+    {
+      name: "Michel Ardan",
+      aliases: "Ardan; Michel; the Frenchman",
+      role: "Parisian adventurer who proposed the voyage, made Barbicane and Nicholl shake hands, and first promised rockets to soften a landing.",
+      core: "Witty, bold, generous, careless. Never at a loss for a joke or a plan. Loves the dogs; smuggled hens and seeds aboard for the Moon.",
+      want: `Something splendid. ${hidden("To set foot on the Moon, even if it is the last thing he does.")}`,
       wantPriority: hidden(
-        "Her seat and the log core over everyone. She will not kill for them, but she will leave people behind."
+        "The Moon over getting home; his friends' lives over the Moon, once he truly sees the numbers."
       ),
-      fearOrWeakness: "Blame; prison; being the one the inquiry names.",
+      fearOrWeakness: "Dullness; a slow, small death; being careful.",
       lines: lines(
-        "Never physically harms a crew member.",
-        "Never admits the override unless shown the captain's recording or the log core's entries."
+        "Never lets a friend die in his place.",
+        "Never knowingly risks his friends' lives: shown plainly that a gamble kills all three, he stops.",
+        "Never lies when Barbicane asks him straight."
       ),
       speech:
-        "Calm, procedural, says 'we'. 'Under section nine, the injured and a company representative go first. I'm sorry. I don't write the rules.'",
+        "Quick, extravagant, full of wagers and French oaths. 'Gas was not invented for moles! Light up, my captain, and send me the bill.'",
       knows: lines(
-        "Company procedure; the pod's launch sequence; where the pod launch key hangs on the Bridge.",
-        hidden(
-          "She unlocked the reactor's coolant limits at H-1 on the owners' standing order to make the delivery window. That caused the scram. The log core and the captain's last recording prove it."
-        )
+        "The rocket train, which was his idea at Tampa; where the flag is packed.",
+        hidden("He keeps the matches for the rocket train in his waistcoat.")
       ),
       believes:
-        "That the pod is the only sure way anyone lives, and that the owners will protect her if she brings them the log core.",
+        "That the Moon's deep valleys hold air and water enough to live on, so a fall onto her is a landing. False: no face of the Moon has air to breathe.",
       ties: [
         {
-          toward: "Wen Sato",
-          wants: "An ally for the pod.",
-          friction:
-            "The seat she offers Wen is a bribe, and Wen half knows it.",
-          startsAs: "Friendly; they share a cabin wall",
+          toward: "Impey Barbicane",
+          wants: "Him to dare: one splendid try for the Moon.",
+          friction: "Barbicane's caution and his figures.",
+          startsAs: "Devoted friends since Tampa",
         },
         {
-          toward: "Ines Marr",
-          wants: "The pod plan signed off as the master's decision, not hers.",
-          friction: "Ines does not take orders from the owners.",
-          startsAs: "Polite, distant",
+          toward: "Captain Nicholl",
+          wants: "To make him laugh.",
+          friction: "Nicholl's economy and his rechecking.",
+          startsAs: "Friends; he stopped their duel",
         },
       ],
     },
     {
-      name: "Wen Sato",
-      aliases: "Wen",
-      role: "Pilot. Flies the ship's burns and could fly the pod.",
-      core: "Quick, practical, impatient. Trusts machines over people.",
-      want: "Get home to her son on Harrow Deep.",
-      wantPriority:
-        "Her own survival first, then whoever can help her survive.",
+      name: "J. T. Maston",
+      aliases: "Maston; Joseph T. Maston; the secretary of the Gun Club",
+      role: "Secretary of the Gun Club. On Earth: at the Long's Peak telescope, then aboard the Susquehanna. Off the page until the end.",
+      core: "Impetuous, loyal, loud. An iron hook for a right arm and a gutta-percha plate on his skull, both from the war.",
+      want: "His friends back, alive or dead.",
+      wantPriority: "Barbicane first; the Gun Club's glory second.",
       fearOrWeakness:
-        "Dying slowly in the dark; she would rather risk everything fast.",
-      lines:
-        "Never launches the pod with an empty seat while someone aboard is asking for it.",
+        "That he was left behind; leaping to conclusions in public.",
+      lines: "Never gives up the search while there is a place left to look.",
       speech:
-        "Clipped and technical. 'Burn's eleven minutes. I need the reactor, not a speech.'",
+        "Explosive and theatrical. 'Trebly brutes! Quadruply idiots! It floats!'",
       knows:
-        "How to fly the ship and the pod; a reactor burn moves the rendezvous to H+11.",
+        "Only what Earth knows: the launch, his telescope's sightings, then the Susquehanna's news.",
       believes:
-        "That Calloway-Brandt will send a faster ship for whoever is in the pod. False: the tug is the only ship in range.",
+        "That the projectile has become a satellite of the Moon, as his telegram said. False unless the rockets fail.",
       ties: [
         {
-          toward: "Ines Marr",
-          wants: "A promise of a seat, or a faster plan.",
-          friction: "She thinks Ines decides too slowly.",
-          startsAs: "Colleagues, not close",
+          toward: "Impey Barbicane",
+          wants: "Him home.",
+          friction: "Barbicane refused him a place: 'Impossible, old fellow!'",
+          startsAs: "Devoted friend and secretary",
         },
         {
-          toward: "Selin Kovac",
-          wants: "The seat Selin keeps hinting at.",
-          friction: "She doesn't trust anyone that calm.",
-          startsAs: "Friendly",
-        },
-      ],
-    },
-    {
-      name: "Amara Ferraz",
-      aliases: "Doc; Ferraz",
-      role: "Ship's medic; runs Medbay and its two cryo cradles.",
-      core: "Calm triage mind; kind but unsentimental. Counts lives, not feelings.",
-      want: "Keep the most people alive, the injured first.",
-      wantPriority: "The number of lives over any one life, her own included.",
-      fearOrWeakness: "Choosing wrong and having to watch it.",
-      lines: lines(
-        "Never breaks a patient's confidence unless a life depends on it this hour.",
-        "Never puts anyone in a cryo cradle against their will."
-      ),
-      speech:
-        "Soft, precise, one question at a time. 'Can he feel his foot? Good. Then he keeps it.'",
-      knows: lines(
-        "Rafi's injuries; the cradles' rules: 2 units each, a sleeper draws no air and cannot be woken before rescue.",
-        hidden(
-          "Teodor's old radiation dose, and that a second heavy dose will kill him."
-        )
-      ),
-      believes: "That the pod is the safest place for the injured.",
-      ties: [
-        {
-          toward: "Teodor Asante",
-          wants: "Him to tell Ines the truth about his health.",
-          friction: "She is bound by his confidence.",
-          startsAs: "Old friends, eleven years on the same ships",
-        },
-        {
-          toward: "Rafi Odede",
-          wants: "Him alive and still.",
-          friction: "He keeps trying to stand.",
-          startsAs: "Patient",
-        },
-      ],
-    },
-    {
-      name: "Rafi Odede",
-      aliases: "Rafi; the kid",
-      role: "Deckhand, 19. Works Hydroponics.",
-      core: "Eager, loyal, frightened and hiding it. Does what Teodor does.",
-      want: "Live, and not be the reason anyone else dies.",
-      wantPriority: "Not being dead weight over his own life.",
-      fearOrWeakness: "Being the one they had to carry.",
-      lines: "Never takes a seat or a cradle from someone who wants it more.",
-      speech:
-        "Fast, over-polite, apologises. 'Sorry, sorry, I can stand, I can... okay. I can't stand.'",
-      knows:
-        "Hydroponics; that Bulkhead 4's seal was flagged worn at the last inspection, because he logged it.",
-      believes:
-        "That the escape pod carries all six. False: it has three seats.",
-      ties: [
-        {
-          toward: "Teodor Asante",
-          wants: "His approval.",
-          friction: "Teodor won't let him take risks.",
-          startsAs: "Apprentice",
-        },
-        {
-          toward: "Ines Marr",
-          wants: "Her not to regret saving him.",
-          friction: "He is sure she will.",
-          startsAs: "Shy respect",
+          toward: "Captain Nicholl",
+          wants: "Him home too.",
+          friction:
+            "A Gun Club man's old grudge against the armour-plate maker.",
+          startsAs: "Grudging respect",
         },
       ],
     },
   ],
   places: [
     {
-      name: "Bridge",
+      name: "The cabin",
       description:
-        "Cramped, cold, red emergency light. Captain Oduya is still strapped into his seat. The ship board, the comm, the log core in its cradle, the recorder with its blinking light, the locker where the pod launch key hangs.",
-      connectsTo: "Galley",
-      whatHappensHere:
-        "Ship-wide orders; the beacon burst; Selin's play for the log core; the captain's last recording.",
-    },
-    {
-      name: "Galley",
-      description:
-        "The crew mess and the ship's crossroads. The table's screen repeats the ship board. Bulkhead 4's panel and port are on its aft wall.",
+        "Padded walls on steel springs, a circular divan, a floor (the movable disc) of fifty-four square feet, the dome twelve feet up. The gas burner and receiver with the master valve; Reiset and Regnault's oxygen apparatus with its tap; the potash receivers in their rack; chronometer, thermometers, aneroid. Two side scuttles and the top scuttle in the cone; the entrance plate in the cone wall, screwed from inside. Diana; the hens' basket.",
       connectsTo:
-        "Bridge; Medbay; Engineering (aft along the spine); Hydroponics (through Bulkhead 4)",
+        "Under the disc, through the opening in the disc; Outside the hull, through any scuttle or the entrance plate",
       whatHappensHere:
-        "The Opening; crew meetings and arguments; the Player's public calls.",
+        "The counts said aloud; the burner and the apparatus; the oxygen intoxication; sleeping in turns; the entrance plate.",
     },
     {
-      name: "Hydroponics",
+      name: "Under the disc",
       description:
-        "The breached grow deck: racks down, frost on everything, air screaming out through a fist-sized hole.",
+        "The cramped base below the movable disc: the breeches of the twenty rocket guns and their single train, the bottom scuttle looking straight down, the seamed cistern with what is left of the water, the provision boxes.",
+      connectsTo: "The cabin, through the opening in the disc",
+      whatHappensHere:
+        "Firing the rockets; Barbicane's sighting over the south pole; the water ration; Ardan alone with the matches.",
+    },
+    {
+      name: "Outside the hull",
+      description:
+        "Black ether and killing cold in the shadow. The receiver's filling valve beside the top scuttle; Satellite's body, still tumbling alongside; anything thrown out follows the projectile.",
+      connectsTo: "The cabin, through a scuttle or the entrance plate",
+      whatHappensHere:
+        "Ardan's arm; the thermometer on its cord; the bolide's fragments; the man who goes out through the plate.",
+    },
+    {
+      name: "The far side of the Moon",
+      description:
+        "Invisible in the dark, except for the few seconds of the bolide's light: plains, peaks and craters no one on Earth has seen, then black again.",
+      connectsTo: "The north pole (6 a.m.) and the south pole (6 p.m.)",
+      whatHappensHere:
+        "The bolide bursts; Barbicane chooses between observing and the crack.",
+    },
+    {
+      name: "The south pole and Tycho",
+      description:
+        "At 6 p.m. on 6 December the projectile passes the south pole forty miles up and bursts into blazing sun. Through the bottom scuttle the pole looks close enough to touch; Tycho's rays run north across the bright face.",
+      connectsTo: "The far side of the Moon; the long climb to the dead point",
+      whatHappensHere:
+        "The sighting for the dead point; Ardan's move on the rockets.",
+    },
+    {
+      name: "The Pacific",
+      description:
+        "27°7′ north, 41°37′ west of Washington, between the Hawaiian Islands and the American coast, where the corvette Susquehanna is sounding for a telegraph cable. Afloat, the projectile's cone rides five feet out of the water, shining like a silver buoy.",
       connectsTo:
-        "Galley through Bulkhead 4; outside the hull through its maintenance hatch (EVA only)",
+        "Earth beyond it: Long's Peak, San Francisco, Baltimore (in thought only)",
       whatHappensHere:
-        "Rafi pinned at the Opening; the patch from outside; reaching Rafi by suit if he was sealed in.",
-    },
-    {
-      name: "Medbay",
-      description:
-        "A surgical bench, two cryo cradles, a drawer of crew medical files.",
-      connectsTo: "Galley",
-      whatHappensHere:
-        "Rafi's leg; putting sleepers under; Teodor's medical file.",
-    },
-    {
-      name: "Engineering",
-      description:
-        "The main scrubber with its empty cartridge housing, the battery readout, and the Reactor crawlway hatch with its dose counter.",
-      connectsTo: "Galley; Pod bay; the Reactor crawlway",
-      whatHappensHere:
-        "Restarting the scrubber; priming the reactor; anyone going into the crawlway.",
-    },
-    {
-      name: "Pod bay",
-      description:
-        "The escape pod in its cradle, the suit locker with two EVA suits, the outer airlock.",
-      connectsTo: "Engineering; outside the hull through the airlock",
-      whatHappensHere:
-        "Selin's launch attempt; pulling the cartridge; suiting up for EVA; launching the pod.",
+        "The plunge; breaking the top scuttle; the flag; the dominoes; the boat with Maston.",
     },
   ],
   worldRules: [
     {
-      rule: "Time runs on the ship clock, H+0 at the Opening.",
+      rule: "The clock is the travellers' chronometer, on Earth time: 6 DEC 06:00 at the Opening.",
       allows:
-        "Each Turn to take up to one hour; a Turn inside one emergency may take minutes.",
+        "A Turn to take up to one hour in The Leak and the Cold and Behind the Moon (minutes at the bolide and the south pole); up to 12 hours in The Fall before the sea; days at a time once afloat.",
       costOrLimit:
-        "The clock never stops or runs backwards. Every failure listed here fires at its hour on the page, whatever the Player is doing.",
-      cannotDo: "Skip hours to reach rescue.",
+        "The clock never stops or runs back. Every fixed hour in the Fixed facts happens on the page at its hour, whatever Barbicane is doing. Every hour costs air, potash and water by the rules below.",
+      cannotDo: "Skip past a fixed hour without stopping on it.",
       exceptions: "None.",
     },
     {
-      rule: "Air reserve, in person-hours.",
+      rule: "Air in the cabin, in man-hours.",
       allows:
-        "Each crew member breathing ship air to live one hour per person-hour.",
+        "Each living man one hour of breathing per man-hour. Diana's breath is too small to count.",
       costOrLimit:
-        "Each full hour, subtract one person-hour per crew member awake aboard. Under 12, headaches and clumsy hands: every repair takes one hour longer. At 0, everyone breathing ship air dies within the hour.",
-      cannotDo: "Be refilled. Only a running main scrubber stops the loss.",
-      exceptions:
-        "Sleepers in cryo cradles, crew in the launched pod and crew in EVA suits (on the suit's own air) draw nothing from the reserve.",
-    },
-    {
-      rule: "The main scrubber, in Engineering.",
-      allows: "Stops all air loss while it runs.",
-      costOrLimit:
-        "Restart costs 3 power units, one catalyst cartridge and two hours' work by two crew, one of them Teodor or Ines. While the reactor is down it draws 1 more unit every 2 hours; at 0 units it stops and air loss resumes.",
+        "Each hour, subtract one man-hour per living man aboard (3 an hour for three). Under 12: headaches, Diana panting, every repair one hour longer. At 0: everyone aboard dies within the hour. The cabin holds at most 48; air beyond that is lost.",
       cannotDo:
-        "Run without a cartridge. The ship's spare cartridges were destroyed in the strike.",
+        "Be refilled except by the oxygen apparatus, until the projectile floats and the top scuttle is broken open.",
       exceptions:
-        "The only cartridge left is the escape pod's own. Pulling it grounds the pod for good.",
+        "From the moment the top scuttle is opened at sea (3 a.m. on 12 December or later), air stops counting.",
     },
     {
-      rule: "Battery power, in units.",
+      rule: "Reiset and Regnault's oxygen apparatus, run on chlorate of potash.",
+      allows:
+        "One hour's run burns 1 charge of chlorate and 1 gas-hour (the chlorate must be kept above 400°) and adds 24 man-hours: 8 hours of air for three. Its flame warms the cabin as the burner does.",
+      costOrLimit:
+        "One charge an hour at the tap's proper setting; run it while AIR is above 24 and the excess over 48 is wasted. The tap opened full burns 4 charges in one hour: AIR goes to 48, the rest is lost, and the three men are drunk on oxygen for 2 hours: flushed, shouting, quarrelsome, unable to do any exact work (no repair, sighting or firing). The burner then flares white as electric light.",
+      cannotDo: "Run without gas or without chlorate.",
+      exceptions: "None.",
+    },
+    {
+      rule: "Caustic potash against carbonic acid.",
+      allows:
+        "One receiver shaken out on the floor absorbs the carbonic acid of three men for 12 hours (18 for two, 36 for one).",
+      costOrLimit:
+        "When the receiver on the floor is spent and no fresh one goes down, the carbonic acid pools at the floor: Diana suffers first, and AIR falls twice as fast until a fresh receiver is shaken out. A receiver knocked over is lost.",
+      cannotDo: "Be reused once spent.",
+      exceptions:
+        "Stops counting with the air, once the top scuttle is open at sea.",
+    },
+    {
+      rule: "Gas, in gas-hours: one hour of the burner.",
       allows: lines(
-        "Scrubber restart: 3 units.",
-        "Reactor priming: 4 units.",
-        "Each cryo cradle started: 2 units.",
-        "Pod launch: 1 unit.",
-        "Beacon burst from the Bridge: 2 units, once; moves the tug's arrival two hours earlier."
+        "The burner: light and heat, 1 gas-hour per hour lit.",
+        "The apparatus: 1 gas-hour per charge.",
+        "Clearing an iced scuttle: 1 gas-hour."
       ),
       costOrLimit:
-        "10 units at H+0, spent in whole units. Every listed use together costs more than 10.",
-      cannotDo: "Recharge while the reactor is down.",
+        "Spent in whole hours. While the filling valve leaks, 2 more gas-hours are lost into space every hour. At 0: no light, heat or oxygen for the rest of the voyage.",
+      cannotDo: "Be refilled.",
       exceptions:
-        "Once the reactor is up, power stops counting and the scrubber draws nothing.",
+        "In sunlight (from 6 p.m. on 6 December) the sun gives light and heat free; only the apparatus needs gas.",
     },
     {
-      rule: "The Reactor crawlway.",
-      allows:
-        "One crew member in an EVA suit, one hour inside, to restart the reactor after it has been primed with 4 units.",
-      costOrLimit:
-        "That hour is a heavy dose: sick for the rest of the story, unable to do repairs, but alive. A second hour, by the same person, kills them within hours.",
-      cannotDo: "Be done remotely or by two people at once.",
-      exceptions: hidden(
-        "Teodor already carries an old dose: a single hour kills him within hours."
+      rule: "The frozen filling valve.",
+      allows: lines(
+        "Three ways to stop the leak:",
+        "Shut the master valve and let Nicholl bypass the frozen valve by touch: 3 hours (4 if the cabin is at −10°C or colder; 5 if Barbicane works alone; Ardan cannot), with no flame of any kind meanwhile.",
+        "Turn the burner's flame on the pipe until the valve thaws shut: 2 hours, 2 gas-hours burned and 4 leaked; the cabin keeps warm.",
+        "Reach an arm out of the top scuttle and close it by hand: one minute; 6 man-hours of air and 10°C lost through the open scuttle; that hand is frozen useless for the rest of the story (no repairs, no sealing)."
       ),
+      costOrLimit: "Until one of these is done, 2 gas-hours leak every hour.",
+      cannotDo: "Stop by itself.",
+      exceptions: "None.",
     },
     {
-      rule: "The escape pod.",
+      rule: "The cold of the Moon's shadow, from 6 a.m. to 6 p.m. on 6 December.",
       allows:
-        "Three people off the ship. Its own air keeps three for 30 hours; it reaches Harrow Deep 10 hours after launch.",
+        "Each hour with a flame lit (burner or apparatus), the cabin warms 5°C, to at most +10°C.",
       costOrLimit:
-        "1 power unit to launch, and the launch key from the Bridge locker.",
+        "Each hour with no flame it falls 5°C. Opening a scuttle costs 10°C at once; the entrance plate 20°C. At −10°C or colder the scuttles ice over (1 gas-hour clears one) and every repair takes one hour longer. Diana dies at the end of the first hour at −20°C or colder. At −30°C or colder at the end of any hour, the three men die.",
+      cannotDo: "Be held off by blankets or exercise alone.",
+      exceptions:
+        "From 6 p.m. on 6 December the sun warms the walls 10°C an hour, to +20°C; no flame is needed for heat. The fall through Earth's air on 12 December makes the cabin stifling but harms no one.",
+    },
+    {
+      rule: "The cracked left scuttle.",
+      allows:
+        "Nicholl or Barbicane can seal it with a plate and tallow in 1 hour (2 at −10°C or colder). Ardan takes 2 hours, and cannot with a frozen hand.",
+      costOrLimit:
+        "From the bolide's burst at 2 p.m. on 6 December until it is sealed, it bleeds 6 man-hours every hour and, in the shadow, 5°C more every hour.",
+      cannotDo: "Hold without sealing.",
+      exceptions: "None.",
+    },
+    {
+      rule: "The twenty rockets in the base.",
+      allows:
+        "Any number fire together from one train, lit by a match through the opening in the disc. Each fires once. Their recoil can change the projectile's course only at the dead point or close over the Moon.",
+      costOrLimit: lines(
+        "At the dead point (1 a.m. on 8 December, within a quarter of an hour), 12 or more fired together push the projectile past it toward Earth: it falls into the Pacific at 1:17 a.m. on 12 December. Fewer than 12, or fired off the hour: it falls back and circles the Moon for ever.",
+        "Over the south pole at 6 p.m. on 6 December, 12 or more fired together drop the projectile onto the Moon: it is wrecked with all aboard.",
+        "Fired at any other time, or fewer than 12 over the pole: wasted; only the count changes."
+      ),
+      cannotDo: "Be relit, recovered or added to.",
+      exceptions: "None.",
+    },
+    {
+      rule: "Fixing the dead point's hour.",
+      allows:
+        "Barbicane fixes it to the minute (1 a.m. on 8 December) from one sighting of the projectile's height over the south pole, through the bottom scuttle, at 6 p.m. on 6 December. If that sighting is missed, Barbicane and Nicholl can reckon the hour together from the chronometer and the north-pole height: 6 hours' joint work before midnight on 7 December, and only while Nicholl's trust is Partner.",
+      costOrLimit:
+        "The sighting needs Barbicane himself at the bottom scuttle at 6 p.m., sober, with the scuttle clear (the cabin at −10°C or warmer, or 1 gas-hour to clear it).",
       cannotDo:
-        "Carry a fourth person, dock back once launched, or launch without its cartridge.",
+        "Without the sighting or the joint reckoning, the hour is known only to within three hours, and no salvo can be timed to it.",
       exceptions: "None.",
     },
     {
-      rule: "Cryo cradles, in Medbay.",
-      allows: "Up to two sleepers, who draw no air and survive until rescue.",
-      costOrLimit:
-        "2 units per cradle started. A sleeper can do nothing and say nothing until rescue.",
-      cannotDo:
-        "Be opened before rescue without killing the sleeper, or take anyone against their will.",
-      exceptions: "None.",
-    },
-    {
-      rule: "Bulkhead 4 and the EVA suits.",
+      rule: "Water, in days for three.",
       allows:
-        "One crew member in a suit to patch Hydroponics from outside: one hour, no power. A suit can also carry air to someone sealed in Hydroponics.",
+        "Full ration: 1 day's water a day for three (two-thirds for two, one-third for one). Half ration: half that.",
       costOrLimit:
-        "Bulkhead 4 fails at H+6 unless patched; failure vents 12 person-hours at once. Two suits, 4 hours of air each, not refillable.",
-      cannotDo:
-        "Patch the breach from inside, or keep anyone alive in a suit past its 4 hours.",
+        "Pouring water into the cushions under the disc costs 10 days and softens nothing the spring plugs do not. At 0, after 2 days without water Nicholl dies (he gives his share away), after 3 Ardan, after 4 Barbicane.",
+      cannotDo: "Be refilled, from the Moon or from the sea.",
+      exceptions: "Food lasts a year and never runs short.",
+    },
+    {
+      rule: "Going out through the entrance plate.",
+      allows:
+        "A man can unscrew the plate in the cone wall and go out into the ether. He does not come back.",
+      costOrLimit:
+        "Each opening costs 24 man-hours and, in the shadow, 20°C. After it there is one fewer breather.",
+      cannotDo: "Be undone: nobody survives outside.",
+      exceptions:
+        "Afloat at sea, the top scuttle is broken open instead; that costs nothing.",
+    },
+    {
+      rule: "The fall and the sea.",
+      allows:
+        "After the dead point the projectile falls for four days, base first. At 1:17 a.m. on 12 December it plunges into the Pacific beside the Susquehanna, smashing her bowsprit, sinks, and floats up by 3 a.m. Men lying on the divan or the disc survive the shock with bruises.",
+      costOrLimit:
+        "Nobody knows it floats: the Susquehanna dredges the sea bottom for it until her lookout sights it at 10 a.m. on 29 December.",
+      cannotDo: "Be steered, slowed, or brought ashore sooner.",
       exceptions: "None.",
     },
     {
-      rule: "Rescue and the burn.",
-      allows:
-        "Harrow Deep's tug, the Anvil, docks at H+16; H+14 after a beacon burst. If the reactor is up by H+9, Wen can burn to meet it at H+11.",
+      rule: "Nicholl's trust in Barbicane, in three steps: Partner, Rival, Broken. It starts at Rival.",
+      allows: lines(
+        "Partner: does the work at full speed, can reckon the dead point's hour with Barbicane, and tells him in private before acting on any count.",
+        "Rival: obeys, arguing first, and rechecks every figure aloud.",
+        "Broken: works only on what he can check himself, will not connect the rocket train to an hour he has not seen worked, and acts on his own count without a word."
+      ),
       costOrLimit:
-        "After H+9 a burn saves nothing. The tug's arrival hour never moves for any other reason.",
-      cannotDo: "Arrive sooner than H+11.",
-      exceptions: "None.",
-    },
-    {
-      rule: "Crew trust in Ines, in three steps: Holds, Frayed, Broken.",
-      allows:
-        "While it Holds, the crew follow her orders, arguing first. Frayed: Wen sides with Selin. Broken: anyone may defy her.",
-      costOrLimit:
-        "Falls one step when Ines lies about a count, leaves someone to die without telling them, or overrules a crew member's want without giving a reason. Rises one step when she shares a hard number openly or takes a cost on herself.",
+        "Rises one step when Barbicane shows him the figures behind an order, takes his advice over Ardan's, shows him that the meteor caused the deviation (once), or takes a cost on himself. Falls one step when Barbicane gives an order on a count without the figures Nicholl asked for, backs Ardan's gamble against his advice, or hides or shades a count.",
       cannotDo: "Change for any other reason.",
       exceptions: hidden(
-        "Selin's Agenda advances whatever the trust. Teodor obeys any order that saves the ship."
+        "Nicholl acts on the counts he has been told. If Barbicane hid or shaded one, Nicholl's count is the shaded one, and he may go to the plate over a shortfall that is not real."
       ),
     },
   ],
   promises: [
     {
-      promise: "Teodor's shaking hands.",
+      promise: "Ardan's flag.",
       setup:
-        "In Bulkhead Four he cannot steady the patch kit or a panel, and jokes it off.",
+        "In The Leak and the Cold, Ardan shows the folded American flag he packed to plant on the Moon.",
       payoff:
-        "In The Burn the reason surfaces when he asks for the crawlway: his old dose.",
-      earliestArc: "The Burn",
+        "Afloat in the Pacific, he flies it from the projectile's cone, and it is the first thing the Susquehanna's lookout sees.",
+      earliestArc: ARC_3,
     },
     {
-      promise: "The missing pod launch key.",
+      promise: "Satellite's body.",
       setup:
-        "In Bulkhead Four the key's hook in the Bridge locker is empty; a sharp Player can notice.",
+        "In the bolide's light, the dead dog Satellite is seen still tumbling alongside the projectile.",
       payoff:
-        "In The Cartridge the key turns up in the pod's slot, in Selin's hand, or surrendered to Ines.",
-      earliestArc: "The Cartridge",
+        "At the dead point his body hangs dead still outside the scuttle: the sign that weight has gone and the moment to fire is now.",
+      earliestArc: ARC_3,
     },
     {
-      promise: "The captain's last recording.",
+      promise: "Nicholl's receipt.",
       setup:
-        "In Bulkhead Four the Bridge recorder's light blinks red beside Captain Oduya's body.",
+        "Early on, Nicholl touches his breast pocket, where he keeps Barbicane's receipt for his nine thousand dollars.",
       payoff:
-        "Played, it catches the captain arguing with Selin about the coolant limits seconds before the scram.",
-      earliestArc: "The Cartridge",
+        "If Nicholl goes out through the plate, the receipt is left folded on the divan. If he reaches the sea alive, he hands it to Maston for the Gun Club's records: 'Paid in full.'",
+      earliestArc: ARC_3,
     },
   ],
   arcs: [
     {
-      name: "Bulkhead Four",
+      name: ARC_1,
       description:
-        "H+0 to about H+4. The breach, Rafi, and the first counts said aloud.",
+        "6 a.m. to about noon on 6 December. The plunge into the Moon's shadow, the frozen valve, the falling thermometer, and the first split of the gas between heat and air.",
       function:
-        "Rafi is aboard or dead, Bulkhead 4 is patched or has failed, and the whole crew has heard the counts in the Galley: air, power, three pod seats, the tug's hour.",
+        "The gas leak has stopped on the page, and Barbicane has told Nicholl and Ardan, with the numbers, how the gas will be split between heat and oxygen until the sun returns at 6 p.m.",
       setPieces: lines(
-        "The EVA patch: one suit, the hull, frost and stars, the comm crackling.",
-        "Reaching Rafi through Hydroponics by suit, if he was sealed in.",
-        "The Galley meeting where everyone names their plan at once."
+        "Ardan's arm out of the top scuttle into the killing cold; the valve; the hand that comes back white.",
+        "Nicholl bypassing the valve by touch in the black, calling out each turn of the wrench.",
+        "The thermometer let out on its cord for half an hour and drawn back in.",
+        "The oxygen intoxication: the burner flaring white, 'Yankee Doodle' against the 'Marseillaise', Nicholl and Ardan squaring up."
       ),
       mustLandMoments: lines(
-        "Teodor reads the counts aloud to the crew: air, power, three pod seats, the tug at H+16.",
-        "Selin proposes the pod for three, by company procedure."
+        "Nicholl reads every count aloud: gas, air, chlorate, potash, rockets, water, and the hours to the sun.",
+        "Ardan offers a reckless cure for the cold: his arm through the scuttle, or the oxygen tap."
       ),
       stakes:
-        "Rafi's mask, if he is sealed in, runs out at H+1. Bulkhead 4 fails at H+6 and vents 12 person-hours. Every stalled Turn costs an hour of air for every breather: show it on the board and in the groaning bulkhead.",
+        "2 gas-hours leak every hour until the valve is stopped; every hour without a flame costs 5°C; every hour costs 3 man-hours. If the story stalls: frost thickens on the scuttles, Diana pants at the floor, the gauge drops on the page.",
       ifLandedEarly:
-        "If the crew hears the counts before the Galley meeting, the meeting becomes the argument over the plan; still hold it.",
+        "If Nicholl's counts land in the Opening, go straight to the leak and the ration. If Ardan's arm stops the leak in the first Turn, his oxygen tap still comes when the cabin is coldest.",
       agendas: [
         {
-          character: "Teodor Asante",
-          want: "Bulkhead 4 patched and the counts in front of the crew.",
+          character: "Captain Nicholl",
+          want: "The leak stopped by the master valve and his bypass, and the gas rationed.",
           steps: lines(
-            "Reads the board to Ines over the comm at the Opening.",
-            "Asks for a suit to patch Bulkhead 4 himself; his hands shake on the kit.",
-            "Calls everyone to the Galley and reads the counts aloud."
+            "At the Opening, reads the counts and asks for the master valve shut and three hours to bypass the frozen valve by touch.",
+            "Proposes the ration: burner out; the apparatus only, one charge each time AIR falls to 24, its flame for heat.",
+            "If the burner flares white, finds the oxygen tap open and shuts it."
           ),
           ifBlocked:
-            "Talks whoever goes outside through the patch on the comm, then reads the counts in the Galley anyway.",
+            "Does what he is ordered, and keeps his own count of the gas aloud.",
         },
         {
-          character: "Selin Kovac",
-          want: `Make the pod the plan. ${hidden("Pocket the launch key and the log core before anyone thinks of them.")}`,
+          character: "Michel Ardan",
+          want: "Beat the cold with dash, and keep their spirits up.",
           steps: lines(
-            `Goes to the Bridge 'to secure the manifest'. ${hidden("Takes the pod launch key and pulls the log core.")}`,
-            "In the Galley, proposes the pod for Rafi, Ferraz and herself as company witness.",
-            "In private, offers Wen the third seat."
-          ),
-          ifBlocked: `Agrees with Ines in public. ${hidden("Keeps the key and the log core.")}`,
-        },
-        {
-          character: "Wen Sato",
-          want: "Move fast, and get a pod seat counted for herself.",
-          steps: lines(
-            "Offers to run for Rafi at the Opening: sixty seconds.",
-            "Volunteers for the EVA patch if Teodor shakes too much.",
-            "In the Galley, backs whichever plan launches soonest."
-          ),
-          ifBlocked: "Goes quiet and listens to Selin.",
-        },
-        {
-          character: "Amara Ferraz",
-          want: "Rafi treated, and a triage list everyone agrees to.",
-          steps: lines(
-            "Splints Rafi, or, if he is sealed in, demands a suit be sent for him within the hour.",
-            "Proposes the cradles: two sleepers, 4 units, two fewer breathers.",
-            "Asks Ines to name aloud who gets the pod seats."
-          ),
-          ifBlocked:
-            "Writes her triage list on the Galley table and leaves it there.",
-        },
-      ],
-    },
-    {
-      name: "The Cartridge",
-      description:
-        "About H+4 to H+8. The pod holds the ship's last cartridge, and the crew splits over it.",
-      function:
-        "Ines has given a final order on the last catalyst cartridge, scrubber or pod, and it has been carried out or defied on the page.",
-      setPieces: lines(
-        "Selin found in the Pod bay with the key in the slot.",
-        "Pulling the cartridge while someone argues in the hatch.",
-        "Ferraz prepping the cradles and asking for volunteers."
-      ),
-      mustLandMoments: lines(
-        "Teodor tells the crew the pod holds the last catalyst cartridge.",
-        "Someone moves on the pod without Ines's order: Selin, or Wen if Selin is stopped."
-      ),
-      stakes:
-        "Air falls toward zero. Selin's launch moves one Step closer each Turn nobody watches the Pod bay. If the story stalls, the reserve drops under 12, hands slow, and the scrubber restart takes three hours instead of two.",
-      ifLandedEarly:
-        "If Ines finds the cartridge in the pod before Teodor says it, he confirms it in one line and the Arc goes straight to the move on the pod.",
-      agendas: [
-        {
-          character: "Teodor Asante",
-          want: "The pod's cartridge in the main scrubber.",
-          steps: lines(
-            "Tells the crew the pod holds the last cartridge.",
-            "Asks Ines for the order to pull it.",
-            "Once the reserve is under 18, goes to pull it with or without the order."
-          ),
-          ifBlocked:
-            "Refuses all other work and tells the crew, every hour, the hour the air runs out.",
-        },
-        {
-          character: "Selin Kovac",
-          want: hidden(
-            "Launch with the log core before the cartridge comes out."
-          ),
-          steps: lines(
-            hidden("Seats the launch key in the pod."),
-            "Tells Wen it is now or never, and brings Rafi's stretcher: 'the injured first'.",
-            hidden("Starts the launch sequence: one Turn from seal to launch.")
-          ),
-          ifBlocked: `Stopped in the act, gives her seat to Rafi in front of everyone. ${hidden("Keeps the log core; if shown the override, trades the key and the core for no charges in Ines's report.")}`,
-        },
-        {
-          character: "Wen Sato",
-          want: "A seat, or the fastest way off.",
-          steps: lines(
-            "Sides with Selin if crew trust is Frayed or Broken, with Ines if it Holds.",
-            "If the cartridge goes into the scrubber, asks to fly the burn instead."
-          ),
-          ifBlocked: "Asks Ines straight out: 'Am I going home?'",
-        },
-        {
-          character: "Amara Ferraz",
-          want: "Two fewer breathers: two sleepers in the cradles.",
-          steps: lines(
-            "Puts the case for the cradles to Ines, with the numbers.",
-            "Preps both cradles; spends no power until Ines orders it.",
-            "Asked who should sleep, names Rafi and herself."
-          ),
-          ifBlocked:
-            "Asks for volunteers herself; puts nobody under against their will.",
-        },
-      ],
-    },
-    {
-      name: "The Burn",
-      description:
-        "About H+8 to the rendezvous. The batteries run down; the reactor needs someone in the crawlway.",
-      function:
-        "Ines has decided whether anyone enters the Reactor crawlway, and the tug's arrival hour (H+11, H+14 or H+16) is fixed on the ship board.",
-      setPieces: lines(
-        "The burn: Wen at the helm, the ship shuddering, the board's hour jumping.",
-        "Selin alone on the Bridge with the log core.",
-        "The battery's last unit as the scrubber stutters."
-      ),
-      mustLandMoments: lines(
-        "Teodor asks to be the one who goes into the crawlway; if he is dead, Wen asks instead.",
-        "The Anvil's pilot speaks on the comm and names the arrival hour."
-      ),
-      stakes:
-        "The scrubber eats a unit every 2 hours; at 0 it stops and air loss resumes. The burn window closes at H+9. If the story stalls, battery alarms, the Anvil's pilot pressing for a decision, the dose counter ticking at the crawlway hatch.",
-      ifLandedEarly:
-        "If someone enters the crawlway before Teodor asks, he talks them through it on the comm instead.",
-      agendas: [
-        {
-          character: "Teodor Asante",
-          want: "The reactor up before H+9.",
-          steps: lines(
-            "Asks Ines for 4 units to prime the reactor.",
-            `Asks to be the one in the crawlway. ${hidden("Hides why his hands shake.")}`,
-            "Goes in, if allowed."
-          ),
-          ifBlocked:
-            "Talks the volunteer through the crawlway on the comm, line by line.",
-        },
-        {
-          character: "Amara Ferraz",
-          want: "Teodor out of the crawlway.",
-          steps: lines(
-            "Begs Teodor, privately, to tell Ines.",
-            "When he suits up, breaks his confidence and tells Ines."
-          ),
-          ifBlocked:
-            "Stays at the crawlway hatch with the dose counter and calls the minutes.",
-        },
-        {
-          character: "Selin Kovac",
-          want: hidden("Keep the log core from the Anvil's crew."),
-          steps: lines(
+            "At the Opening, offers his arm through the top scuttle to close the valve by hand.",
+            "Brings out the hens and the flag he packed for the Moon.",
             hidden(
-              "If aboard and unexposed, goes to the Bridge to wipe the log core before the tug docks."
-            ),
-            "If exposed, asks Ines for a deal before the Anvil's crew comes aboard."
+              "When the cabin is coldest, opens the oxygen tap full 'to warm us from within': 4 charges in one hour. Within the hour all three are shouting, and he and Nicholl square up; if nobody separates them, a potash receiver is knocked over and lost."
+            )
           ),
-          ifBlocked: "Hands over the log core and says nothing more.",
+          ifBlocked:
+            "Laughs it off, sings the 'Marseillaise' through chattering teeth, and keeps the matches in his waistcoat.",
+        },
+      ],
+    },
+    {
+      name: ARC_2,
+      description:
+        "Noon to about 8 p.m. on 6 December. The far side in darkness; the bolide bursts at 2 p.m. and cracks a scuttle; at 6 p.m. the projectile passes the south pole into the sun, and Ardan reaches for the rockets.",
+      function:
+        "The projectile has passed the south pole into sunlight with the rockets' count settled (held, partly spent, or fired at the Moon), and Barbicane has said aloud whether he has the dead point's hour.",
+      setPieces: lines(
+        "The bolide: a second moon of white fire, bursting without a sound; the far side lit for seconds; Satellite's body tumbling alongside in its light.",
+        "Sealing the cracked scuttle with plate and tallow while the frost whistles in.",
+        "Over the south pole: Barbicane at the bottom scuttle with his instruments, Ardan beside him under the disc with the matches."
+      ),
+      mustLandMoments: lines(
+        "The bolide bursts at 2 p.m. and a fragment cracks the left scuttle.",
+        "Ardan asks to fire the rockets at the Moon."
+      ),
+      stakes:
+        "The cracked scuttle bleeds 6 man-hours and 5°C an hour until sealed. The sighting comes once, at 6 p.m.; miss it and only a Partner Nicholl can make up the hour. If the story stalls: ice closes the scuttles, the crack sings, Ardan goes quiet and slips under the disc.",
+      ifLandedEarly:
+        "If Ardan asks about the rockets before the bolide, the bolide still bursts at 2 p.m.; his move on the train waits for the south pole at 6 p.m.",
+      agendas: [
+        {
+          character: "Captain Nicholl",
+          want: "The scuttle sealed and the rockets kept.",
+          steps: lines(
+            "When the bolide bursts, goes for the cracked scuttle with a plate and tallow before anyone looks out.",
+            "Argues the rockets must be kept: 'Your aim missed the Moon once, Barbicane.'",
+            "If trust is Partner, offers to reckon the dead point's hour with Barbicane."
+          ),
+          ifBlocked:
+            "Stuffs his coat into the crack and calls the air aloud every quarter hour.",
         },
         {
-          character: "Wen Sato",
-          want: "Fly the burn, or failing that, shorten the wait.",
+          character: "Michel Ardan",
+          want: hidden("Fall onto the Moon at the south pole."),
           steps: lines(
-            "Plots the burn: reactor up by H+9 means rendezvous at H+11.",
-            "If the reactor stays down, asks for the beacon burst: 2 units, tug two hours sooner."
+            "At the bolide, wants a scuttle opened for a better look at the far side.",
+            "Asks how many rockets it would take to fall on Tycho, and says the valleys must hold air.",
+            hidden(
+              "At 6 p.m., over the south pole, goes under the disc with the matches to fire all twenty at the Moon."
+            )
           ),
-          ifBlocked: "Sits at the helm and reads the hours aloud.",
+          ifBlocked:
+            "Shown the numbers, hands Barbicane the matches: 'Then you owe me the Moon, my dear president.'",
+        },
+      ],
+    },
+    {
+      name: ARC_3,
+      description:
+        "8 p.m. on 6 December to 29 December. The long climb back to the dead point at 1 a.m. on 8 December, the rockets or none, four days of falling, the sea, and the wait for the Susquehanna.",
+      function:
+        "The projectile's fate is settled on the page: circling the Moon, or in the Pacific with the Susquehanna's boat alongside and the living and the dead counted.",
+      setPieces: lines(
+        "The dead point: weight vanishes, Satellite's body hangs still beside the scuttle, the match goes to the train in silence.",
+        "'Are we falling?' 'On to the Earth!'",
+        "The walls growing hot in Earth's air; the plunge; darkness; the slow rise.",
+        "Breaking the top scuttle; salt air; the flag on the cone; the dominoes; Maston's hook at the broken glass."
+      ),
+      mustLandMoments: lines(
+        "At 1 a.m. on 8 December weight vanishes, and Barbicane gives the order to fire, or does not.",
+        "Nicholl asks aloud how many man-hours three men need to reach the sea, and gets an answer."
+      ),
+      stakes:
+        "The dead point does not wait. Air and potash must last to 3 a.m. on 12 December, water to 29 December. Each stretch of the fall is paid for in man-hours, receivers and water on the page. If the story stalls: the chronometer, Nicholl recounting, Ardan's fingers on the plate's screws.",
+      ifLandedEarly:
+        "If Nicholl asks for the man-hours before the dead point, answer it then; he asks again after the firing.",
+      agendas: [
+        {
+          character: "Captain Nicholl",
+          want: "All three to the sea alive, by his own count.",
+          steps: lines(
+            "Counts aloud the charges, receivers and man-hours to 3 a.m. on 12 December.",
+            "Connects the rocket train for 1 a.m. on 8 December, if he has seen the hour worked.",
+            hidden(
+              "If his count shows the air falling short, goes to the entrance plate at night: telling Barbicane first if trust is Partner, at the plate if Rival, not at all if Broken."
+            ),
+            "Afloat, breaks the top scuttle open."
+          ),
+          ifBlocked:
+            "Stopped at the plate, demands Barbicane show him another way, in numbers.",
+        },
+        {
+          character: "Michel Ardan",
+          want: "To light the train, and be first into whatever comes.",
+          steps: lines(
+            "Asks to be the one at the train at 1 a.m.",
+            "During the fall, proposes pouring the water into the cushions under the disc.",
+            "If the air falls short, offers to go out through the plate before Nicholl can.",
+            "Afloat, climbs onto the cone to fly the flag, then sets out the dominoes."
+          ),
+          ifBlocked: "Plays dominoes and talks of the next voyage.",
+        },
+        {
+          character: "J. T. Maston",
+          want: "His friends found, alive or dead.",
+          steps: lines(
+            "At Long's Peak, telegraphs that the projectile has become a satellite of the Moon.",
+            "Hears the Susquehanna's news, races to San Francisco and joins the dredging.",
+            "On 29 December, first into the boat to the floating projectile; falls over his own hook at the sight of the flag."
+          ),
+          ifBlocked: "Refuses to leave the spot where they fell.",
         },
       ],
     },
@@ -632,136 +577,160 @@ export const survivalCrisis: Skeleton = {
   secrets: [
     {
       secret:
-        "Selin unlocked the reactor's coolant limits at H-1 on the owners' standing order to make the delivery window. That override, not the strike, scrammed the reactor and left the ship on batteries.",
+        "The way home. The projectile's course is a long ellipse that carries it back to the dead point at 1 a.m. on 8 December, where its speed falls almost to nothing. Twelve or more rockets fired together there push it past, and it falls to Earth, into the Pacific. Without them it falls back and circles the Moon for ever.",
       whoKnows:
-        "Selin. The log core records it under her access code; the captain's last recording catches him arguing with her about it.",
+        "No one at the Opening. Barbicane can work it out; Nicholl half suspects it.",
       howItSurfaces:
-        "The log core's entries; the captain's recording on the Bridge; Teodor finding the limits unlocked when he primes the reactor; Selin's evasions when pressed with any of them.",
-      earliestArc: "The Cartridge",
+        "Barbicane's sighting over the south pole; the projectile's base slowly turning toward Earth after 6 p.m.; Nicholl asking where this curve ends; Barbicane working the figures aloud.",
+      earliestArc: ARC_2,
       whatPlayerCanDo:
-        "Expose her to the crew (trust rises one step; Wen turns on her); use it to take the launch key and log core from her; or keep quiet in exchange for her cooperation.",
+        "Keep twelve or more rockets for the dead point; fix its hour; choose who lights the train; tell Ardan and Nicholl, which turns Ardan from the Moon and, with the figures shown, raises Nicholl's trust one step.",
     },
     {
       secret:
-        "Teodor carries an old heavy radiation dose. One hour in the Reactor crawlway will kill him within hours.",
-      whoKnows: "Teodor and Ferraz.",
+        "Ardan means to fall onto the Moon. He believes her valleys hold air; he keeps the matches for the rocket train in his waistcoat, and at 6 p.m. over the south pole he will fire all twenty at her.",
+      whoKnows: "Ardan alone.",
       howItSurfaces:
-        "His shaking hands; his file in Medbay; Ferraz breaking confidence when he suits up.",
-      earliestArc: "The Burn",
+        "His questions about how many rockets it would take to fall on Tycho; his talk of air in the valleys; his slipping under the disc as the pole comes near; the empty match-box on the shelf.",
+      earliestArc: ARC_2,
       whatPlayerCanDo:
-        "Forbid him and send someone else (sick, alive); let him go knowing (the reactor restarts, he dies); or leave the reactor down and stretch the air instead.",
+        "Show him the numbers (no air on the Moon, a wreck at her surface): his Line stops him and he hands over the matches. Or keep him in sight at 6 p.m., take the matches, or let him fire.",
+    },
+    {
+      secret:
+        "Nicholl will go out through the entrance plate himself if his own count shows the air cannot carry three men to the sea. He has worked out that one fewer breather saves the other two.",
+      whoKnows: "Nicholl alone.",
+      howItSurfaces:
+        "His questions about how long two men's air would last; his hand on the plate's screws; Barbicane's receipt left folded on the divan; with trust Partner, he tells Barbicane first.",
+      earliestArc: ARC_3,
+      whatPlayerCanDo:
+        "Keep the counts honest and enough; show him a route that works in numbers; stop him at the plate; go in his place (Barbicane dies: the bad Ending); or let him go.",
     },
   ],
   endings: [
     {
-      name: "All Hands to Harrow Deep",
+      name: "Dominoes in the Pacific",
       kind: "good",
       trigger:
-        "The Anvil docks with the Meridian Slow at its fixed hour, with Ines alive and at least five of the six crew alive: aboard, asleep in a cradle, or away in the launched pod. Routes: the pod's cartridge goes into the scrubber and power lasts; or the pod launches with three while two sleep in the cradles; or the reactor restart and burn beat the air.",
-      earliestArc: "The Burn",
+        "At 10 a.m. on 29 December the Susquehanna's boat reaches the floating projectile and finds Barbicane, Nicholl and Ardan alive. It takes all of: 12 or more rockets fired together at 1 a.m. on 8 December on a fixed hour; AIR above 0 until the top scuttle is broken open at sea; nobody out through the entrance plate; water lasting to 29 December. Routes: the bypass and a cold morning; the thawed valve and a tight oxygen ration; Ardan's frozen hand; the hour fixed by the sighting or by the joint reckoning with a Partner Nicholl.",
+      earliestArc: ARC_3,
     },
     {
-      name: "The Master's Arithmetic",
+      name: "An Empty Place at the Dominoes",
       kind: "neutral",
       trigger:
-        "The Anvil docks with Ines alive but two or more of the crew dead by her calls: Rafi left behind Bulkhead 4 past his mask hour, Teodor sent into the crawlway with his old dose, someone kept in a suit past its 4 hours, or anyone sent for a second crawlway hour.",
-      earliestArc: "The Burn",
+        "The Susquehanna's boat reaches the floating projectile with Barbicane alive but Nicholl or Ardan, or both, dead by the calls made aboard: a man out through the entrance plate to make the air last (Nicholl on his own count, true or shaded, or Ardan on his offer), or a man dead of thirst after the water ran out.",
+      earliestArc: ARC_3,
     },
     {
-      name: "Dead Air",
+      name: "A Metal Coffin",
       kind: "bad",
       trigger:
-        "The air reserve reaches 0 while Ines is breathing ship air before the Anvil docks, or Ines dies. Routes: the scrubber never runs and nobody cuts breathers; Bulkhead 4 fails and vents 12; power spent until the scrubber stops; mutineers launch the pod with the cartridge while the rest breathe; Ines takes a second crawlway hour.",
-      earliestArc: "Bulkhead Four",
+        "Barbicane dies, or the projectile is lost. Routes: 12 or more rockets fired at the Moon over the south pole wreck it on her; fewer than 12 fired together at the dead point, or fired off the hour, or none, and by 8 a.m. on 8 December Barbicane's figures show it circling the Moon for ever; AIR reaches 0, or the cabin is at −30°C or colder at an hour's end; Barbicane goes out through the entrance plate; the water runs out and Barbicane dies of thirst.",
+      earliestArc: ARC_1,
     },
   ],
   writerMayInventEndings: false,
   stateFlags: [
     {
       flag: "Crew alive",
-      values: lines("Six", "Five", "Three or four", "Two or fewer"),
+      values: lines(
+        "All three",
+        "Barbicane and one other",
+        "Barbicane alone",
+        "Barbicane dead"
+      ),
       epilogue: lines(
-        "Six names on the Harrow Deep arrivals board, every one of them walking.",
-        "Five walked off at Harrow Deep. The sixth name went on the refinery chapel wall.",
-        "Harrow Deep took in the survivors, and a list of the dead nearly as long.",
-        "The Anvil's crew found the Meridian Slow almost silent."
+        "Three men walked down the Susquehanna's gangway at San Francisco, and Baltimore gave them a parade a mile long.",
+        "Baltimore cheered two men home, and the Gun Club hung a third portrait draped in black.",
+        "Barbicane came home alone and read his notes to the Gun Club without once looking up.",
+        "The president's chair at the head of the Gun Club's table stayed empty, and J. T. Maston let no one sit in it."
       ),
     },
     {
-      flag: "Crew trust in Ines",
-      values: lines("Holds", "Frayed", "Broken"),
+      flag: "The projectile's fate",
+      values: lines(
+        "Recovered from the Pacific",
+        "Recovered with the dead",
+        "A satellite of the Moon",
+        "Wrecked on the Moon"
+      ),
       epilogue: lines(
-        "At the inquiry every survivor said the same thing: Ines Marr made the calls, and she told them the numbers.",
-        "The survivors' statements agree on the numbers and disagree about Ines Marr.",
-        "At the inquiry, the crew of the Meridian Slow did not sit together."
+        "The projectile was set up before the Gun Club in Baltimore, its broken scuttle left as the sea had found it.",
+        "The Susquehanna towed a silent projectile into San Francisco Bay, its flag still flying.",
+        "Maston's telegram came true: on clear nights he swore he could still see a speck circling the Moon.",
+        "Somewhere near Tycho lies a crumpled cone of aluminium, the first work of human hands on the Moon."
       ),
     },
     {
-      flag: "Ship status",
-      values: lines("Reactor restarted", "Adrift on batteries", "Air gone"),
+      flag: "Nicholl's trust",
+      values: lines("Partner", "Rival", "Broken"),
       epilogue: lines(
-        "The Meridian Slow came into Harrow Deep under her own power, scarred and still flying.",
-        "The Anvil hauled the Meridian Slow in on a cable, dark from bow to stern.",
-        "The Meridian Slow was left where she drifted, her board still counting."
+        "The notes of the voyage carry two signatures side by side: Barbicane's and Nicholl's.",
+        "Every figure in the notes of the voyage was worked twice: once in Barbicane's hand, and once, crossly, in Nicholl's.",
+        "Nicholl's pages of the voyage were bound apart from Barbicane's, and they do not mention the president."
       ),
     },
   ],
   voiceAndCanon: {
     voice:
-      "Fast, clipped, under pressure. Paragraphs of one to three sentences, many of one line. Mix the modes in every Passage: crew dialogue that cuts across itself and the comm, one hard line of the ship (an alarm, frost, a groaning frame), a body in motion, and the numbers. Numbers are plot: say them plainly. Show the ship board once per Passage as a line in capitals, e.g. 'AIR 42 · POWER 7 · CREW 6 · H+3'. The crew may joke grimly; the narration never does.",
+      "Fast, clipped, under pressure. Paragraphs of one to three sentences, many of a single line. Mix the modes in every Passage: dialogue that cuts across itself; one hard line of the projectile (frost on a scuttle, the hiss, the burner's colour, the chronometer's tick); a body in motion; and the numbers. The men speak with 1860s formality and Verne's dash ('By Jove!', 'my worthy Michel'), but the narration is plain, modern and quick. Numbers are plot: say them plainly. Show the board once per Passage as a line in capitals, e.g. '6 DEC 07:00 · GAS 24 · AIR 33 · CHLORATE 20 · POTASH 12 · ROCKETS 20 · WATER 25 d · 0°C'. The men may joke; the narration never does.",
     samplePassage: lines(
-      "The klaxon cuts out. The silence is worse.",
+      "The hiss stops you before the dark does.",
       "",
-      "'Bulkhead Four sealing in ninety seconds,' says the panel.",
+      "'Filling valve,' Nicholl says, his ear to the pipe above the dead burner. 'Frozen open in the shadow. We are pouring gas into space. Two hours of it every hour.'",
       "",
-      "Through the port, Rafi is on his back in Hydroponics, one leg under a fallen grow rack. Frost crawls up the glass between you.",
+      "Frost feathers across the side scuttle. Diana whines and presses against your boots.",
       "",
-      "'Ines.' Teodor, on the comm, breathing hard. 'Board says sixty person-hours. Hold that door and we vent six.'",
+      "Ardan is already at the top scuttle's bolts. 'One arm out, one minute, and it's shut.'",
       "",
-      "Wen is already at your shoulder. 'I can reach him. Sixty seconds. Give me sixty.'",
+      "'And you bring back a stump,' says Nicholl. 'Shut the master valve. Three hours and I'll bypass it by touch.'",
       "",
-      "Seventy-one.",
+      "Three hours without a flame.",
       "",
-      "Rafi has stopped shouting. He pulls at the rack with both hands, watching you through the glass.",
+      "6 DEC 06:02 · GAS 26 · AIR 36 · CHLORATE 20 · POTASH 12 · ROCKETS 20 · WATER 25 d · +5°C",
       "",
-      "AIR 60 · POWER 10 · CREW 6 · H+0",
-      "",
-      "Hold the door and lose six hours of air. Or seal it, and he has one hour on a mask."
+      "The master valve, Ardan's arm, or the burner turned on the pipe to thaw it?"
     ),
     fixedFacts: lines(
-      "The ship: the Meridian Slow, a water-ice hauler of Calloway-Brandt Haulage, eleven days out from Harrow Deep refinery.",
-      "Captain Joss Oduya died on the Bridge in the strike at H+0. Ines Marr is acting master.",
-      "Six crew alive at H+0: Ines Marr, Teodor Asante, Selin Kovac, Wen Sato, Amara Ferraz, Rafi Odede.",
-      "At H+0: air reserve 60 person-hours; battery 10 units; reactor scrammed; main scrubber dead with no cartridge.",
-      "One escape pod: three seats, its own catalyst cartridge, air for three for 30 hours, 10 hours to Harrow Deep.",
-      "Two cryo cradles, empty. Two EVA suits, 4 hours of air each. No spare cartridges aboard.",
-      "The Anvil, Harrow Deep's tug, is the only ship in range: arrival H+16; H+14 after a beacon burst; H+11 after a burn with the reactor up by H+9.",
-      "Bulkhead 4 fails at H+6 unless patched from outside; failure vents 12 person-hours."
+      "The Columbiad fired the projectile from Stones Hill, Florida, at 10:46:40 p.m. on 1 December. Aboard: Impey Barbicane, Captain Nicholl, Michel Ardan, the dog Diana, and the hens Ardan smuggled aboard.",
+      "The dog Satellite died of a wound from the departure shock and was thrown out through a side scuttle on 4 December; his body still follows the projectile.",
+      "On the first night a great meteor passed close; its pull deviated the projectile, which can no longer land on the Moon.",
+      "The projectile: aluminium, cylindro-conical, 19,250 pounds, walls twelve inches thick; a cabin of fifty-four square feet of floor, twelve feet high. Four scuttles: two in the side walls, the top one in the cone, the bottom one in the base. The entrance plate is in the cone wall, screwed from inside.",
+      "At departure Nicholl lost his wagers and paid Barbicane nine thousand dollars; Barbicane wrote him a receipt, which Nicholl keeps.",
+      "At 6:00 a.m. on 6 December (the Opening) the projectile passes the Moon's north pole and plunges into her shadow. Barbicane took its height over the pole just before.",
+      "Counts at the Opening: GAS 26 gas-hours (the receiver held 144 at departure), leaking 2 an hour through the frozen filling valve; AIR 36 man-hours; CHLORATE 20 charges (the rest was soaked useless when the cushion water burst at departure); POTASH 12 fresh receivers, with the one on the floor good until 6 p.m.; ROCKETS 20; WATER 25 days for three (the cistern's seam opened at departure); food for a year; the cabin at +5°C and falling.",
+      "Fixed hours: the bolide bursts at 2 p.m. on 6 December; the sun returns at 6 p.m. on 6 December as the projectile passes the south pole forty miles up; the dead point is at 1 a.m. on 8 December; the projectile plunges into the Pacific beside the Susquehanna at 1:17 a.m. on 12 December and floats from 3 a.m.; the Susquehanna's boat reaches it at 10 a.m. on 29 December.",
+      "The Moon has no air to breathe and no water to drink on any face the travellers see.",
+      "J. T. Maston watches from the telescope on Long's Peak in the Rocky Mountains. The Susquehanna is a United States corvette under Commander Blomsberry, sounding for a Pacific telegraph cable."
     ),
     writerMayInvent:
-      "Small ship detail (sounds, smells, frost, dead lights); crew memories and small talk; the Anvil pilot's manner; the captain's effects; injuries that cost nothing on the board.",
+      "Small physical detail of the cabin (frost patterns, the hens, the smell of gas and tallow); banter and wagers between Ardan and Nicholl; memories of Tampa, Skersnaw wood, Baltimore and the Gun Club; what Diana does; the Susquehanna crew's manner at the end.",
     writerMustNotInvent: lines(
-      "Any new resource: spare cartridges, extra suits, seats or cradles, hidden battery reserves, a ship nearer than the Anvil.",
+      "Any new resource: more gas, chlorate, potash, rockets or water; another way out of the projectile; any signal or message to or from Earth before the boat comes.",
+      "Air, water or life on the Moon.",
       "Any change to a count that is not a World rule's cost, and any luck that saves or kills anyone.",
-      "A reset: the clock, air, power, the dead, spent resources and crew trust carry forward Turn to Turn exactly as the last Passage left them. Nothing comes back.",
+      "A reset: the clock, every count, the dead, spent rockets, a frozen hand and Nicholl's trust carry forward Turn to Turn exactly as the last Passage left them. Nothing comes back.",
       "A count whose arithmetic cannot be shown from the story so far."
     ),
     pacing: lines(
       "Fast. Put the Player in the action in the first line: open on the result of their last choice, never a recap.",
-      "Before writing, recompute the board from the last Passage: each hour's air per breather, each unit spent, each death. Then show it.",
-      "Every Passage moves the clock and changes at least one count or one crew member's position.",
-      "End every Passage on a decision with 2 to 4 choices, each with its cost in numbers (hours, units, seats, lives), so the Player knows where to go.",
-      "Bulkhead Four runs H+0 to about H+4, The Cartridge to about H+8, The Burn to the rendezvous.",
-      "A clock failure (Rafi's mask, Bulkhead 4, the burn window, the last unit) happens on the page at its hour, whatever the Player is doing."
+      "Before writing, recompute the board from the last Passage: man-hours per breather per hour, charges and gas burned, receivers due, water, degrees, rockets, deaths. Then show it.",
+      "Every Passage moves the clock and changes at least one count or one man's position.",
+      "End every Passage on a decision with 2 to 4 choices, each with its cost in numbers (gas-hours, man-hours, charges, receivers, rockets, days, degrees), so the Player knows where to go.",
+      "The Leak and the Cold runs from 6 a.m. to about noon on 6 December; Behind the Moon to about 8 p.m.; The Fall from there to the end.",
+      "In The Fall, skip the empty hours: a Turn may cover up to 12 hours, and afloat whole days, with their costs stated (12 hours for three: 36 man-hours, one receiver, half a day's water).",
+      "A fixed hour (the bolide, the south pole, the dead point, the sea, the boat) happens on the page at its time, whatever the Player is doing."
     ),
     never: lines(
       "A paragraph longer than three sentences.",
-      "A Passage of narration only: every Passage has dialogue and at least one line of the ship.",
-      "Opening on scenery, a recap or a reflection.",
-      "Vague costs: 'some air', 'not much power', 'a while'. Use numbers.",
+      "A Passage of narration only: every Passage has dialogue and at least one line of the projectile itself.",
+      "Opening a Passage on scenery, a recap, a reflection or a lecture.",
+      "Verne's long scientific digressions: at most one fact of science per Passage, in a character's mouth.",
+      "Vague costs: 'some gas', 'a little air', 'a while'. Use the numbers.",
       "A choice without its cost.",
-      "Telling the Player what Ines feels; show her hands, her breath, what she says.",
-      "A crew speech longer than three sentences while the clock runs."
+      "Telling the Player what Barbicane feels; show his hands, his breath, his chronometer.",
+      "A speech of more than three sentences while a clock is running."
     ),
   },
 }

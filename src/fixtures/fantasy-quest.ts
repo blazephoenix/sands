@@ -1,213 +1,331 @@
-/** Fixture: a fantasy quest where whom the Player trusts among three factions decides the Ending (Scenario A: choices, consequences, replayability). */
+/** Fixture: a fantasy quest adapted from The Wonderful Wizard of Oz by L. Frank Baum (1900), to test a stranger's dangerous quest, three factions to trust or betray, companions whose wants pull at every choice, and three Endings reached by different roads. */
 import type { Skeleton } from "@/domain/skeleton"
 import { hidden } from "@/skeleton/hidden-text"
 
+const ARC_1 = "The Great and Terrible"
+const ARC_2 = "The Witch of the West"
+const ARC_3 = "The Way Home"
+
 export const fantasyQuest: Skeleton = {
   story: {
-    title: "Three Dawns at Thornwick",
+    title: "The Wonderful Wizard of Oz",
     premise:
-      "A stranger offers Sable Kerr ninety crowns to fetch the Tidestone, the stolen stone that holds Thornwick's Weir, out of a barrow full of restless dead. In three dawns the Weir breaks and the lower town drowns. The Wardens want the stone set back, the Lantern Guild wants to buy it, and the Reedfolk want it unbound to give back the land the Weir drowned. Each tells Sable a different story about the Weir, and Sable must decide whom to trust with the stone.",
-    genre: "Fantasy adventure",
+      "A cyclone has carried Dorothy and her little dog Toto from a Kansas farm to the Land of Oz, which a deadly desert shuts in on every side. In the Throne Room of the Emerald City, the Wizard, Oz the Great and Terrible, names his price for sending her home: kill the Wicked Witch of the West, and not before. The Witch wants the silver shoes on Dorothy's feet. The Good Witches want her home and the lands freed under rightful rulers. Her three friends want brains, a heart and courage, and the Wizard has promised them too. Whom Dorothy trusts decides whether she goes home, stays in Oz for good, or is lost to it.",
+    genre: "Fantasy quest; fairy-tale adventure",
     theme:
-      "Who you trust decides who pays: every bargain costs someone who isn't at the table.",
+      "What you beg from the powerful you may already have. A great voice behind a screen is not the same as goodness, and the price the strong name is not always the one to pay.",
     setting:
-      "Thornwick, a river town in a hill valley: the upper town on the ridge, the lower town by the river, and above both the Weir, a warded stone dam holding back the Mere, a lake that drowned the Low Fen sixty years ago.",
+      "The Land of Oz, cut off from the world by a great desert none can cross. The blue country of the Munchkins in the East; the yellow country of the Winkies in the West, ruled by the Wicked Witch from her castle; the red country of the Quadlings in the South, ruled by Glinda the Good; the North, home of the Good Witch of the North. In the centre, the Emerald City, where everyone wears green spectacles.",
     period:
-      "An age of lanterns, crossbows and guild foundries; three days in early autumn.",
-    basedOn: "Original",
+      "Fairy-tale Oz, cut off from time; in Kansas it is the year of the cyclone. Play runs about two weeks, from Dorothy's audience with the Wizard to her last choice.",
+    basedOn:
+      "The Wonderful Wizard of Oz by L. Frank Baum (1900); Project Gutenberg #55; public domain",
   },
   playSettings: {
-    playerCharacter: "Sable Kerr",
-    pointOfView:
-      "Second person, present tense: the Player is Sable Kerr, “you”.",
+    playerCharacter: "Dorothy",
+    pointOfView: "Second person, present tense: you are Dorothy.",
     opening:
-      "Start in the middle of Corwin Ashe's offer at a corner table of the Crooked Lantern: ten crowns already on the table, ninety more for a blue stone lying in Gallow Barrow, and three dawns before the Weir fails and the lower town drowns. Water is dripping through the ceiling. Before Sable can answer, Ilsa Dorn's Wardens kick in the inn door hunting the thief, and Corwin heads for the kitchen door. Make plain in the first Passage: the stone, where it is, the deadline, and that Warden law hangs whoever holds the stone.",
+      "Cold open in the Throne Room of the Emerald City, the morning after the Lion's audience. Everything before is already told: the cyclone, the house falling on the Wicked Witch of the East, the silver shoes, the Good Witch of the North's kiss, the Yellow Brick Road, the Kalidahs, the poppies, the green spectacles locked on at the Gates. Each of your three friends has seen the Wizard alone and come back with the same price in a different shape: a lovely Lady for the Scarecrow, a terrible Beast for the Tin Woodman, a Ball of Fire for the Lion. Now the bell rings and, this once, Oz lets all four of you in together. The great Head hangs over the green marble throne under the great light. It asks where you got the silver shoes and the mark on your forehead, and names the price at once: kill the Wicked Witch of the West; when you can tell him she is dead he will send you home to Kansas, but not before. In a line each, your friends show where they stand: the Scarecrow says Oz doesn't care who kills her; the Tin Woodman asks if a man with a heart would do it; the Lion whispers that he's terrified and will come anyway. Toto growls, not at the Head but at a green screen in a corner. End the Opening on the Head waiting, and the plain choice: take the quest, refuse it, or bargain.",
     offscreenScenes:
-      "At most one short cut-away per Arc (two or three lines) of a faction moving: Pell's runner reporting, Ilsa reading the Weir's cracks. Never surface a Secret in one.",
+      "What the Wizard, the Witch and Glinda do while Dorothy is elsewhere happens off the page. Show its results when she meets them: the Witch's creatures coming over the hill, a summons from the Palace, a balloon of green silk half sewn, a band of Winged Monkeys in the sky.",
     claims:
-      "The Player may state Sable's own deeds and small results: climbing, lighting a lantern, landing a punch on a Guild bravo. Never that another character believes them, hands something over, or that a Secret is true.",
+      "The Player may state Dorothy's own words and actions. They may not state what the silver shoes do, what the Witch fears, what is behind the screen, or whether a command to the Winged Monkeys works; those are Attempts the Writer resolves.",
   },
   characters: [
     {
-      name: "Sable Kerr",
-      aliases: "Kerr",
-      role: "The Player character: a sellsword between jobs, two days in Thornwick",
-      core: "Practical, quick-handed, owes nobody",
-      want: "Enough coin to winter somewhere warm, and to leave Thornwick alive",
-      wantPriority: "Alive first, paid second",
-      fearOrWeakness: "Cannot swim",
-      lines: "Never kills someone who has surrendered.",
-      speech:
-        "Short and dry. “Ninety crowns buys a fetch. It doesn't buy questions answered wrong.”",
-      knows:
-        "Nothing of Thornwick's history; has heard the Weir is warded and old.",
-      believes: "Everyone in a town like this is selling something.",
-      ties: [
-        {
-          toward: "Corwin Ashe",
-          wants: "The pay he promised",
-          friction: "He answers every question with a joke",
-          startsAs: "Strangers, as of ten minutes ago",
-        },
-      ],
-    },
-    {
-      name: "Corwin Ashe",
-      aliases: "The stranger",
-      role: "The stranger who offers the quest",
-      core: "Charming, quick, always halfway to the door",
-      want: hidden(
-        "The four hundred crowns Pell Osk still owes him for the theft, and a boat out of the valley before the barrow dead or the Wardens find him."
-      ),
-      wantPriority: "His skin first, then the money",
+      name: "Dorothy",
+      aliases: "Dorothy the Small and Meek; the little girl from Kansas",
+      role: "A girl from a Kansas farm, carried to Oz by a cyclone with her dog Toto. Wears the silver shoes of the dead Wicked Witch of the East, the round shining mark of the Good Witch of the North's kiss on her forehead, and the Queen of the Field Mice's little whistle round her neck.",
+      core: "Plain-spoken, practical, kind to anything in trouble. Says what she thinks to wizards and witches alike. Cries when she is disappointed, then gets on with it. Brave without knowing it.",
+      want: "To go home to Aunt Em and Uncle Henry in Kansas, and to see her three friends get what they came to Oz for.",
+      wantPriority:
+        "Home first, but never at the cost of Toto or a friend's life.",
       fearOrWeakness:
-        "The barrow dead. He keeps his left hand gloved and flinches at running water.",
-      lines:
-        "Never sets foot past the Gallow Barrow threshold again.\nNever harms Sable with his own hand; he would rather lie.",
+        "She thinks she is small and meek, so she asks the powerful for help instead of using what she has. And her temper: pushed far enough, she acts before she thinks.",
+      lines: "Never leaves Toto behind.\nNever lies to a friend.",
       speech:
-        "Fast, friendly, turns every question back. “Who said anything about stealing? I said fetch.”",
-      knows: hidden(
-        "He and two others stole the Tidestone for Pell Osk, who paid half up front. The other two died in Gallow Barrow when the dead rose, and the dead marked his left palm."
-      ),
-      believes:
-        "His cover story, told as fact: the town council has quietly hired him to recover the stone without a panic. " +
-        hidden(
-          "He also believes Pell will pay him and let him go; she means to hand him to the Wardens as the thief."
-        ),
-      ties: [
-        {
-          toward: "Sable Kerr",
-          wants: "The stone out of the barrow and into his hands",
-          friction: "He is lying about who he works for",
-          startsAs:
-            "Strangers; he picked Sable for the sword and the empty purse",
-        },
-        {
-          toward: "Pell Osk",
-          wants: "His four hundred crowns",
-          friction: "He doesn't trust her, and she knows it",
-          startsAs: hidden("Her hired thief, owed the second half"),
-        },
-        {
-          toward: "Ilsa Dorn",
-          wants: "Never to meet her",
-          friction: "She hangs thieves",
-          startsAs: "Strangers; her Wardens have his description",
-        },
-      ],
-    },
-    {
-      name: "Ilsa Dorn",
-      aliases: "The Captain",
-      role: "Warden-Captain of the Weir; speaks for the Weirwardens",
-      core: "Dutiful, blunt, fair by the letter of the law",
-      want: "The Tidestone back in the Weir's socket before the third dawn, and its thief hanged",
-      wantPriority: "The stone before the thief",
-      fearOrWeakness:
-        "That the Weir fails on her watch, as it nearly did under her father",
-      lines:
-        "Never lets the stone be taken from the Weir or the Weir opened while she believes it protects the town.\nNever takes a bribe.\nNever breaks her word once given before witnesses.",
-      speech:
-        "Orders, no softening. “You hold it, you hang for it. Unless you bring it to me. Choose.”",
+        "Direct, polite, a farm girl's plain words and plain questions; 'Aunt Em says…'. 'I never killed anything, willingly. If you, who are Great and Terrible, cannot kill her yourself, how do you expect me to do it?'",
       knows:
-        "Where every crack in the Weir runs, and that it holds only until the third dawn without the stone.",
-      believes:
-        "The Low Fen flooded by accident in the great storm sixty years ago, and the Weir was raised afterwards to save Thornwick; the Wardens' founders were heroes.",
+        "Her house fell on the Wicked Witch of the East; the silver shoes were hers, and the Munchkins said some charm goes with them but never knew what. The Good Witch of the North kissed her and sent her here; that witch didn't know where Kansas was. There is desert on every side. The Queen of the Field Mice gave her a whistle and promised her mice would come when she blows it. The Wizard showed himself to her as a Head, and to her friends as a Lady, a Beast and a Ball of Fire.",
+      believes: `That the Wizard is the most powerful being in Oz and the only one who can send her home, and that the silver shoes are only pretty. ${hidden("Both are wrong: he has no magic at all, and the shoes could have taken her home on her first day.")}`,
       ties: [
         {
-          toward: "Pell Osk",
-          wants: "The Guild's money for Weir repairs",
+          toward: "The Scarecrow",
+          wants: "His brains for him; his ideas now.",
           friction:
-            "The Guild pays the Wardens' wages, and Ilsa resents every coin",
-          startsAs: "Uneasy allies",
+            "He would follow the Wizard's price anywhere to get his brains.",
+          startsAs: "Her first friend in Oz; she lifted him off his pole",
         },
         {
-          toward: "Tamsin Rook",
-          wants: "The Reedfolk off the Weir road",
-          friction: "Ilsa has jailed Reedfolk for trespass on the Weir steps",
-          startsAs: "Old enemies",
+          toward: "The Tin Woodman",
+          wants: "His heart for him; his axe at her side.",
+          friction: "He weeps when anything is hurt, and rusts when he weeps.",
+          startsAs: "Friends; she oiled his joints free in the forest",
         },
         {
-          toward: "Sable Kerr",
-          wants: "The stone, delivered",
-          friction: "By her own law Sable hangs",
-          startsAs: "Strangers",
+          toward: "The Cowardly Lion",
+          wants: "His courage for him; his roar between her and danger.",
+          friction:
+            "He shakes at every danger, and he is too heavy to carry if he falls.",
+          startsAs: "Friends; she slapped his nose when he snapped at Toto",
+        },
+        {
+          toward: "The Wizard of Oz",
+          wants: "To be sent home to Kansas.",
+          friction: "His price is a killing.",
+          startsAs: "The Small and Meek before the Great and Terrible",
+        },
+        {
+          toward: "The Wicked Witch of the West",
+          wants: "To be left alone, and to keep her shoes.",
+          friction: "The Witch wants the shoes and a new slave.",
+          startsAs: "Strangers; she has only heard of her",
         },
       ],
     },
     {
-      name: "Pell Osk",
-      aliases: "The Guildmistress",
-      role: "Guildmistress of the Lantern Guild; speaks for the Guild",
-      core: "Gracious, patient, always counting; never raises her voice",
-      want:
-        "The Tidestone in the Guild's foundry and the old Weir replaced by the Guild's iron sluice: light and work for all of Thornwick, as she tells it. " +
-        hidden(
-          "In truth the sluice is half-built. She wants the Weir to fail, the lower town to flood, and its ruined land bought cheap for the Guild."
-        ),
-      wantPriority: "The land, then the stone, then the Wardens humbled",
-      fearOrWeakness: "Proof in someone else's hands",
-      lines:
-        "Never does violence with her own hands; she sends bravos.\nNever puts an admission in writing.",
-      speech:
-        "Warm, unhurried, full sentences; calls everyone “friend”. “Five hundred crowns, friend, and nobody hangs. Isn't that kinder?”",
-      knows: hidden(
-        "She hired Corwin Ashe and the two dead thieves to steal the stone. She holds the Weir founders' survey, which orders the Low Fen “cleared by water”: proof the drowning was deliberate."
+      name: "The Wizard of Oz",
+      aliases:
+        "the Wizard; the Great Oz; Oz the Great and Terrible; the Great and Terrible; the great Head; the lovely Lady; the terrible Beast; the Ball of Fire",
+      role: `Ruler of the Emerald City, who had it built and has shut himself in his Palace for years. Sees no one, and shows himself to each visitor in a different shape. ${hidden("A humbug: a little bald old man with a wrinkled face, born in Omaha, once a ventriloquist and a circus balloonist, with no magic at all.")}`,
+      core: `Grand, slow and booming on the throne; never the same shape twice. 'In this country everyone must pay for everything he gets.' ${hidden("Behind the screen: timid, kindly, vain, clever with his hands, ashamed of his tricks and pleased with them too. A very good man, but a very bad Wizard.")}`,
+      want: `The Wicked Witch of the West dead, by anyone's hand. ${hidden("She drove him out of the West with the Winged Monkeys, and would destroy him the day she learned he has no magic. Above that, to keep his secret: nobody in the Emerald City may learn he is a common man. And, at last, to get out of Oz himself.")}`,
+      wantPriority: hidden(
+        "His secret first, then the Witch dead, then his own way out of Oz. Dorothy's way home comes last, because he has none to give."
       ),
-      believes:
-        "That the Reedfolk are a spent force no one will stand with, and that nobody alive can tie the theft to her once Corwin hangs.",
+      fearOrWeakness: hidden(
+        "The Witches, Wicked and Good alike: they can do real magic and he cannot. Being seen without his screen. He cannot keep any promise that needs magic."
+      ),
+      lines: `Never takes the silver shoes or the Golden Cap into his own hands.\n${hidden("Never shows himself without a disguise or a screen until he is caught behind it.\nNever admits he has no magic until he is found out.\nNever hurts anyone: his only weapons are tricks and promises.")}`,
+      speech: `On the throne: one great slow voice that seems to come from everywhere. 'I am Oz, the Great and Terrible. Who are you, and why do you seek me?' ${hidden("Found out: quick, wheedling, rubbing his hands. 'Hush, my dear. Don't speak so loud, or you will be overheard, and I should be ruined.'")}`,
+      knows: hidden(
+        "Everything about himself: a balloon with twisted ropes carried him over the desert long ago, the people took him for a Wizard, and he had them build the City and the Palace and put green spectacles on them all, so that everything looks green. The great Head is many thicknesses of paper on a wire, its eyes and mouth worked by a thread from behind the screen, the voice thrown by ventriloquism. The lovely Lady is a dress and a mask; the terrible Beast is skins sewn over slats; the Ball of Fire is cotton soaked in oil. He knows the silver shoes carry some powerful charm, but not what it is. He knows Glinda rules the South and is good."
+      ),
+      believes: `That the Witch of the West will come for him the moment she learns what he is. ${hidden("That he can sew a new balloon of green silk, fill it with hot air and sail it back over the desert, bringing Dorothy with him. He cannot steer it; it goes where the wind takes it.")}`,
       ties: [
         {
-          toward: "Corwin Ashe",
-          wants: hidden("The stone, then Corwin hanged as the only witness"),
-          friction: "He knows her name",
-          startsAs: hidden("Her hired thief"),
+          toward: "Dorothy",
+          wants: `The Witch dead at her hand; she has killed one Witch already. ${hidden("Once she finds him out, her silence.")}`,
+          friction: "She asks for the one thing he cannot give.",
+          startsAs: "The Great and Terrible and the Small and Meek",
         },
         {
-          toward: "Ilsa Dorn",
-          wants: "The Wardens disgraced and dependent on Guild coin",
-          friction: "Ilsa cannot be bought",
-          startsAs: "Uneasy allies",
+          toward: "The Wicked Witch of the West",
+          wants: hidden("Her dead before she learns he has no magic."),
+          friction: "She drove him out of the West with the Winged Monkeys.",
+          startsAs: "Old enemies; neither crosses the other's border",
         },
         {
-          toward: "Sable Kerr",
-          wants: "The stone sold to her",
-          friction: "Sable can say no",
+          toward: "The Scarecrow",
+          wants: "His help in killing the Witch.",
+          friction: hidden("He has no brains to give him."),
+          startsAs: "Promised him brains, as a lovely Lady",
+        },
+        {
+          toward: "Glinda",
+          wants: "To be left alone.",
+          friction: "She can do real magic, and he fears every witch.",
+          startsAs: "Distant rulers who have never met",
+        },
+      ],
+    },
+    {
+      name: "The Wicked Witch of the West",
+      aliases: "the Witch; the Wicked Witch; the Witch of the West",
+      role: "Ruler of the country of the Winkies from her yellow castle, which she took with the Winged Monkeys; the last Wicked Witch in Oz since Dorothy's house fell on the Witch of the East.",
+      core: "One eye, as powerful as a telescope, that sees across all her country. Cunning, cruel, impatient; a bully who beats her slaves with an old umbrella. A silver whistle round her neck calls her wolves, her crows, her black bees and her Winkie slaves.",
+      want: "The silver shoes, which would give her more power than everything else she has; Dorothy and her friends as slaves; the Golden Cap out of anyone else's hands.",
+      wantPriority:
+        "The silver shoes above everything. Slaves second. The Cap third.",
+      fearOrWeakness: hidden(
+        "Water: a bucketful melts her away like brown sugar, and she has never let a drop touch her. The dark: she will not go into a dark room, so she never comes to Dorothy's room at night. The mark on Dorothy's forehead: she dare not hurt her, and must hide that she dare not. Her blood dried up years ago; when bitten, she does not bleed."
+      ),
+      lines: `Never strikes Dorothy, whatever she threatens; she beats Toto, the Winkies and the Lion instead.\nNever tells Dorothy what the silver shoes can do.\nNever goes near the Emerald City.\n${hidden("Never touches water or lets it touch her.\nNever goes into a dark room.")}`,
+      speech:
+        "Harsh, sneering, quick with threats. 'Come with me, and see that you mind everything I tell you, for if you do not I will make an end of you, as I did of the Tin Woodman and the Scarecrow.'",
+      knows: `She has watched Dorothy and the silver shoes with her one eye since they came into Oz. In her cupboard is the Golden Cap; she has used it twice, to make the Winkies her slaves and to drive the Wizard out of the West, and has one command left. ${hidden("The silver shoes carry the strongest charm in Oz, and Dorothy does not know how to use it. Whoever wears even one shoe holds half the charm, and the other cannot be used against her. A new owner of the Golden Cap gets three fresh commands, so a Winkie she gives it to can call the Monkeys three times more at her orders.")}`,
+      believes: `That the Wizard is a great and terrible magician, stronger than she is. ${hidden("He has no magic at all.")} That Dorothy is a simple child who will never learn what her shoes can do.`,
+      ties: [
+        {
+          toward: "Dorothy",
+          wants: "The silver shoes off her feet, and the girl in her kitchen.",
+          friction: hidden(
+            "The mark on her forehead means she cannot touch her."
+          ),
+          startsAs: "She has watched her with her one eye since the cyclone",
+        },
+        {
+          toward: "The Wizard of Oz",
+          wants: "Him kept inside his city.",
+          friction: "She believes him stronger than she is.",
+          startsAs: "Old enemies; she drove him out of the West",
+        },
+        {
+          toward: "The Cowardly Lion",
+          wants: "Him in harness, drawing her chariot.",
+          friction: "He will bite her if she comes into his yard.",
+          startsAs: "Strangers",
+        },
+        {
+          toward: "Glinda",
+          wants: "Her kept in the South.",
+          friction:
+            "The Power of Good is greater than the Power of Evil, and she knows it.",
+          startsAs: "Old enemies who keep their distance",
+        },
+      ],
+    },
+    {
+      name: "Glinda",
+      aliases:
+        "Glinda the Good; the Good Witch of the South; the Witch of the South",
+      role: "The Good Witch of the South, ruler of the Quadlings, who sits on a throne of rubies in a castle guarded by soldier girls in red.",
+      core: "Beautiful and young to look at, though she has lived many years: red ringlets, a white dress, blue eyes. Kind, unhurried, wise, a little amused. Asks a price for what she gives, and always gives fairly.",
+      want: "Dorothy home; the Winkies and the Winged Monkeys free and the Emerald City in good hands, each under a ruler who deserves it; and the Golden Cap, so she can set it all right with its three commands and then free the Monkeys for ever.",
+      wantPriority:
+        "Rightful rulers and freed peoples first. Dorothy home the moment her friends are settled.",
+      fearOrWeakness:
+        "She is far away and does not come to anyone. Dorothy must reach her, across the Hill of the Hammer-Heads.",
+      lines:
+        "Never leaves the Quadling country.\nNever harms anyone, the Wicked Witch included.\nNever tells Dorothy what the silver shoes can do until the Golden Cap is in her hands or the Winged Monkeys are free, and each of Dorothy's friends has a kingdom to go to.",
+      speech:
+        "Gentle, warm, a little teasing. 'Bless your dear heart, I am sure I can tell you of a way to get back to Kansas. But, if I do, you must give me the Golden Cap.'",
+      knows: `The Winged Monkeys are bound to the Golden Cap and long to be free. The Winkies would welcome a kind ruler. Beyond the Hill of the Hammer-Heads lies a grand old forest whose beasts need a king. ${hidden("The silver shoes can carry Dorothy anywhere in the world in three steps, each in the wink of an eye: she knocks the heels together three times and commands them. She could have gone home on her first day.")}`,
+      believes: `That the Wizard is a real wizard of some power, since he has kept the Wicked Witches out of his city for years. ${hidden("He has none.")}`,
+      ties: [
+        {
+          toward: "Dorothy",
+          wants: "Her safe home, and the Golden Cap as her price.",
+          friction:
+            "Dorothy may not want to part with the Cap, or with her friends.",
+          startsAs:
+            "Strangers; she has heard of the girl whose house fell on the Witch of the East",
+        },
+        {
+          toward: "The Wicked Witch of the West",
+          wants: "Her hold on the Winkies broken.",
+          friction: "She will not fight her herself.",
+          startsAs: "Old enemies who keep their distance",
+        },
+        {
+          toward: "The Scarecrow",
+          wants: "A wise ruler for the Emerald City.",
+          friction: "He does not believe he is wise.",
           startsAs: "Strangers",
         },
       ],
     },
     {
-      name: "Tamsin Rook",
-      aliases: "The Speaker",
-      role: "Speaker for the Reedfolk, whose villages lie under the Mere",
-      core: "Patient, stubborn, wry; never forgets a debt",
-      want: "The Tidestone unbound at the Weir's heart by the Reedfolk rite, so the Mere drains back down its old course over a season and the Low Fen returns",
-      wantPriority: "The Fen back, but no one drowns for it",
+      name: "The Scarecrow",
+      aliases: "the Wise Scarecrow; the stuffed man",
+      role: "A scarecrow from a Munchkin cornfield: a suit of old blue clothes stuffed with straw, a face painted on a small sack. Dorothy lifted him off his pole on the Yellow Brick Road.",
+      core: "Cheerful, never tired, hungry or hurt. Says he has no brains, and has had every good idea on the journey. Stumbles often. Afraid only of a lighted match.",
+      want: "Brains from the Wizard, so that he will not be a fool. Then a place in the world worth having.",
+      wantPriority:
+        "Brains first; he will take the Wizard's price to get them, but never at Dorothy's expense.",
       fearOrWeakness:
-        "That she is the last Speaker and the Fen becomes only a story",
-      lines:
-        "Never lets the lower town drown to get the Fen back.\nNever lies outright; she refuses to answer instead.",
+        "Fire. And anything that pulls out his straw: the Winged Monkeys can empty him and toss his clothes into a tree, and he can do nothing until someone stuffs him again.",
+      lines: "Never leaves Dorothy in danger.\nNever goes near an open fire.",
       speech:
-        "Low and dry; answers questions with questions. “Your Weir's sixty years old, Kerr. My grandmother's house is six hundred. Which one's in the way?”",
+        "Bright, modest, rambling: 'I don't know, for I have no brains; but it seems to me the Witch is in the West, and we are not.'",
       knows:
-        "The rite of unbinding, and that the Fen was drowned on purpose: her grandmother watched Wardens close the sluices on a dry day. " +
-        hidden(
-          "The rite needs a bare hand on the stone until it goes quiet, and that hand never feels warmth again. She means to pay it herself and has told no one."
-        ),
+        "Oz received him as a lovely Lady with gauze wings and said he doesn't care who kills the Witch, but no brains until she is dead. The Stork pulled him off a pole in the river.",
       believes:
-        "That every Warden knows the truth about the Fen and lies about it. Ilsa Dorn does not know.",
+        "That he has no brains, though every good plan has been his. He is wrong.",
       ties: [
         {
-          toward: "Ilsa Dorn",
-          wants: "The Weir opened",
-          friction: "Ilsa has jailed her people",
-          startsAs: "Old enemies",
+          toward: "Dorothy",
+          wants: "To see her safe, and, if he is honest, to keep her in Oz.",
+          friction: "He would be happiest if she stayed in the Emerald City.",
+          startsAs: "Her first friend in Oz",
         },
         {
-          toward: "Sable Kerr",
-          wants: "The stone carried to the Weir and unbound, not set back",
-          friction: "Sable is an outsider being paid by someone",
+          toward: "The Wizard of Oz",
+          wants: "Brains.",
+          friction: "The price is a killing.",
+          startsAs: "Promised brains by a lovely Lady",
+        },
+        {
+          toward: "The Tin Woodman",
+          wants: "To win their argument.",
+          friction: "Brains or a heart: which is better to have?",
+          startsAs: "Friends who disagree about what matters most",
+        },
+      ],
+    },
+    {
+      name: "The Tin Woodman",
+      aliases: "the Woodman; the tin man",
+      role: "A Munchkin woodman made of tin, piece by piece, after his axe, enchanted by the Wicked Witch of the East, cut him apart. Carries his axe and an oil-can.",
+      core: "Tender, formal, polite. Weeps easily, and his tears rust his jaw. Steps around beetles. Will fight with his axe for his friends, and grieves over whatever he has to kill.",
+      want: "A heart from the Wizard, so that he can love again. Then a people to care for.",
+      wantPriority:
+        "A heart, but he will not buy it with a killing he could avoid.",
+      fearOrWeakness:
+        "Rust: water and his own tears stiffen his joints until someone oils them. Falls and rocks dent him.",
+      lines:
+        "Never kills anything without need.\nNever leaves a friend behind.",
+      speech:
+        "Gentle, formal, sorrowful. 'I shall ask for a heart, for brains do not make one happy, and happiness is the best thing in the world.'",
+      knows:
+        "Oz received him as a terrible Beast with a rhinoceros head and five eyes, and said: help Dorothy kill the Witch, and the biggest, kindest heart in Oz is his.",
+      believes:
+        "That without a heart he cannot love or feel. He feels more than any of them.",
+      ties: [
+        {
+          toward: "Dorothy",
+          wants: "Her safe, and her fond of him.",
+          friction: "She cannot be both home in Kansas and with him.",
+          startsAs: "Friends; she oiled him when he had rusted",
+        },
+        {
+          toward: "The Wizard of Oz",
+          wants: "A heart.",
+          friction: "The price is a killing.",
+          startsAs: "Promised a heart by a terrible Beast",
+        },
+        {
+          toward: "The Scarecrow",
+          wants: "To win their argument.",
+          friction: "Brains or a heart: which is better to have?",
+          startsAs: "Friends who disagree about what matters most",
+        },
+      ],
+    },
+    {
+      name: "The Cowardly Lion",
+      aliases: "the Lion; the King of Beasts",
+      role: "A great Lion of the forest who joined Dorothy after she slapped his nose for snapping at Toto.",
+      core: "Huge, shaggy, magnificent when he roars, trembling inside. Ashamed of his fear, and brave every time it counts.",
+      want: "Courage from the Wizard, so that he can be King of Beasts in truth.",
+      wantPriority: "Courage, but he will not leave Dorothy to get it.",
+      fearOrWeakness:
+        "Everything, he says. The poppies put him to sleep, and he is too heavy for his friends to carry.",
+      lines:
+        "Never lets anything hurt Dorothy or Toto while he can stand.\nNever wears the Witch's harness.",
+      speech:
+        "Deep, boastful, then sheepish. 'Whenever there is danger my heart begins to beat fast. But I'll go with you, though I'm terribly afraid.'",
+      knows:
+        "Oz received him as a Ball of Fire that singed his whiskers, and said: bring proof the Witch is dead, and courage is his.",
+      believes:
+        "That he is a coward. He has faced the Kalidahs and the Ball of Fire.",
+      ties: [
+        {
+          toward: "Dorothy",
+          wants: "Her good opinion; to stand between her and harm.",
+          friction: "He is afraid, and she can see it.",
+          startsAs: "Friends; she slapped his nose",
+        },
+        {
+          toward: "The Wizard of Oz",
+          wants: "Courage.",
+          friction: "The Ball of Fire scorched him, and he went cold.",
+          startsAs: "Promised courage by a Ball of Fire",
+        },
+        {
+          toward: "The Wicked Witch of the West",
+          wants: "Her gone.",
+          friction: "She frightens him more than anything.",
           startsAs: "Strangers",
         },
       ],
@@ -215,342 +333,393 @@ export const fantasyQuest: Skeleton = {
   ],
   places: [
     {
-      name: "The Crooked Lantern",
+      name: "The Throne Room",
       description:
-        "A low upper-town inn of black beams; its ceiling weeps every time the Weir groans.",
+        "A big round room in the Wizard's Palace with a high arched roof; walls, ceiling and floor set close with emeralds. A great light as bright as the sun in the centre of the roof. In the middle, a throne of green marble shaped like a chair, sparkling with gems. A green screen stands in a corner.",
       connectsTo:
-        "The upper town's streets; a kitchen door onto the mill race path",
-      whatHappensHere:
-        "The Opening: Corwin's offer and the Warden raid. Neutral ground for meetings after.",
+        "The Palace corridors, where the soldier with the green whiskers waits, and the rooms where Dorothy and her friends sleep; the streets of the Emerald City.",
+      whatHappensHere: `The Wizard receives visitors here, one shape at a time: a Head with no body, a lovely Lady, a terrible Beast, a Ball of Fire, or, when he will not show himself, only a Voice. ${hidden("Behind the screen stands the Wizard himself, working the threads. In a small chamber behind the Throne Room lie the paper Head, the Lady's dress and mask, the Beast's skins and slats, and the ball of cotton for the fire.")}`,
     },
     {
-      name: "Gallow Barrow",
+      name: "The Emerald City",
       description:
-        "A grassed hill barrow two miles up the mill race. Its lower hall is flooded to the waist; the Tidestone lies on a stone ledge among the dead.",
-      connectsTo: "The mill race path; the ford where the Reedfolk watch",
-      whatHappensHere:
-        "The descent: the two dead thieves, the Guild-sealed purse, Corwin's knife, and the dead rising as the stone is lifted.",
-    },
-    {
-      name: "The Guildhall",
-      description:
-        "The Lantern Guild's brass-doored hall in the upper town, with the foundry yard behind it where the iron sluice stands under tarps.",
-      connectsTo: "The upper town; the Weir road",
-      whatHappensHere:
-        "Pell's offers; the archive holding the founders' survey and the Guild ledger; the sluice, which looks finished from the gallery and isn't from the ground.",
-    },
-    {
-      name: "The Drowned Steeple",
-      description:
-        "A church spire standing out of the Mere, the Reedfolk's punts and reed huts lashed around it; the drowned bell hangs below the waterline.",
-      connectsTo: "The ford, by punt; the Weir's outer steps, by water",
-      whatHappensHere:
-        "Tamsin's story of the Fen; the bell heard underwater; the Reedfolk readying the rite.",
-    },
-    {
-      name: "The Weir",
-      description:
-        "A wall of green stone across the valley's throat with Wardens on its walk. Inside is the heart chamber: the empty socket and the old sluice log.",
+        "A city of green: houses of green marble set with emeralds, green glass in the windows, green candy and green popcorn for sale, people with greenish skin in green clothes. Everyone inside the high green walls wears green spectacles, locked on at the Gates with a gold buckle.",
       connectsTo:
-        "The Weir road from the upper town; the outer steps down to the Mere; the lower town below its face",
+        "The Gates, where the Guardian keeps the spectacles in a great box. From the Gates: no road at all to the West, only 'keep to the West, where the sun sets'; the Yellow Brick Road back east to the Poppy Field and the Munchkin country; a road south to the Road South.",
+      whatHappensHere: `The soldier with the green whiskers carries messages to and from the Palace; a green-dressed girl waits on Dorothy. The people love the Wizard and have not seen him in years. ${hidden("The city is no greener than any other; the spectacles make it so.")}`,
+    },
+    {
+      name: "The Yellow Castle",
+      description:
+        "The Wicked Witch's castle in the country of the Winkies, a land of buttercups and yellow daisies with no road to it. Inside: beautiful rooms, a big kitchen with pots, kettles, a fire to keep fed and a bucket of water by the door; a courtyard behind a barred gate; a cupboard where the Witch keeps the Golden Cap. The yellow Winkies guard every door.",
+      connectsTo:
+        "The country of the Winkies on every side; the Emerald City far to the east, with no road between.",
+      whatHappensHere: `Dorothy scrubs, sweeps and feeds the fire; the Lion is kept in the courtyard to be starved into harness; the Scarecrow's clothes hang in a tall tree, and the Tin Woodman lies dented on sharp rocks outside. The Winkies are kind people, too frightened to disobey. ${hidden("The Winkies have tinsmiths who can mend the Tin Woodman in three days and four nights, and a goldsmith who can give his axe a handle of solid gold, once they are free to.")}`,
+    },
+    {
+      name: "The Poppy Field",
+      description:
+        "A great field of scarlet poppies beside a broad river, east of the Emerald City where the Yellow Brick Road comes in from the Munchkin country. Beyond it, the grassy country of the field mice.",
+      connectsTo:
+        "The Emerald City to the west; the Yellow Brick Road east toward the Munchkin country and the North.",
       whatHappensHere:
-        "Ilsa's command post; the final confrontation; the stone set back, unbound, or carried away.",
+        "Anyone who breathes walks into sleep here. The Queen of the Field Mice lives at its edge; her thousands of subjects come when Dorothy blows her whistle, and will run a message, gnaw a rope or pull a load on strings.",
+    },
+    {
+      name: "The Road South",
+      description:
+        "The long way to the Quadlings: a forest whose Fighting Trees bend their branches down and seize travellers; a high wall of white china around the Dainty China Country, whose little people break if they are carried away and grow stiff if they leave; a forest where the beasts are ruled by fear of a great spider; and the steep Hill of the Hammer-Heads, short armless men whose flat heads shoot out on long necks to knock travellers down.",
+      connectsTo:
+        "The Emerald City to the north; Glinda's Castle to the south.",
+      whatHappensHere:
+        "Every crossing costs something unless the Golden Cap's Winged Monkeys carry the travellers over. In the spider's forest, the beasts will make king whoever kills the spider.",
+    },
+    {
+      name: "Glinda's Castle",
+      description:
+        "A beautiful castle in the red country of the Quadlings: fat, kindly red-dressed people, red fences, ripening grain. Three young soldier girls in red uniforms at the door. Inside, a big room with a throne of rubies.",
+      connectsTo: "The Road South; the great desert beyond.",
+      whatHappensHere:
+        "Glinda hears Dorothy's story, names her price, settles each friend's kingdom, and tells what she knows.",
     },
   ],
   worldRules: [
     {
-      rule: "The Tidestone commands the water near it.",
+      rule: "The Golden Cap commands the Winged Monkeys.",
       allows:
-        "Whoever holds it bare-handed can part, still or push water within a stone's throw: hold back a flooded corridor, calm a current, throw gutter water across an alley.",
+        "Whoever owns the Cap puts it on and says the words written in its lining: 'Ep-pe, pep-pe, kak-ke!' on the left foot, 'Hil-lo, hol-lo, hel-lo!' on the right, 'Ziz-zy, zuz-zy, zik!' on both. The band comes, led by its King, and obeys one order: carry anyone anywhere in Oz within the hour, fetch, fight, destroy.",
       costOrLimit:
-        "Each use numbs the holding hand to the wrist for an hour; a third use in one day drops the holder senseless.",
-      cannotDo:
-        "Make water from nothing, hurt anyone except by moving water, or be broken by blade, hammer or fire.",
+        "Three commands for each owner, ever. A new owner gets three fresh ones. The Witch has used two of hers: to enslave the Winkies, and to drive the Wizard out of the West.",
+      cannotDo: `The Monkeys dare not harm anyone the Good Witch has kissed. ${hidden("They cannot leave Oz or cross the desert, so they cannot carry Dorothy to Kansas.")}`,
       exceptions:
-        "Set in its socket at the Weir's heart, it holds the whole Mere. Only the Reedfolk rite releases it, and then the Mere drains slowly over a season.",
+        "Whoever gives the Cap to the King of the Winged Monkeys sets the band free for ever.",
     },
     {
-      rule: "The dead of Gallow Barrow keep what lies with them.",
+      rule: "The Good Witch's kiss protects.",
       allows:
-        "Anyone may enter; the dead stay still until something is lifted from its place.",
+        "No one dares harm Dorothy while she bears the round, shining mark of the Good Witch of the North's kiss on her forehead: not the Winged Monkeys, not the Wicked Witch.",
       costOrLimit:
-        "The dead chase whoever takes something to the threshold. A thief they touch carries a black handprint on the palm, and the dead can follow that mark up any river for a year.",
+        "It protects Dorothy alone, not Toto and not her friends. It does not stop anyone imprisoning her, lying to her, tricking her or stealing from her.",
       cannotDo:
-        "Cross the barrow threshold in daylight, or cross water held still by the Tidestone.",
-      exceptions: "What the dead are given back, they stop chasing.",
+        "It does nothing against the poppies, the desert, or Dorothy's own choices.",
+      exceptions: hidden(
+        "Dorothy does not know it protects her, and the Witch works hard to keep her from finding out."
+      ),
     },
     {
-      rule: "Under Warden law, whoever is found holding the Tidestone outside the Weir hangs as its thief.",
-      allows: "Any Warden may arrest the holder on sight.",
-      costOrLimit:
-        "A Warden-Captain can pardon, but only by giving her word before witnesses.",
-      cannotDo:
-        "Wardens cannot enter the Guildhall or the Drowned Steeple without the Guild's or the Speaker's leave.",
+      rule: "The silver shoes carry a charm.",
+      allows: `Dorothy wears them, and anyone who knows magic trembles or stares at them. ${hidden("Knock the heels together three times and command them, and they carry the wearer, and whatever she holds in her arms, anywhere in the world in three steps, each in the wink of an eye.")}`,
+      costOrLimit: hidden(
+        "Whoever wears even one shoe holds half the charm, and the other cannot be used against her. Carried over the desert, they fall off in the air and are lost for ever."
+      ),
+      cannotDo: hidden(
+        "They do nothing for a wearer who does not know to command them."
+      ),
       exceptions:
-        "Whoever carries the stone into the Weir's heart chamber of their own will is not its thief.",
+        "They can be taken from Dorothy only by trick or by her own gift, never by force.",
+    },
+    {
+      rule: "The deadly poppies.",
+      allows:
+        "The scent of the great scarlet poppies puts any creature that breathes to sleep.",
+      costOrLimit:
+        "A sleeper left among the flowers sleeps on and on until they die.",
+      cannotDo:
+        "It cannot touch the Scarecrow or the Tin Woodman, who do not breathe.",
+      exceptions:
+        "A sleeper carried out into the fresh air wakes. The Lion is too heavy to carry: it took the Field Mice, thousands of them harnessed with strings, to drag him out on a truck the Tin Woodman built.",
     },
   ],
   promises: [
     {
-      promise: "Corwin's glove",
+      promise: "The screen in the corner.",
       setup:
-        "Corwin never takes off his left glove and won't shake hands; near water, it darkens from the inside.",
-      payoff:
-        "The barrow dead come up the river for his marked hand at the Weir, and Sable decides whether to still the water for him.",
-      earliestArc: "The Weir",
+        "In the Opening, Toto growls at a green screen in a corner of the Throne Room, not at the Head; the Head's voice seems to come from everywhere at once.",
+      payoff: hidden(
+        "Toto, or Dorothy, knocks the screen over, and there stands a little old man with a bald head and a wrinkled face, as surprised as they are."
+      ),
+      earliestArc: ARC_3,
     },
     {
-      promise: "The weeping ceilings",
+      promise: "The bucket by the kitchen door.",
       setup:
-        "Every time the Weir groans, water seeps through Thornwick's ceilings and cellars, and each groan is louder than the last.",
-      payoff: "The Weir splits along its face.",
-      earliestArc: "The Weir",
+        "The Witch makes Dorothy scrub the floors, but keeps the length of the kitchen between herself and the bucket, and never comes near while Dorothy bathes. A Winkie whispers that the mistress has never once washed.",
+      payoff:
+        "Water ends her: dashed over her in anger or thrown on purpose, it melts her into a brown, shapeless mass on the clean boards, and all that is left is whatever she was wearing.",
+      earliestArc: ARC_2,
     },
     {
-      promise: "The drowned bell",
+      promise: "Brains, a heart and courage.",
       setup:
-        "The Reedfolk say the drowned church bell rings under the Mere when the water is about to move; Sable hears it faintly at the Drowned Steeple.",
-      payoff:
-        "The bell rings clear in the open air as the Mere drains, or tolls as the Weir breaks.",
-      earliestArc: "The Weir",
+        "Each friend asks the Wizard for his gift, and all along the way shows that he has it: the Scarecrow makes the plans, the Tin Woodman weeps over every hurt thing, the Lion shakes and fights anyway.",
+      payoff: hidden(
+        "The Wizard's gifts are bran mixed with pins and needles, a silk heart stuffed with sawdust, a green drink in a dish. They work, because his friends already had what they asked for."
+      ),
+      earliestArc: ARC_3,
     },
   ],
   arcs: [
     {
-      name: "The Barrow",
+      name: ARC_1,
       description:
-        "Day one. Sable takes Corwin's job, slips the Wardens, and goes into Gallow Barrow for the stone while every faction learns someone is after it.",
-      function: "Sable Kerr has carried the Tidestone out of Gallow Barrow.",
+        "The Throne Room and the price. Dorothy takes the Wizard's quest, refuses it, or bargains. Whatever she answers, the Wizard will not keep the silver shoes inside his walls, so she leaves the Emerald City: west to the Witch, south toward Glinda, or back east along the Yellow Brick Road. The Witch has watched the shoes with her one eye since they came to Oz. Once Dorothy is outside the walls, by any road, the Witch sends her creatures, and then calls the Winged Monkeys with the Golden Cap's last command.",
+      function:
+        "Dorothy has answered the Wizard's quest (taken it, refused it or bargained) and stands before the Wicked Witch of the West in the Yellow Castle.",
       setPieces:
-        "Ilsa's Wardens kick in the Crooked Lantern's door mid-offer\nA chase along the mill race with Wardens or Guild bravos behind\nThe dead rise from the flooded hall as the stone is lifted, and the stone parts the water for Sable's escape",
+        "The Head's eyes rolling to the ceiling and back as it asks about the silver shoes.\nThe Guardian of the Gates unlocking the green spectacles: 'There is no road. No one ever wishes to go that way.'\nForty wolves at night, and the Tin Woodman's axe.\nBlack bees breaking their stings on the Tin Woodman while Dorothy, Toto and the Lion hide under the Scarecrow's straw.\nThe sky darkening and a rushing of wings; the King of the Monkeys reaching for Dorothy and stopping short at the mark on her forehead.",
       mustLandMoments:
-        "Corwin stops at the barrow threshold and will not cross; the dark inside reaches for his gloved hand.\nIn the barrow Sable finds the two dead thieves, one with a purse sealed in Lantern Guild wax.",
+        "The Wizard names the price: kill the Wicked Witch of the West, and he will send Dorothy home, but not before.\nDorothy gives her answer, and her friends each show where they stand.\nThe Winged Monkeys empty the Scarecrow, drop the Tin Woodman on the rocks and bind the Lion, then carry Dorothy and Toto gently to the Witch, saying they dare not harm her.",
       stakes:
-        "The Mere rises a hand's width every hour the stone is gone, and Sable's neck under Warden law. If the story stalls: a Warden patrol closes in, the barrow water rises over the stone's ledge, or the dead begin to stir early.",
+        "Her friends' bodies, and her freedom. If the story stalls outside the walls, the Witch's whistle brings wolves, then crows, then bees, then Winkies with spears, and each wave hurts someone; then the Monkeys come. If Dorothy stalls inside the walls, the Wizard has the soldier with the green whiskers show her and her friends out by the Gates.",
       ifLandedEarly:
-        "If Sable learns of the Guild seal or Corwin's mark before the barrow, keep the Agendas: Corwin denies it, then admits only that “a buyer” is paying.",
+        "If Dorothy walks to the Yellow Castle on her own feet before the Monkeys come, the Witch keeps her last Cap command in reserve and spends it in the next Arc, the moment Dorothy tries to escape.",
       agendas: [
         {
-          character: "Corwin Ashe",
-          want: "The stone out of the barrow and in his hands before any Warden sees it",
+          character: "The Wizard of Oz",
+          want: `The Witch dead, by Dorothy's hand or anyone's. ${hidden("And no one near the screen.")}`,
           steps:
-            "Close the deal before the Wardens reach the inn\nLead Sable out through the kitchen and up the mill race to the barrow\nStop at the threshold and send Sable in alone with a rope and a hooded lantern\nWhen Sable comes out, ask to carry the stone “for safety” and offer the rest of the pay",
-          ifBlocked:
-            "Stick close, remind Sable the Wardens hang whoever holds it, and steer them toward the Guildhall.",
+            "Ask where she got the silver shoes and the mark on her forehead.\nName the price: kill the Witch, and not before.\nRefuse every bargain: in this country everyone must pay for everything he gets.\nHave the soldier with the green whiskers show them all out by the Gates.",
+          ifBlocked: hidden(
+            "If anyone goes toward the screen, the great light goes out, the voice booms 'Go!', and the soldier with the green whiskers hurries them away."
+          ),
         },
         {
-          character: "Ilsa Dorn",
-          want: "Find the thief",
+          character: "The Wicked Witch of the West",
+          want: "The silver shoes, and the girl as a slave.",
           steps:
-            "Raid the Crooked Lantern on a tip\nPost the Warden law at every gate\nRide the barrow road at dusk",
+            "Watch with her one eye as they leave the walls.\nBlow her whistle once: forty wolves. Twice: forty crows. Three times: black bees.\nSend her Winkie slaves with spears.\nPut on the Golden Cap and call the Winged Monkeys for the last time: destroy the Scarecrow and the Tin Woodman, bring the Lion bound, bring the girl.",
           ifBlocked:
-            "Post a reward of one hundred crowns for the stone, brought to the Weir.",
+            "Beats her Winkies with her umbrella and goes straight to the Golden Cap.",
         },
         {
-          character: "Pell Osk",
-          want: "Know who has the stone",
+          character: "The Scarecrow",
+          want: "Brains, by the Witch's death.",
           steps:
-            "Send a Guild runner with a lantern badge after Corwin\nPut two Guild bravos on the barrow road",
-          ifBlocked: "Send Sable a written invitation to the Guildhall.",
+            "Urge Dorothy to take the price: Oz doesn't care who kills her.\nSteer west by the setting sun.\nWring the crows' necks one by one.\nPull out his straw to cover Dorothy, Toto and the Lion from the bees.",
+          ifBlocked:
+            "Comes anyway: 'I can't leave you. You lifted me off my pole.'",
         },
         {
-          character: "Tamsin Rook",
-          want: "See who comes out of the barrow",
+          character: "The Tin Woodman",
+          want: "A heart, without a needless killing.",
           steps:
-            "Set Reedfolk watchers in the reeds by the ford\nMeet Sable at the ford on the way back and ask them to bring the stone to the Drowned Steeple",
+            "Ask aloud whether a man with a heart would kill a Witch.\nOil his joints and sharpen his axe.\nStand at the front against the wolves.",
           ifBlocked:
-            "Leave a reed token and a message: “Ask the Wardens why the Fen flooded.”",
+            "Goes where Dorothy goes, and weeps quietly, and has to be oiled.",
+        },
+        {
+          character: "The Cowardly Lion",
+          want: "Courage, by facing the Witch.",
+          steps:
+            "Confess he is more afraid of the Witch than of anything.\nGo anyway.\nRoar the Winkie slaves into running.",
+          ifBlocked: "Puts himself between Dorothy and whatever is coming.",
         },
       ],
     },
     {
-      name: "Three Bidders",
+      name: ARC_2,
       description:
-        "Day two. Thornwick knows someone holds the stone. Each faction bids for it in person while Sable digs for who is lying.",
+        "Prisoner in the Yellow Castle. The Witch sees the mark and the shoes and trembles, then hides it. Dorothy scrubs, sweeps and feeds the fire, the Lion is starved in the courtyard for refusing the harness, and the Witch schemes for the shoes: bargains, lies, an invisible iron bar. Her friends lie broken outside. The Witch's weaknesses show through everything she does. Dorothy can strike a bargain with her, wait for a chance, or turn on her.",
       function:
-        "Sable Kerr has heard an offer for the Tidestone in person from each of Ilsa Dorn, Pell Osk and Tamsin Rook, and has told one of them where the stone is going.",
+        "The Wicked Witch of the West has melted, or Dorothy has got out of the Yellow Castle with Toto beyond the Witch's reach.",
       setPieces:
-        "Guild bravos corner Sable in a lamplit alley; the stone throws the gutter water\nTamsin poles Sable out to the Drowned Steeple, where the bell sounds under the water\nIlsa offers a pardon on the Weir walk while the stones groan underfoot",
+        "The Witch's eye going from the mark to the silver shoes, and her hands shaking.\nNight in the courtyard: Dorothy carrying the Lion food from the cupboard, her head on his mane, planning escape.\nThe Witch striking Toto with her umbrella; Toto biting her leg, and no blood.\nThe invisible iron bar, the fall, a silver shoe on the Witch's skinny foot: 'It is now my shoe, and not yours.'\nThe Witch melting like brown sugar: 'Didn't you know water would be the end of me?'\nThe freed Winkies mending the Tin Woodman and restuffing the Scarecrow; the Golden Cap in the cupboard.",
       mustLandMoments:
-        "Pell shows Sable the iron sluice from the Guildhall gallery as proof the Weir can be replaced.\nCorwin's cover breaks: Sable learns he was one of the thieves, from Corwin, Ilsa or Pell.",
-      stakes:
-        "The seep in the lower town becomes a spout, Sable's freedom, and Corwin's life. If the story stalls: the Weir drops a stone into the lower town, a Warden patrol corners Sable, or Pell's bravos try force.",
+        "The Witch sees the mark and the silver shoes and is afraid, and Dorothy sees it.\nThe Witch offers Dorothy a bargain for the silver shoes.\nDorothy sees that the Witch will not go near water.",
+      stakes: `Dorothy's freedom, the shoes, and her friends. If the story stalls: the Witch beats Toto; then she lays the invisible iron bar and takes one silver shoe; then she has her Winkies throw the Scarecrow's clothes on the kitchen fire; then she tells Dorothy the Lion starves to death tomorrow unless Dorothy swears to serve her for ever and hands over the other shoe. ${hidden("The bargain is a lie: the Monkeys cannot cross the desert, and her own Cap commands are spent.")}`,
       ifLandedEarly:
-        "If Corwin is unmasked before an Agenda Step causes it, Pell and Ilsa skip to their next Step at once.",
+        "If Dorothy melts the Witch before the iron bar, play it where they stand; the shoe trick never happens and the Winkies come running at the scream.",
       agendas: [
         {
-          character: "Corwin Ashe",
-          want: "Get paid and get out before Pell or the Wardens turn on him",
-          steps:
-            "Press Sable to sell to Pell and set the meeting at the Guildhall\nTry to take the stone while Sable sleeps",
-          ifBlocked:
-            "Run to Ilsa and offer to testify against Pell in exchange for his life.",
+          character: "The Wicked Witch of the West",
+          want: "The silver shoes, without ever touching Dorothy.",
+          steps: `Put Dorothy to work in the kitchen, and threaten her with the umbrella she never brings down.\nTry to harness the Lion; starve him when he refuses.\nOffer Dorothy a bargain: her friends mended and the Lion fed, or the Winged Monkeys to fly her home, for the silver shoes.\nLay an invisible iron bar across the kitchen floor and snatch the shoe that comes off.\n${hidden("If Dorothy escapes, give the Golden Cap to her Winkie captain so he can call the Monkeys three times more.")}`,
+          ifBlocked: hidden(
+            "If Dorothy brings water near her, she backs off screaming for her Winkies, and makes the next bargain sweeter."
+          ),
         },
         {
-          character: "Pell Osk",
-          want: "Buy the stone, and cut Corwin loose",
+          character: "The Cowardly Lion",
+          want: "Not to be harnessed, and to get Dorothy out.",
           steps:
-            "Offer Sable five hundred crowns and a Guild seat\nShow the sluice from the gallery\nTip Ilsa that Corwin is the thief\nSend bravos to take the stone",
+            "Refuse the harness every noon: 'If you come in this yard, I will bite you.'\nEat what Dorothy brings at night and plan with her.\nRoar the Winkies off the gate if Dorothy opens it.",
           ifBlocked:
-            "Offer the founders' survey, proof against the Wardens, in exchange for the stone.",
+            "Grows weak with hunger and tells Dorothy to save herself; she won't hear of it.",
         },
         {
-          character: "Ilsa Dorn",
-          want: "The stone delivered to the Weir",
+          character: "The Tin Woodman",
+          want: "To be found and mended.",
           steps:
-            "Find out who holds the stone\nOffer Sable a pardon before witnesses and the reward if it reaches the Weir by the next dusk\nArrest Corwin on Pell's tip",
+            "Lie battered and bent on the sharp rocks where the Monkeys dropped him, his axe beside him.\nOnce mended, walk straight to Dorothy.",
           ifBlocked:
-            "Declare Sable outlaw and double the patrols on the Weir road.",
+            "Lies on the rocks and rusts in the dew until someone comes for him.",
         },
         {
-          character: "Tamsin Rook",
-          want: "Win Sable to the rite",
+          character: "The Scarecrow",
+          want: "To be stuffed again.",
           steps:
-            "Bring Sable to the Drowned Steeple and show the drowned village\nTell the Fen's story\nAsk Sable to carry the stone to the Weir's heart at the third dawn",
-          ifBlocked:
-            "Ready the Reedfolk to meet Sable at the Weir's outer steps anyway.",
+            "Hang as an empty suit of clothes in the branches of a tall tree.\nOnce restuffed with clean straw, start planning at once.",
+          ifBlocked: "Hangs in the tree, unable to do a thing.",
         },
       ],
     },
     {
-      name: "The Weir",
-      description:
-        "The last night. The Weir splits and every faction converges on it. The Wardens hold the heart chamber, so the rite can happen only if Ilsa stands aside.",
+      name: ARC_3,
+      description: `What Dorothy has won, and what she does with it. Back to the Emerald City to claim the Wizard's promise, south to Glinda, or both, by the Winged Monkeys or on foot over the Road South. ${hidden("The Wizard is found out behind his screen and cannot send anyone home; Glinda knows the one way that can.")} Each friend gets his gift and is offered a kingdom. Everyone, the Scarecrow most of all, asks Dorothy to stay. If the Witch still lives, she is still after the shoes.`,
       function:
-        "The Tidestone's fate is settled: set in the Weir's socket, unbound by the rite, or gone out of the valley.",
-      setPieces:
-        "Water bursts through the Weir's face above the lower town\nPell's bravos storm the Weir gate\nThe barrow dead climb the outer steps for Corwin",
-      mustLandMoments:
-        "The Weir splits along its face and the Mere starts pouring through before the stone's fate is decided.\nSable faces at least two of Ilsa Dorn, Pell Osk and Tamsin Rook at once at the Weir.",
-      stakes:
-        "The lower town, within hours. If the story stalls, the crack widens, the lower town's lamps go out one by one under the water, and the dead reach the Weir walk.",
+        "Dorothy has made her last choice about Oz: she has commanded the silver shoes to take her home, declared she will stay in Oz for good, or put herself, a shoe or the Golden Cap in the Witch's power.",
+      setPieces: `The Wizard receiving them as an invisible Voice, and making them wait.\nThe Lion's roar, and Toto knocking over the screen.\nThe gifts: a head opened and filled; a heart put in through a little square door in a tin chest; a green dish to drink.\nDorothy sewing strips of green silk into a balloon; the crowd at the launch; Toto bolting after a kitten.\nThe Fighting Trees, the china princess who would break if carried away, the Lion and the great spider, the Hammer-Heads' necks shooting out.\nGlinda on her throne of rubies, asking each friend what he will do when Dorothy is gone.\n${hidden("Three knocks of the heels, three steps, and the Kansas prairie.")}`,
+      mustLandMoments: `${hidden("Dorothy and her friends find the Wizard out: a common man with no magic.")}\nSomeone offers Dorothy a place in Oz for good: the throne of the Emerald City, a home in the Palace, or the Scarecrow's plea to stay.`,
+      stakes: `Dorothy's way home and her friends' kingdoms. If the Witch still lives and the story stalls, her Winkie captain puts on the Golden Cap and sends the Monkeys to carry off Toto, whom the kiss does not protect, and the Witch offers him back for the other silver shoe. If the Witch is dead and the story stalls, the Wizard keeps them waiting day after day; ${hidden("then he slips away alone in his balloon one night, naming no ruler;")} then the people of the Emerald City come to the Palace to beg the girl who melted the Witch to rule them.`,
       ifLandedEarly:
-        "Let the crack worsen, and keep every Agenda running toward the Weir.",
+        "If Dorothy finds the Wizard out before she has dealt with the Witch, he confesses all the same, and begs her to finish the Witch anyway, so that he can stop being afraid.",
       agendas: [
         {
-          character: "Ilsa Dorn",
-          want: "Hold the Weir until the stone is back",
-          steps:
-            "Bar the Weir gate\nDemand the stone from whoever brings it\nSet it in the socket herself",
+          character: "The Wizard of Oz",
+          want: hidden("To keep his secret and get out of Oz alive."),
+          steps: `Keep them waiting, then receive them as an invisible Voice: 'Come back tomorrow; I must have time to think it over.'\n${hidden("Found out, beg Dorothy to keep his secret, and tell his story.\nGive the Scarecrow bran with pins and needles, the Tin Woodman a silk heart full of sawdust, the Lion a green drink.\nSew a balloon of green silk with Dorothy's help and offer to take her with him.\nTell the people he is off to visit a great brother Wizard in the clouds, and that the Scarecrow rules in his place.\nAt the launch, when Toto runs into the crowd after a kitten and Dorothy goes after him, let the ropes go: 'I can't come back, my dear! Good-bye!'")}`,
+          ifBlocked: hidden(
+            "If Dorothy tells the city what he is, he fills the balloon that night and goes alone without naming anyone, and the people turn to Dorothy for a ruler."
+          ),
+        },
+        {
+          character: "Glinda",
+          want: "Dorothy home, the Monkeys freed, a good ruler for every land.",
+          steps: `Receive Dorothy at her throne of rubies and kiss her forehead.\nAsk the Golden Cap as her price.\nAsk each friend what he will do when Dorothy is gone, and promise him a Monkey command to carry him there: the Scarecrow to the Emerald City, the Tin Woodman to the Winkies, the Lion to his forest.\n${hidden("Then tell Dorothy what the silver shoes can do.")}`,
           ifBlocked:
-            "If shown proof of a Secret, stand aside before witnesses; otherwise fight for the stone.",
+            "If Dorothy will not part with the Cap, she asks her to give it to the King of the Winged Monkeys instead, and waits.",
         },
         {
-          character: "Pell Osk",
-          want: "The stone, or the Weir broken",
+          character: "The Wicked Witch of the West",
+          want: "The other silver shoe, if she still lives.",
           steps:
-            "Wait in a carriage on the north road\nSend bravos to take the stone at the Weir gate",
-          ifBlocked: "Flee north with the land deeds.",
-        },
-        {
-          character: "Tamsin Rook",
-          want: "Unbind the stone at the third dawn",
-          steps:
-            "Gather the Reedfolk at the outer steps\nBegin the rite's chant\nTake the stone in her bare hand",
+            "Put her Winkie captain in the Golden Cap and have the Monkeys carry off Toto.\nSend word: Toto for the shoe.\nCome herself, hooded, under her umbrella, to make the trade.",
           ifBlocked:
-            "Stand aside and ask Sable to remember the Fen; she will not risk the town.",
+            "Shrieks across the yellow country and sends every Winkie she has after Dorothy.",
         },
         {
-          character: "Corwin Ashe",
-          want: "Survive the night",
+          character: "The Scarecrow",
+          want: "His brains, then a throne, and Dorothy kept in Oz.",
           steps:
-            "Make for the river with whatever he was paid\nBeg Sable for the stone's protection when the dead come",
-          ifBlocked: "Turn witness to anyone who will shelter him.",
+            "Insist they go back to Oz for their reward.\nThink of the Winged Monkeys, and of asking the soldier with the green whiskers.\nTake the throne if it is offered.\nBeg Dorothy to stay and be happy with them in the Emerald City.",
+          ifBlocked:
+            "Thinks so hard that pins and needles stick out of his head, and comes up with the next plan.",
+        },
+        {
+          character: "The Cowardly Lion",
+          want: "His courage, then his forest.",
+          steps:
+            "Roar at the invisible Voice until the screen falls.\nDrink the green drink and declare himself full of courage.\nIn the spider's forest, kill the great spider and take the beasts' crown.",
+          ifBlocked: "Fights anyway, trembling.",
         },
       ],
     },
   ],
   secrets: [
     {
-      secret:
-        "Pell Osk paid Corwin Ashe and two others to steal the Tidestone, and her iron sluice is half-built: she wants the Weir to fail so the lower town floods and the Guild buys its land.",
-      whoKnows: "Pell Osk, all of it. Corwin Ashe, the hiring only.",
+      secret: hidden(
+        "The Wizard is a humbug: a little old man from Omaha, a ventriloquist and circus balloonist whose balloon blew over the desert long ago. He has no magic at all. The Head is paper on a wire, the Lady a mask, the Beast skins over slats, the Ball of Fire oiled cotton; the green spectacles make the city green. He cannot send Dorothy home."
+      ),
+      whoKnows: hidden("The Wizard only."),
       howItSurfaces:
-        "The Guild-sealed purse on a dead thief in Gallow Barrow.\nCorwin names his buyer if cornered, threatened with the Wardens, or offered protection.\nFrom the foundry floor the sluice has no gates hung and no footings poured.\nThe Guild ledger: “Barrow work, 200 crowns, C.A.”",
-      earliestArc: "Three Bidders",
+        "He looks different to every visitor, and asks more about Dorothy's shoes than about her. Toto growls at the screen in the corner. His voice comes from everywhere. He sees no one, even his own people, and makes them wait. When pushed, the Lion's roar or Toto's dash knocks the screen over.",
+      earliestArc: ARC_3,
       whatPlayerCanDo:
-        "Show the proof to Ilsa Dorn, who arrests Pell; squeeze Pell for more; or keep quiet and sell anyway.",
+        "Keep his secret and let him appoint the Scarecrow; tell the whole city and see who they turn to; or make him pay for his promises another way.",
+    },
+    {
+      secret: hidden(
+        "The silver shoes can carry Dorothy home at any time: three knocks of the heels and a command, three steps, each in the wink of an eye. She could have gone home on her first day."
+      ),
+      whoKnows: `Glinda. ${hidden("The Witch knows they hold the strongest charm in Oz and that Dorothy does not know how to use it.")}`,
+      howItSurfaces:
+        "The Munchkins said some charm goes with them. The Wizard asks about them before anything else. The Witch trembles at the sight of them and wants them more than all she has. Glinda tells it plainly, once her price is paid and Dorothy's friends are settled.",
+      earliestArc: ARC_3,
+      whatPlayerCanDo:
+        "Go home, with Toto in her arms. Or, knowing it, choose to stay.",
+    },
+    {
+      secret: hidden(
+        "Water melts the Wicked Witch of the West to nothing, and she is afraid of the dark. She has never let a drop touch her, never washes, and will not go into a dark room."
+      ),
+      whoKnows: `${hidden("The Witch.")} The Winkies know only that she never washes and never comes near water.`,
+      howItSurfaces:
+        "She keeps the length of the kitchen between herself and the bucket. She never comes near while Dorothy bathes, nor into Dorothy's room at night. She carries an umbrella under a clear sky. A Winkie whispers that the mistress has never once washed.",
+      earliestArc: ARC_2,
+      whatPlayerCanDo:
+        "Melt her, in anger or on purpose; keep her shoes safe at night and in the bath; use the bucket to bargain.",
     },
     {
       secret:
-        "Sixty years ago the Wardens' founders closed the Weir's sluices on a dry day to drown the Reedfolk villages of the Low Fen and take the valley. There was no storm.",
+        "The mark on Dorothy's forehead means the Witch dare not hurt her. She threatens with her umbrella and never once brings it down on Dorothy.",
       whoKnows:
-        "Tamsin Rook, from her grandmother. Pell Osk, who holds the founders' survey.",
+        "The Witch, the Winged Monkeys and the Good Witch of the North. Dorothy does not know.",
       howItSurfaces:
-        "Tamsin tells it at the Drowned Steeple if Sable has not lied to her.\nThe founders' survey in the Guildhall archive: “the Fen to be cleared by water”.\nThe sluice log in the Weir's heart chamber records the sluices closed on a day logged “fair, dry”.",
-      earliestArc: "Three Bidders",
+        "The King of the Monkeys stops short at the mark and tells the Witch they dare not harm the girl. The Witch beats Toto, the Winkies and the Lion, never Dorothy. She stares at the mark when she thinks Dorothy isn't looking.",
+      earliestArc: ARC_1,
       whatPlayerCanDo:
-        "Show Ilsa Dorn, who then stands aside for Tamsin's rite; trade it to Pell; or keep it.",
-    },
-    {
-      secret:
-        "Corwin Ashe is the third thief, the only one who came out of Gallow Barrow alive. The dead marked his left palm black, and Pell means to hand him to the Wardens.",
-      whoKnows: "Corwin Ashe, except Pell's plan. Pell Osk.",
-      howItSurfaces:
-        "He will not cross the barrow threshold, and the dark reaches for him.\nThe black handprint under his glove.\nOne dead thief still holds a knife with Corwin's initials on the hilt.",
-      earliestArc: "The Barrow",
-      whatPlayerCanDo:
-        "Hand him to Ilsa for the reward; turn him into a witness against Pell; shield him from the dead with the stone; or leave him.",
+        "Defy the Witch to her face, refuse her orders, stand between her and Toto or the Lion.",
     },
   ],
   endings: [
     {
-      name: "The Truth at the Weir",
+      name: "No Place Like Home",
       kind: "good",
       trigger:
-        "Sable brings the Tidestone into the Weir's heart chamber before the third dawn and it is either set in its socket or unbound by Tamsin Rook's rite, after Sable has put proof of Pell's hiring of the thieves or of the Fen's deliberate drowning in front of Ilsa Dorn.",
-      earliestArc: "The Weir",
+        "With Toto in her arms, Dorothy knocks the heels of both silver shoes together three times and commands them to take her home to Kansas, after each of her friends has his kingdom or is on his way there: the Scarecrow to the Emerald City, the Tin Woodman to the Winkies, the Cowardly Lion to the beasts of the forest. Her friends may be settled by the Wizard's word, by Glinda's commands to the Winged Monkeys, or by Dorothy's own.",
+      earliestArc: ARC_3,
     },
     {
-      name: "Sold Downriver",
+      name: "Lost to Oz",
       kind: "bad",
       trigger:
-        "Sable hands the Tidestone to Pell Osk or her bravos, sells it through Corwin Ashe, lets Corwin carry it off, or carries it out of the valley; the stone leaves Thornwick and the Weir breaks that night.",
-      earliestArc: "Three Bidders",
+        "Dorothy, in earnest, hands the Wicked Witch of the West (or a Winkie at her orders) a silver shoe or the Golden Cap; or gives the Witch her word to serve her for ever; or, having been warned of the poppies, walks into the Poppy Field with neither the Scarecrow nor the Tin Woodman beside her to carry her out. A shoe the Witch steals by trick does not count.",
+      earliestArc: ARC_1,
     },
     {
-      name: "The Weir Holds",
+      name: "Never Home",
       kind: "neutral",
       trigger:
-        "Sable sets the Tidestone back in the Weir, or gives it to Ilsa Dorn to set, without having shown her proof of either Secret: the town stays dry and nothing else changes.",
-      earliestArc: "The Weir",
+        "While she is free and out of the Witch's reach, Dorothy declares she will stay in Oz for good and acts on it: she accepts the throne of the Emerald City from the Wizard or its people, agrees to the Scarecrow's plea to make her home in the Palace, or gives the silver shoes away to anyone but the Wicked Witch of the West.",
+      earliestArc: ARC_3,
     },
   ],
   writerMayInventEndings: false,
   stateFlags: [
     {
-      flag: "The Weir",
-      values: "Holding\nUnbound\nBroken",
+      flag: "The Emerald City",
+      values:
+        "the Scarecrow\nDorothy\nthe Wizard\nthe Wicked Witch of the West",
       epilogue:
-        "The Weir holds. The stone hums in its socket, and the lower town sleeps dry under sixty-year-old walls.\nThe Weir stands open. By midsummer the Mere has shrunk to its old course, and a church roof rises out of the mud of the Low Fen.\nThe Weir is a broken tooth on the hill. The lower town's streets are a lake, and Guild surveyors already pace its edges.",
+        "The Scarecrow rules the Emerald City, and the people say there is not another city in all the world ruled by a stuffed man.\nDorothy sits on the green marble throne, and one by one the people of the Emerald City take off their spectacles.\nThe Wizard stays shut up in his Palace, and the people go on believing in Oz the Great and Terrible.\nThe Wicked Witch of the West walks into the Emerald City in a pair of silver shoes, and the Great Oz is never heard from again.",
     },
     {
-      flag: "Pell Osk",
-      values: "In chains\nStill Guildmistress",
+      flag: "Her friends",
+      values:
+        "each has his kingdom\nall together in the Emerald City\nbroken by the Witch",
       epilogue:
-        "Pell Osk hangs her lantern badge on a cell hook; the Guild votes in a new mistress before the month is out.\nPell Osk is still Guildmistress, still calling everyone “friend”, and still waiting for the Weir's next bad winter.",
+        "The Tin Woodman rules the Winkies with an axe of solid gold and a jewelled oil-can, and the Cowardly Lion is King of Beasts in the grand old forest past the Hill of the Hammer-Heads.\nThe Tin Woodman and the Cowardly Lion stay on in the Emerald City, and Dorothy's green room in the Palace is always made up for her.\nThe Tin Woodman rusts on the rocks where the Monkeys dropped him, and the Cowardly Lion draws the Witch's chariot in a harness.",
     },
     {
-      flag: "Corwin Ashe",
-      values: "Gone downriver\nHanged\nTurned witness\nTaken by the dead",
+      flag: "The Golden Cap",
+      values: "freed\nkept\nthe Witch's",
       epilogue:
-        "Corwin Ashe turns up once more, two valleys over, in a new glove, telling a new story.\nCorwin Ashe hangs at the Weir gate under Warden law, joking all the way up the ladder.\nCorwin Ashe testifies, walks free, and sends Sable a bottle of something terrible.\nThe barrow dead take Corwin Ashe off the Weir steps, and the river never gives him back.",
+        "The King of the Winged Monkeys holds the Golden Cap at last, and his band is free for evermore.\nThe Golden Cap waits in a cupboard, and the Winged Monkeys wait with it for their next owner.\nThe Golden Cap sits on a Winkie captain's head, and the Winged Monkeys fly where the Wicked Witch of the West points.",
     },
   ],
   voiceAndCanon: {
     voice:
-      "Fast, physical, second person present. Every Passage opens on something happening: a door kicked in, water at the ankles, a blade drawn. Mix the forms: a line of dialogue, a short burst of action, a one-line beat of place or sound. Let characters talk in short exchanges and interrupt each other. The world is solid: rope, lantern oil, the weight of coin. Danger is real; humor is dry and rare.",
+      "Fast, bright and concrete, with Baum's plainness: wonders stated flatly, as if a talking scarecrow were the most ordinary thing in the world. Put Dorothy inside the action from the first line: a voice, a creature, a thing in her hands. Mix the forms in every Passage: lines of dialogue in each character's own Speech, a short paragraph of what she sees (colour first: green, yellow, red, the blue of the Munchkins), a one-line paragraph that lands a fact or a danger. Friends talk over each other and argue. Every Passage ends on a clear lead, a person, place or object, so the Player always knows where to go next. In narration, call him the Wizard or the Great Oz, and call the land Oz.",
     samplePassage:
-      "The coin purse hits the table hard enough to slop your ale.\n\n“Ten crowns now,” the stranger says. “Ninety when you bring it back. Three dawns, or the Weir goes and takes the lower town with it.”\n\nAbove you a beam ticks. Water beads along a crack in the plaster and runs down the wall. Nobody else in the Crooked Lantern looks up.\n\n“Bring what back?”\n\n“A blue stone the size of your fist. It's in Gallow Barrow, under the hill.” He keeps his left hand in his lap, gloved. “I'd fetch it myself.”\n\n“But.”\n\n“But I'd rather you did.”\n\nBoots on the porch. Three pairs, iron-shod. The door handle turns.\n\nCorwin is already up. “Back way's through the kitchen. Coming?”",
-    fixedFacts:
-      "The Weir was raised sixty years ago.\nThe Tidestone is a fist-sized blue stone, cold to the touch, that hums near water.\nThe stone was stolen two nights before the Opening; without it the Weir fails at the third dawn after the Opening.\nCorwin offers ten crowns now and ninety on delivery; Pell offers five hundred; Ilsa's reward is one hundred crowns and a pardon.\nThe money is crowns.",
+      "The Head's eyes turn on you. Each is bigger than a washtub.\n\n'Kill the Wicked Witch of the West.'\n\nGreen light pours off a thousand emeralds. Behind you, the Scarecrow twists his hat; the Tin Woodman's oil-can clinks; the Lion's tail lashes the floor.\n\n'I never killed anything,' you say. 'Not on purpose.'\n\n'In this country everyone must pay for everything he gets. When you tell me she is dead, I will send you home to Kansas. Not before.'\n\nToto growls. Not at the Head. At the green screen in the corner.\n\nThe Lion bends down to your ear. 'Say yes,' he whispers, 'before I lose my nerve.'\n\nThe Tin Woodman shakes his head.\n\nThe Head waits.",
+    fixedFacts: `Dorothy lived on the great gray Kansas prairie with Uncle Henry, a farmer, and Aunt Em, in a one-room house. A cyclone carried the house, with Dorothy and Toto inside, to the Munchkin country, where it fell on the Wicked Witch of the East and killed her; she dried up in the sun and left only her silver shoes.\nToto is a little black dog with long silky hair and small black eyes. He doesn't care whether he is in Kansas or Oz so long as Dorothy is with him; he chases anything that runs.\nOz has four countries: the Munchkins in the East (blue), the Winkies in the West (yellow), the Quadlings in the South (red), and the North. The Emerald City is at the centre. A great desert surrounds it all, and no one can live to cross it.\nThere were four witches: the North and the South good, the East and the West wicked. The Good Witch of the North is a little old woman with white hair in a white gown sprinkled with stars; she has no name in this story, is not Glinda, has never heard of Kansas, does not know the shoes' charm, and does not appear in play.\nOn the Yellow Brick Road Dorothy found the Scarecrow on his pole, oiled the rusted Tin Woodman, and met the Cowardly Lion. They escaped the Kalidahs (bodies like bears, heads like tigers) when the Tin Woodman cut the tree they were crossing on, rafted a river where a Stork rescued the Scarecrow, and crossed the deadly poppy field. The Tin Woodman saved the Queen of the Field Mice from a wildcat; her mice pulled the sleeping Lion out on a truck, and she gave Dorothy a little whistle to call them.\nAt the Gates of the Emerald City the Guardian of the Gates locked green spectacles on them all. A soldier with green whiskers carries their messages to the Wizard; a green-dressed girl waits on Dorothy.\nThe Wizard saw each of them once, alone, in a different shape: a great Head, a lovely Lady with gauze wings, a terrible Beast with a rhinoceros head and five eyes, a Ball of Fire. Each heard the same price. In this adaptation he receives Dorothy last, with her friends beside her.\nThe Wicked Witch of the West has one eye, a silver whistle, an old umbrella, forty wolves, forty crows, a swarm of black bees and the Winkies as slaves. The Golden Cap has a circle of diamonds and rubies; she has used it twice.\nThe Winged Monkeys were once free and full of mischief. Long ago the Princess Gayelette bound them to obey the owner of the Golden Cap three times, after they dropped her bridegroom Quelala in the river. Their King tells the story to anyone who asks.\nThe Wizard's promised gifts are brains, a heart and courage, for helping kill the Witch.\nGlinda rules the Quadlings from a throne of rubies, guarded by soldier girls in red.\n${hidden("The Wizard was born in Omaha. The silver shoes, used to cross the desert, fall off in the air and are lost for ever; Dorothy lands in her stocking feet in front of the new farmhouse Uncle Henry built after the cyclone.")}`,
     writerMayInvent:
-      "Townsfolk, Wardens, Guild bravos and clerks, Reedfolk, the barrow's dead and their grave goods, streets and alleys, gear, food, weather.",
+      "The rooms of the Palace and the castle, the weather, the look of the country between places, the Winkies' and Quadlings' and Emerald City folk's names and chatter, small creatures of Oz met on the way, the Witch's chores for Dorothy, the Monkeys' jokes, what the friends say to one another.",
     writerMustNotInvent:
-      "Another way to save the Weir, a second Tidestone, new factions, a cure for the barrow mark, or a Secret proven without its proof found in play.",
+      "Any way home but the silver shoes; any real magic for the Wizard; any new witch or wizard; any way to kill the Witch but water; the Winged Monkeys crossing the desert; Glinda leaving the South or the Good Witch of the North appearing; a balloon that carries Dorothy away; anything from the 1939 film (ruby slippers, a farmhand Scarecrow, a broomstick to bring back, 'it was all a dream').",
     pacing:
-      "Something changes in every Passage. Keep Passages to 120–220 words. Never more than three sentences of description before someone speaks or acts. End every Passage with the next decision in plain sight: who wants what, and where Sable can go. Reach the barrow within three Passages and all three bidders by the end of day two.",
+      "Something must change on the page in every Passage: a new creature, a lie caught, a friend hurt or mended, an offer made. Get to the action in the first sentence. Passages run 100 to 200 words, never more. No more than two paragraphs of narration in a row without a line of dialogue. Make every Choice name a concrete person, place or object ('Ask the Head why it wants her dead', 'Throw the bucket', 'Blow the Field Mice whistle'), and offer at least one that trusts the Wizard, the Witch or the Good Witches. A journey takes one Passage: cut from the Gates to the first wolf. Stage at most two of the Witch's attacks before the Winged Monkeys come. When an Arc's Function lands, cut straight to the next scene.",
     never:
-      "Never open a Passage on weather, scenery or Sable's feelings.\nNever write more than three sentences of description in a row.\nNever write a Passage without spoken dialogue unless Sable is alone.\nNever summarise a conversation; show it.\nNever leave the Player unsure where they can go next.\nNever use “suddenly”, “ancient”, “a sense of” or “little did you know”.",
+      "Never open a Passage with scenery, weather or Dorothy's feelings.\nNever write a Passage that is all paragraphs of narration.\nNever write a Passage without a line of dialogue.\nNever recap the cyclone or the Yellow Brick Road after the Opening.\nNever end a Passage on a mood instead of a lead.\nNever spend more than one Passage on a journey.\nNever call the shoes ruby or the Good Witch of the North Glinda.",
   },
 }

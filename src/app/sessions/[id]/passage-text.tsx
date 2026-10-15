@@ -7,7 +7,9 @@
  * a dotted word for its meaning in this story.
  *
  * A name matches by the character's full name, an alias, or a first or last
- * name no other character shares. One-word names match in their own case
+ * name no other character shares. A name that is a title ("The Wicked Witch
+ * of the West") matches only whole: its words alone would catch other people
+ * ("the Witch of the North"). One-word names match in their own case
  * ("Royce", not "royce"); longer names and defined words in any case.
  */
 import * as React from "react"
@@ -42,6 +44,12 @@ function escape(text: string) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
+/** "The Scarecrow", "Witch of the West": a description, not a given name. */
+function isTitle(name: string) {
+  const words = name.split(/\s+/)
+  return /^the$/i.test(words[0]) || words.some((word) => /^\p{Ll}/u.test(word))
+}
+
 function characterMatchers(skeleton: Skeleton): Matcher[] {
   const out: Matcher[] = []
   const parts = new Map<string, number>()
@@ -57,9 +65,10 @@ function characterMatchers(skeleton: Skeleton): Matcher[] {
     const texts = new Set([name])
     for (const alias of visible(character.aliases).split(/[;,\n]/))
       if (alias.trim()) texts.add(alias.trim())
-    for (const part of name.split(/\s+/))
-      if (part.length >= 3 && /^\p{Lu}/u.test(part) && parts.get(part) === 1)
-        texts.add(part)
+    if (!isTitle(name))
+      for (const part of name.split(/\s+/))
+        if (part.length >= 3 && /^\p{Lu}/u.test(part) && parts.get(part) === 1)
+          texts.add(part)
     for (const text of texts)
       out.push({ text, exactCase: !/\s/.test(text), target })
   }
