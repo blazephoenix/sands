@@ -1,74 +1,63 @@
 /**
- * The SQLite database (spec §5: Drizzle over better-sqlite3).
+ * The database: Postgres (docker-compose.yml) through node-postgres, and
+ * PGlite in memory for tests (`src/test/db.ts`). Both are Drizzle's
+ * `PgDatabase`, so every query runs on either.
  *
- * `getDb()` opens `DB_URL` once per server process, with WAL and foreign keys
- * on, and applies any pending migrations from `src/db/migrations/` before
- * the first query, so `pnpm dev` needs no manual step. The handle lives on
- * `globalThis`, so every route handler (each its own module graph in dev)
- * shares it and it survives hot reloads. A migration added while the dev
- * server runs is applied on its next start.
- *
- * Tests open their own in-memory database with `openDatabase(":memory:")`.
+ * `getDb()` opens `DATABASE_URL` once per server process and applies any
+ * pending migrations from `src/db/migrations/` before the first query, so
+ * `pnpm dev` needs no manual step beyond `docker compose up -d`. The handle
+ * lives on `globalThis`, so every route handler (each its own module graph in
+ * dev) shares one pool and it survives hot reloads.
  *
  * Every function that reads or writes takes a `Db`, which is either the
- * database or a transaction inside it. better-sqlite3 is synchronous, and so
- * are the queries and transactions built on it.
+ * database or a transaction inside it.
  */
-import { mkdirSync } from "node:fs"
 import path from "node:path"
 
-import Database from "better-sqlite3"
-import type { RunResult } from "better-sqlite3"
-import { drizzle } from "drizzle-orm/better-sqlite3"
-import { migrate } from "drizzle-orm/better-sqlite3/migrator"
-import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core"
+import { drizzle } from "drizzle-orm/node-postgres"
+import { migrate } from "drizzle-orm/node-postgres/migrator"
+import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core"
 
-/** The database or a transaction inside it. */
-export type Db = BaseSQLiteDatabase<"sync", RunResult>
+/** The database or a transaction inside it, on either driver. */
+export type Db = PgDatabase<PgQueryResultHKT>
 
-/** An open database with its connection, which `closeDb` closes. */
-export type OpenDatabase = ReturnType<typeof openDatabase>
-
-const MIGRATIONS_FOLDER = path.join(process.cwd(), "src", "db", "migrations")
-
-/** Where the database lives when `DB_URL` is not set: the path drizzle.config.ts uses. */
-export const DEFAULT_DB_URL = "./data/sands.db"
-
-/**
- * Opens a SQLite database at a file path (created with its folder if
- * missing) or `:memory:`, and brings its schema up to date.
- */
-export function openDatabase(url: string) {
-  const file = url.startsWith("file:") ? url.slice("file:".length) : url
-  if (file !== ":memory:") {
-    mkdirSync(path.dirname(path.resolve(file)), { recursive: true })
-  }
-  const sqlite = new Database(file)
-  sqlite.pragma("journal_mode = WAL")
-  sqlite.pragma("foreign_keys = ON")
-  sqlite.pragma("busy_timeout = 5000")
-  const db = drizzle({ client: sqlite })
-  migrate(db, { migrationsFolder: MIGRATIONS_FOLDER })
-  return db
-}
+export const MIGRATIONS_FOLDER = path.join(
+  process.cwd(),
+  "src",
+  "db",
+  "migrations"
+)
 
 declare global {
-  var __sandsDb: { url: string; db: OpenDatabase } | undefined
+  var __sandsDb: { url: string; db: Promise<Db> } | undefined
 }
 
-/** The server's database: `DB_URL`, opened and migrated on first use. */
-export function getDb(): Db {
-  const url = process.env.DB_URL || DEFAULT_DB_URL
-  const current = globalThis.__sandsDb
-  if (current?.url === url) return current.db
-  current?.db.$client.close()
-  const db = openDatabase(url)
-  globalThis.__sandsDb = { url, db }
+async function open(url: string): Promise<Db> {
+  const db = drizzle({ connection: { connectionString: url } })
+  try {
+    await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER })
+  } catch (error) {
+    await db.$client.end()
+    throw error
+  }
   return db
 }
 
-/** Closes the server's database; the next `getDb()` opens it again. For tests. */
-export function closeDb() {
-  globalThis.__sandsDb?.db.$client.close()
-  globalThis.__sandsDb = undefined
+/** The server's database: `DATABASE_URL`, opened and migrated on first use. */
+export function getDb(): Promise<Db> {
+  const url = process.env.DATABASE_URL
+  if (!url) {
+    throw new Error(
+      "DATABASE_URL is not set on the server. Add it to .env.local (see .env.example), run `docker compose up -d`, and restart."
+    )
+  }
+  const current = globalThis.__sandsDb
+  if (current?.url === url) return current.db
+  const db = open(url)
+  // A failed open is not cached, so the next request tries again.
+  db.catch(() => {
+    if (globalThis.__sandsDb?.db === db) globalThis.__sandsDb = undefined
+  })
+  globalThis.__sandsDb = { url, db }
+  return db
 }

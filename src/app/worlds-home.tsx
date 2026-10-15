@@ -1,9 +1,9 @@
 "use client"
 
 /**
- * The Worlds home: every World with its setup status, when it last
+ * The Worlds home: every World with whether it can be played, when it last
  * changed and how many Sessions it has, and "New World", which creates a World
- * and opens its Brief. Each row has a World actions menu with "Delete World".
+ * and opens its Skeleton. Each row has a World actions menu with "Delete World".
  *
  * States: loading (Skeleton rows), empty, error (with Retry), list.
  *
@@ -24,6 +24,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Empty,
@@ -52,8 +53,7 @@ import {
   DeleteWorldDialog,
   WorldActionsMenu,
 } from "@/components/worlds/delete-world"
-import { SetupStatusBadge } from "@/components/worlds/setup-status-badge"
-import { briefHref, worldHref } from "@/components/worlds/world-links"
+import { skeletonHref, worldHref } from "@/components/worlds/world-links"
 import type { WorldSummary } from "@/domain/api"
 import { worldDisplayName } from "@/domain/world"
 import { api, ApiError, isAbortError } from "@/lib/api-client"
@@ -155,7 +155,7 @@ export function WorldsHome() {
     setCreateError(null)
     try {
       const { world } = await api.createWorld()
-      router.push(briefHref(world.id))
+      router.push(skeletonHref(world.id))
     } catch (error) {
       setCreateError(asApiError(error, "The World was not created. Try again."))
       setCreating(false)
@@ -190,7 +190,7 @@ export function WorldsHome() {
         {creating ? "Creating…" : "New World"}
       </TooltipTrigger>
       <TooltipContent>
-        Create a World and write its Brief
+        Create a World and write its Skeleton
         <ShortcutKeys shortcut={NEW_WORLD_SHORTCUT} />
       </TooltipContent>
     </Tooltip>
@@ -208,8 +208,7 @@ export function WorldsHome() {
           Worlds
         </h1>
         <p className="max-w-prose leading-relaxed text-muted-foreground">
-          Write a Brief, review what setup drafts from it, and play Sessions in
-          the World it becomes.
+          Write a Skeleton, then play Sessions in the World it describes.
         </p>
       </div>
 
@@ -259,8 +258,8 @@ export function WorldsHome() {
             </EmptyMedia>
             <EmptyTitle id="worlds-empty-title">No Worlds yet</EmptyTitle>
             <EmptyDescription>
-              Start with a Brief: who is in the story, where it happens and how
-              it ends.
+              Start with a Skeleton: who is in the story, how it moves and how
+              it can end.
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>{newWorldButton()}</EmptyContent>
@@ -334,7 +333,7 @@ function WorldList({
                 >
                   <Link
                     ref={refIn(rowLinks, world.id)}
-                    href={worldHref(world)}
+                    href={worldHref(world.id)}
                     className="outline-none after:absolute after:inset-0 after:rounded-lg"
                   >
                     {worldDisplayName(world.name)}
@@ -354,7 +353,9 @@ function WorldList({
                 </ItemDescription>
               </ItemContent>
               <ItemActions>
-                <SetupStatusBadge status={world.setupStatus} />
+                <Badge variant={world.playable ? "secondary" : "outline"}>
+                  {world.playable ? "Playable" : "Not playable yet"}
+                </Badge>
                 <WorldActionsMenu
                   world={world}
                   onDelete={() => onDelete(world)}

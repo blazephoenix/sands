@@ -1,185 +1,112 @@
 /**
- * Sessions and Turns in the database (spec §6 `sessions`, `turns`).
- *
- * A Turn row is written only when a Passage ships. `(session_id, idx)` is
- * unique, so a second Opening (or any second Turn N) for one Session is
- * refused by the database itself, whichever request gets there second.
+ * Sessions and their Turns in the database, parsed with their contracts on
+ * the way in and out.
  */
-import { and, asc, count, desc, eq } from "drizzle-orm"
+import { asc, desc, eq, sql } from "drizzle-orm"
 
-import type { SessionSummary } from "@/domain/api"
 import {
   sessionSchema,
   turnSchema,
   type Session,
   type Turn,
 } from "@/domain/session"
+import { toIso } from "@/lib/time"
 
 import type { Db } from "./client"
-import { sqliteErrorCode, StoreError } from "./errors"
+import { pgErrorCode, StoreError, UNIQUE_VIOLATION } from "./errors"
 import { sessions, turns, type SessionRow, type TurnRow } from "./schema"
 
-export function sessionFromRow(row: SessionRow): Session {
-  return sessionSchema.parse(row satisfies Session)
+function sessionFromRow(row: SessionRow): Session {
+  return sessionSchema.parse({
+    ...row,
+    createdAt: toIso(row.createdAt),
+    updatedAt: toIso(row.updatedAt),
+  } satisfies Session)
 }
 
-export function turnFromRow(row: TurnRow): Turn {
+function turnFromRow(row: TurnRow): Turn {
+  const { idx, ...rest } = row
   return turnSchema.parse({
-    id: row.id,
-    sessionId: row.sessionId,
-    idx: row.idx,
-    playerInput: row.playerInput,
-    passage: row.passage,
-    flagged: row.flagged,
-    log: row.logJson,
-    state: row.stateJson,
-    backgroundStatus: row.backgroundStatus,
-    createdAt: row.createdAt,
+    ...rest,
+    index: idx,
+    createdAt: toIso(row.createdAt),
   } satisfies Turn)
 }
 
-function turnToRow(turn: Turn): TurnRow {
-  const parsed = turnSchema.parse(turn)
-  return {
-    id: parsed.id,
-    sessionId: parsed.sessionId,
-    idx: parsed.idx,
-    playerInput: parsed.playerInput,
-    passage: parsed.passage,
-    flagged: parsed.flagged,
-    logJson: parsed.log,
-    stateJson: parsed.state,
-    backgroundStatus: parsed.backgroundStatus,
-    createdAt: parsed.createdAt,
-  }
-}
-
-export function getSession(db: Db, id: string): Session {
-  const row = db.select().from(sessions).where(eq(sessions.id, id)).get()
+export async function getSession(db: Db, id: string): Promise<Session> {
+  const [row] = await db.select().from(sessions).where(eq(sessions.id, id))
   if (!row)
     throw new StoreError(
       "not_found",
-      `There is no Session "${id}". It or its World may have been deleted; go back to your Worlds.`
+      `There is no Session "${id}". It may have been deleted with its World.`
     )
   return sessionFromRow(row)
 }
 
-export function insertSession(db: Db, session: Session): Session {
-  db.insert(sessions).values(sessionSchema.parse(session)).run()
-  return getSession(db, session.id)
+export async function insertSession(db: Db, session: Session): Promise<void> {
+  await db.insert(sessions).values(sessionSchema.parse(session))
 }
 
-/** A Session's Turns, oldest first. */
-export function listTurns(db: Db, sessionId: string): Turn[] {
-  return db
-    .select()
-    .from(turns)
-    .where(eq(turns.sessionId, sessionId))
-    .orderBy(asc(turns.idx))
-    .all()
-    .map(turnFromRow)
+/** Records the Ending a Session reached. */
+export async function endSession(
+  db: Db,
+  session: Session,
+  at: string
+): Promise<void> {
+  const parsed = sessionSchema.parse(session)
+  await db
+    .update(sessions)
+    .set({ ending: parsed.ending, updatedAt: at })
+    .where(eq(sessions.id, parsed.id))
 }
 
-export function countTurns(db: Db, sessionId: string): number {
-  return (
-    db
-      .select({ n: count() })
-      .from(turns)
-      .where(eq(turns.sessionId, sessionId))
-      .get()?.n ?? 0
-  )
+export async function touchSession(db: Db, id: string, at: string) {
+  await db.update(sessions).set({ updatedAt: at }).where(eq(sessions.id, id))
 }
 
 /**
- * Saves a shipped Turn and the Session's Ending with it (spec §9.1 step 7).
- * Refuses, with a conflict, a Turn for a Session that has ended or a Turn
- * whose index is not the next one; the unique `(session_id, idx)` refuses a
- * Turn another writer saved first.
+ * Stores a Turn. A second Turn with the same index (another tab played the
+ * same Turn first) is refused as a conflict.
  */
-export function insertTurn(
-  db: Db,
-  turn: Turn
-): { turn: Turn; session: Session } {
-  const row = turnToRow(turn)
-  const raced = new StoreError(
-    "conflict",
-    turn.idx === 0
-      ? "This Session has already had its Opening. Reload the page to see it."
-      : "Another Turn finished first in this Session. Reload to see it."
-  )
+export async function insertTurn(db: Db, turn: Turn): Promise<void> {
+  const { index, ...rest } = turnSchema.parse(turn)
   try {
-    return db.transaction((tx) => {
-      const session = getSession(tx, turn.sessionId)
-      if (session.ending !== "none") {
-        throw new StoreError(
-          "conflict",
-          "This Session has ended. Start a new Session from its World to play again."
-        )
-      }
-      if (countTurns(tx, session.id) !== turn.idx) throw raced
-      tx.insert(turns).values(row).run()
-      tx.update(sessions)
-        .set({ ending: turn.state.ending, updatedAt: turn.createdAt })
-        .where(eq(sessions.id, session.id))
-        .run()
-      return {
-        turn: turnFromRow(row),
-        session: getSession(tx, session.id),
-      }
-    })
+    await db.insert(turns).values({ ...rest, idx: index })
   } catch (error) {
-    if (sqliteErrorCode(error) === "SQLITE_CONSTRAINT_UNIQUE") throw raced
+    if (pgErrorCode(error) === UNIQUE_VIOLATION)
+      throw new StoreError(
+        "conflict",
+        "This Turn was already played, maybe in another tab. Reload the Session to see it."
+      )
     throw error
   }
 }
 
-/** Turns whose Background work is pending: of one Session, or of every Session. */
-export function listPendingBackgroundTurns(db: Db, sessionId?: string): Turn[] {
-  const pending = eq(turns.backgroundStatus, "pending")
-  return db
+/** A Session's Turns, Opening first. */
+export async function listTurns(db: Db, sessionId: string): Promise<Turn[]> {
+  const rows = await db
     .select()
     .from(turns)
-    .where(sessionId ? and(pending, eq(turns.sessionId, sessionId)) : pending)
-    .orderBy(asc(turns.sessionId), asc(turns.idx))
-    .all()
-    .map(turnFromRow)
+    .where(eq(turns.sessionId, sessionId))
+    .orderBy(asc(turns.idx))
+  return rows.map(turnFromRow)
 }
 
-/** Replaces a stored Turn (same id), e.g. to merge background results into it. */
-export function updateTurn(db: Db, turn: Turn): Turn {
-  const { id, sessionId, idx, ...row } = turnToRow(turn)
-  const result = db
-    .update(turns)
-    .set(row)
-    .where(
-      and(eq(turns.id, id), eq(turns.sessionId, sessionId), eq(turns.idx, idx))
-    )
-    .run()
-  if (result.changes === 0)
-    throw new StoreError(
-      "not_found",
-      `There is no Turn ${idx} "${id}" in Session "${sessionId}".`
-    )
-  return turnFromRow({ id, sessionId, idx, ...row })
-}
-
-/** A World's Sessions for its World page, newest first, with their Turn counts (the Opening included). */
-export function listSessionSummaries(
-  db: Db,
-  worldId: string
-): SessionSummary[] {
-  return db
+/** A World's Sessions, newest first, with how many Turns each has. */
+export async function listSessionSummaries(db: Db, worldId: string) {
+  const rows = await db
     .select({
-      id: sessions.id,
-      ending: sessions.ending,
-      turnCount: count(turns.id),
-      createdAt: sessions.createdAt,
-      updatedAt: sessions.updatedAt,
+      session: sessions,
+      turnCount:
+        sql<number>`(select count(*) from ${turns} where ${turns.sessionId} = ${sessions.id})`.mapWith(
+          Number
+        ),
     })
     .from(sessions)
-    .leftJoin(turns, eq(turns.sessionId, sessions.id))
     .where(eq(sessions.worldId, worldId))
-    .groupBy(sessions.id)
-    .orderBy(desc(sessions.createdAt), desc(sessions.id))
-    .all()
+    .orderBy(desc(sessions.createdAt))
+  return rows.map((row) => ({
+    session: sessionFromRow(row.session),
+    turnCount: row.turnCount,
+  }))
 }

@@ -13,11 +13,14 @@ export class StoreError extends Error {
   }
 }
 
-/** The SQLite error code behind a failed query (drizzle wraps the driver's error). */
-export function sqliteErrorCode(error: unknown): string | null {
+/** The Postgres error code (SQLSTATE) behind a failed query; drizzle wraps the driver's error. */
+export function pgErrorCode(error: unknown): string | null {
   for (let e = error; e instanceof Error; e = e.cause) {
     const code = (e as { code?: unknown }).code
-    if (typeof code === "string" && code.startsWith("SQLITE_")) return code
+    if (typeof code === "string" && /^[0-9A-Z]{5}$/.test(code)) return code
   }
   return null
 }
+
+/** SQLSTATE for a unique constraint violation. */
+export const UNIQUE_VIOLATION = "23505"

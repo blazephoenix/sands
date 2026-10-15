@@ -1,9 +1,9 @@
 "use client"
 
 /**
- * A playable World's Sessions, most recent first. Each row names the Session
- * by its number in the World, when it started, the Turns the Player played
- * (the Opening is not counted) and whether it is in play or which Ending it
+ * A World's Sessions, most recent first. Each row names the Session by its
+ * number in the World, when it started, the Turns the Player played (the
+ * Opening is not counted) and whether it is in play or which Ending it
  * reached. A row opens the Session.
  */
 import Link from "next/link"
@@ -21,18 +21,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { sessionHref } from "@/components/worlds/world-links"
 import type { SessionSummary } from "@/domain/api"
-import { playerTurnCount, type Ending } from "@/domain/session"
 import { formatDayAndTime } from "@/lib/time"
-
-const STATE: Record<
-  Ending,
-  { label: string; variant: "secondary" | "outline" }
-> = {
-  none: { label: "In play", variant: "secondary" },
-  win: { label: "Ending: win", variant: "outline" },
-  death: { label: "Ending: death", variant: "outline" },
-  removed: { label: "Ending: removed", variant: "outline" },
-}
 
 /** `sessions` newest first, as `GET /api/worlds/[id]` returns them; Session numbers count from the oldest. */
 export function WorldSessions({
@@ -44,8 +33,8 @@ export function WorldSessions({
     <ItemGroup className="gap-2">
       {sessions.map((session, index) => {
         const number = sessions.length - index
-        const turns = playerTurnCount(session.turnCount)
-        const state = STATE[session.ending]
+        // The Opening is not a Turn the Player played.
+        const turns = Math.max(session.turnCount - 1, 0)
         return (
           <div key={session.id} role="listitem">
             <Item
@@ -63,7 +52,13 @@ export function WorldSessions({
                 </ItemDescription>
               </ItemContent>
               <ItemActions>
-                <Badge variant={state.variant}>{state.label}</Badge>
+                {session.ending ? (
+                  <Badge variant="outline">
+                    Ending: {session.ending.name} ({session.ending.kind})
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary">In play</Badge>
+                )}
                 <ChevronRightIcon
                   aria-hidden
                   className="text-muted-foreground"

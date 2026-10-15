@@ -5,10 +5,9 @@ import { WorldPage } from "./world-page"
 export const metadata: Metadata = { title: "World" }
 
 /**
- * `/worlds/[id]`: a playable World's Sessions and New Session.
+ * `/worlds/[id]`: a World's Sessions, New Session and Edit Skeleton.
  * Loads through `GET /api/worlds/[id]` on the client, like every page
- * (no server actions); a World that is not ready is sent on to its Brief or
- * its setup review.
+ * (no server actions).
  */
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params

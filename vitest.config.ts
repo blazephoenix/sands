@@ -8,8 +8,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
-    // Route handlers open DB_URL; under test it is a fresh in-memory database, never the dev file.
-    env: { DB_URL: ":memory:" },
+    // Tests never reach the dev database: they use PGlite (`src/test/db.ts`).
+    env: { DATABASE_URL: "" },
     passWithNoTests: true,
   },
 })

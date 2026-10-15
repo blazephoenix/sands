@@ -1,13 +1,12 @@
 /**
- * The words of the delete-World confirmation. "Delete", never "Remove":
- * Remove is an Entry's restorable review status, and deleting a World is
- * permanent.
+ * The words of the delete-World confirmation. Deleting a World is permanent,
+ * so the dialog says "Delete" and names everything that goes with it.
  */
 import { worldDisplayName } from "@/domain/world"
 
 /** The dialog's title, naming the World, and what goes with it. */
 export function deleteWorldCopy(world: { name: string; sessionCount: number }) {
-  const parts = ["the World", "its Brief"]
+  const parts = ["the World and its Skeleton"]
   if (world.sessionCount > 0)
     parts.push(
       `its ${world.sessionCount} ${world.sessionCount === 1 ? "Session" : "Sessions"}`
@@ -16,6 +15,6 @@ export function deleteWorldCopy(world: { name: string; sessionCount: number }) {
   return {
     // Quoted only when it is the Author's own name.
     title: `Delete ${world.name ? `“${name}”` : name}?`,
-    description: `This deletes ${parts.join(", ")} and every Entry. This cannot be undone.`,
+    description: `This deletes ${parts.join(" and ")}. This cannot be undone.`,
   }
 }

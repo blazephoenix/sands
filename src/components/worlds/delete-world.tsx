@@ -42,7 +42,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { worldDisplayName, type SetupStatus } from "@/domain/world"
+import { worldDisplayName } from "@/domain/world"
 import { api, ApiError } from "@/lib/api-client"
 
 import { deleteWorldCopy } from "./delete-world-copy"
@@ -51,21 +51,12 @@ import { deleteWorldCopy } from "./delete-world-copy"
 export type DeletableWorld = {
   id: string
   name: string
-  setupStatus: SetupStatus
   sessionCount: number
-}
-
-/** Why a World cannot be deleted right now, or null when it can. */
-function deleteBlocked(world: Pick<DeletableWorld, "setupStatus">) {
-  return world.setupStatus === "drafting"
-    ? "Setup is running. Wait for it to finish."
-    : null
 }
 
 /**
  * The World actions menu: an icon-only button with a tooltip and an
  * accessible name that includes the World's name, holding "Delete World".
- * While setup runs the item is disabled and says why.
  */
 export function WorldActionsMenu({
   world,
@@ -78,7 +69,6 @@ export function WorldActionsMenu({
   triggerRef?: React.Ref<HTMLButtonElement>
   className?: string
 }) {
-  const blocked = deleteBlocked(world)
   return (
     <DropdownMenu>
       <Tooltip>
@@ -102,25 +92,9 @@ export function WorldActionsMenu({
         <TooltipContent>World actions</TooltipContent>
       </Tooltip>
       <DropdownMenuContent align="end" className="w-auto min-w-44">
-        <DropdownMenuItem
-          variant="destructive"
-          disabled={blocked !== null}
-          onClick={onDelete}
-          // Dim the action, not the reason: the reason must stay readable.
-          className="items-start data-disabled:opacity-100"
-        >
-          <Trash2Icon
-            aria-hidden
-            className="mt-0.5 group-data-disabled/dropdown-menu-item:opacity-50"
-          />
-          <span className="flex flex-col gap-0.5">
-            <span className="group-data-disabled/dropdown-menu-item:opacity-50">
-              Delete World
-            </span>
-            {blocked ? (
-              <span className="text-xs text-muted-foreground">{blocked}</span>
-            ) : null}
-          </span>
+        <DropdownMenuItem variant="destructive" onClick={onDelete}>
+          <Trash2Icon aria-hidden />
+          Delete World
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

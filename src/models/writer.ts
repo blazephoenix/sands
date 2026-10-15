@@ -1,17 +1,41 @@
 /**
- * The Writer (spec §5.1, §9.1 step 5): the model that writes Drafts. One
- * `write` is one Draft; a Round asks for two in parallel. The caller owns the
- * instructions and the prompt (`engine/writer-prompt.ts`), so a test can read
- * exactly what the Writer was given.
+ * The Writer (CONTEXT.md): the model that writes the story. One `write` is
+ * one Passage, with the choices offered next and the Ending it reached, if
+ * any. The caller owns the instructions and the prompt (`src/play/`), so a
+ * test can read exactly what the Writer was given.
  */
+import { z } from "zod"
+
+import { ENDING_KINDS } from "@/domain/skeleton"
+
 export interface WriterRequest {
   /** The system instructions. */
   readonly instructions: string
   readonly prompt: string
 }
 
+/** What the Writer answers. Strict-schema friendly: no optional fields, `null` instead. */
+export const writerOutputSchema = z.object({
+  passage: z.string().describe("The next Passage, as plain prose."),
+  choices: z
+    .array(z.string())
+    .describe(
+      "Two to four things the Player character could do next. Empty once the story has ended."
+    ),
+  ending: z
+    .object({
+      name: z.string().describe("The Ending's name, exactly as listed."),
+      kind: z.enum(ENDING_KINDS),
+    })
+    .nullable()
+    .describe("The Ending this Passage concludes the story on, or null."),
+})
+export type WriterOutput = z.infer<typeof writerOutputSchema>
+
 export interface WriterResult {
-  readonly text: string
+  readonly output: WriterOutput
+  /** The reply as it arrived, before parsing, for the harness pane. */
+  readonly rawOutput: string
   /** The model id that served the call, as the provider reported it. */
   readonly model: string
   readonly usage: {
@@ -29,7 +53,7 @@ export interface Writer {
   ): Promise<WriterResult>
 }
 
-/** A Writer call that could not be made, or came back empty. */
+/** A Writer call that could not be made, or came back unusable. */
 export class WriterError extends Error {
   override readonly name = "WriterError"
 }

@@ -9,16 +9,16 @@ describe("the delete-World confirmation", () => {
     ).toEqual({
       title: "Delete “The Long Night”?",
       description:
-        "This deletes the World, its Brief, its 3 Sessions and every Entry. This cannot be undone.",
+        "This deletes the World and its Skeleton and its 3 Sessions. This cannot be undone.",
     })
   })
 
   it("says Session for one, and leaves Sessions out when there are none", () => {
     expect(deleteWorldCopy({ name: "A", sessionCount: 1 }).description).toMatch(
-      /^This deletes the World, its Brief, its 1 Session and every Entry\./
+      /its 1 Session\./
     )
-    expect(deleteWorldCopy({ name: "A", sessionCount: 0 }).description).toMatch(
-      /^This deletes the World, its Brief and every Entry\./
+    expect(deleteWorldCopy({ name: "A", sessionCount: 0 }).description).toBe(
+      "This deletes the World and its Skeleton. This cannot be undone."
     )
   })
 

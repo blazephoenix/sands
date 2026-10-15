@@ -1,13 +1,12 @@
 "use client"
 
 /**
- * The World page: a playable World opens to its Sessions, with
- * New Session to start another. Setup is behind a ready World, so the setup
- * review is not shown here. A World that is not ready yet is sent where it
- * belongs: its Brief while in draft or drafting, the setup review in review.
+ * The World page: the World's Sessions, New Session to start another, and
+ * Edit Skeleton. While the Skeleton has issues that block play, New Session
+ * is disabled and the page lists what to fix.
  *
- * States: loading (Skeleton rows; also while sending the Author on), not
- * found, error with Retry, no Sessions yet, list.
+ * States: loading (Skeleton rows), not found, error with Retry, no Sessions
+ * yet, list.
  *
  * The header's World actions menu holds "Delete World". After a delete the
  * Author lands on the Worlds home, with focus on its list (or its Empty
@@ -16,7 +15,13 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { PlayIcon, SearchXIcon, TriangleAlertIcon } from "lucide-react"
+import {
+  CircleAlertIcon,
+  PencilIcon,
+  PlayIcon,
+  SearchXIcon,
+  TriangleAlertIcon,
+} from "lucide-react"
 
 import { returnHomeAfterDelete } from "@/app/worlds-home-focus"
 import { ShellActions, ShellBreadcrumbs } from "@/components/app-shell"
@@ -47,15 +52,19 @@ import {
   DeleteWorldDialog,
   WorldActionsMenu,
 } from "@/components/worlds/delete-world"
-import { sessionHref, worldHref } from "@/components/worlds/world-links"
+import { sessionHref, skeletonHref } from "@/components/worlds/world-links"
 import type { GetWorldResponse } from "@/domain/api"
 import { worldDisplayName } from "@/domain/world"
 import { api, ApiError, isAbortError } from "@/lib/api-client"
 import { useSingleKeyShortcut } from "@/lib/keyboard"
+import { plainText } from "@/skeleton/hidden-text"
 
 import { WorldSessions, WorldSessionsSkeleton } from "./world-sessions"
 
 const NEW_SESSION_SHORTCUT = "n"
+const EDIT_SKELETON_SHORTCUT = "e"
+/** Enough issues to start fixing; the editor shows every one. */
+const ISSUES_SHOWN = 5
 
 type Load =
   | { state: "loading" }
@@ -69,7 +78,6 @@ function asApiError(error: unknown, fallback: string) {
 }
 
 export function WorldPage({ worldId }: { worldId: string }) {
-  const router = useRouter()
   const [load, setLoad] = React.useState<Load>({ state: "loading" })
   const [attempt, setAttempt] = React.useState(0)
 
@@ -88,23 +96,15 @@ export function WorldPage({ worldId }: { worldId: string }) {
     return () => controller.abort()
   }, [worldId, attempt])
 
-  // A World that isn't playable yet opens where the Author left off.
-  const world = load.state === "ready" ? load.data.world : null
-  const elsewhere =
-    world && world.setupStatus !== "ready" ? worldHref(world) : null
-  React.useEffect(() => {
-    if (elsewhere) router.replace(elsewhere)
-  }, [elsewhere, router])
-
   const retry = () => {
     setLoad({ state: "loading" })
     setAttempt((n) => n + 1)
   }
 
-  if (load.state === "loading" || elsewhere) return <WorldPageSkeleton />
+  if (load.state === "loading") return <WorldPageSkeleton />
   if (load.state === "error")
     return <LoadError error={load.error} onRetry={retry} />
-  return <PlayableWorld data={load.data} />
+  return <LoadedWorld data={load.data} />
 }
 
 function PageFrame({ children }: { children: React.ReactNode }) {
@@ -174,8 +174,11 @@ function LoadError({
   )
 }
 
-function PlayableWorld({ data }: { data: GetWorldResponse }) {
+function LoadedWorld({ data }: { data: GetWorldResponse }) {
   const { world, sessions } = data
+  const blocking = data.issues.filter((issue) => issue.blocksPlay)
+  const playable = blocking.length === 0
+  const premise = plainText(world.skeleton.story.premise).trim()
   const router = useRouter()
   const [starting, setStarting] = React.useState(false)
   const [startError, setStartError] = React.useState<ApiError | null>(null)
@@ -190,22 +193,26 @@ function PlayableWorld({ data }: { data: GetWorldResponse }) {
   }
 
   const startSession = React.useCallback(async () => {
-    if (starting) return
+    if (starting || !playable) return
     setStarting(true)
     setStartError(null)
     try {
-      const { session } = await api.createSession({ worldId: world.id })
-      // Stays busy until the Session page takes over; its Opening starts there.
+      const { session } = await api.startSession({ worldId: world.id })
+      // Stays busy until the Session page takes over.
       router.push(sessionHref(session.id))
     } catch (error) {
       setStartError(asApiError(error, "The Session did not start. Try again."))
       setStarting(false)
     }
-  }, [router, starting, world.id])
+  }, [playable, router, starting, world.id])
 
   useSingleKeyShortcut(NEW_SESSION_SHORTCUT, (event) => {
     event.preventDefault()
     void startSession()
+  })
+  useSingleKeyShortcut(EDIT_SKELETON_SHORTCUT, (event) => {
+    event.preventDefault()
+    router.push(skeletonHref(world.id))
   })
 
   const busyIcon = starting ? (
@@ -222,18 +229,42 @@ function PlayableWorld({ data }: { data: GetWorldResponse }) {
           <TooltipTrigger
             render={
               <Button
-                onClick={() => void startSession()}
-                disabled={starting}
-                aria-keyshortcuts={NEW_SESSION_SHORTCUT}
+                variant="outline"
+                nativeButton={false}
+                render={<Link href={skeletonHref(world.id)} />}
+                aria-keyshortcuts={EDIT_SKELETON_SHORTCUT}
               />
             }
           >
-            {busyIcon}
-            {starting ? "Starting…" : "New Session"}
+            <PencilIcon data-icon="inline-start" aria-hidden />
+            Edit Skeleton
           </TooltipTrigger>
           <TooltipContent>
-            Start a Session in this World
-            <ShortcutKeys shortcut={NEW_SESSION_SHORTCUT} />
+            Open the Skeleton editor
+            <ShortcutKeys shortcut={EDIT_SKELETON_SHORTCUT} />
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          {/* A wrapper, so the tooltip still explains a disabled button. */}
+          <TooltipTrigger render={<span className="inline-flex" />}>
+            <Button
+              onClick={() => void startSession()}
+              disabled={starting || !playable}
+              aria-keyshortcuts={NEW_SESSION_SHORTCUT}
+            >
+              {busyIcon}
+              {starting ? "Writing the Opening…" : "New Session"}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {playable ? (
+              <>
+                Start a Session in this World
+                <ShortcutKeys shortcut={NEW_SESSION_SHORTCUT} />
+              </>
+            ) : (
+              "Fix the Skeleton's issues first"
+            )}
           </TooltipContent>
         </Tooltip>
         <WorldActionsMenu
@@ -254,11 +285,41 @@ function PlayableWorld({ data }: { data: GetWorldResponse }) {
         <h1 className="font-heading text-2xl font-semibold tracking-tight">
           {name}
         </h1>
-        <p className="max-w-prose leading-relaxed text-muted-foreground">
-          Every Session opens with its own first scene and plays its own copy of
-          this World&apos;s Entries.
-        </p>
+        {premise ? (
+          <p className="max-w-prose leading-relaxed text-muted-foreground">
+            {premise}
+          </p>
+        ) : null}
       </div>
+
+      {playable ? null : (
+        <Alert>
+          <CircleAlertIcon aria-hidden />
+          <AlertTitle>Not playable yet</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc pl-4">
+              {blocking.slice(0, ISSUES_SHOWN).map((issue) => (
+                <li key={`${issue.path}-${issue.message}`}>{issue.message}</li>
+              ))}
+            </ul>
+            {blocking.length > ISSUES_SHOWN ? (
+              <p>
+                {blocking.length - ISSUES_SHOWN} more in the Skeleton editor.
+              </p>
+            ) : null}
+          </AlertDescription>
+          <AlertAction>
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={skeletonHref(world.id)} />}
+            >
+              Edit Skeleton
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
 
       {startError ? (
         <Alert variant="destructive">
@@ -290,12 +351,14 @@ function PlayableWorld({ data }: { data: GetWorldResponse }) {
               its Ending.
             </EmptyDescription>
           </EmptyHeader>
-          <EmptyContent>
-            <Button onClick={() => void startSession()} disabled={starting}>
-              {busyIcon}
-              Start the first Session
-            </Button>
-          </EmptyContent>
+          {playable ? (
+            <EmptyContent>
+              <Button onClick={() => void startSession()} disabled={starting}>
+                {busyIcon}
+                {starting ? "Writing the Opening…" : "Start the first Session"}
+              </Button>
+            </EmptyContent>
+          ) : null}
         </Empty>
       ) : (
         <section

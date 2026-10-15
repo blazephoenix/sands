@@ -1,20 +1,21 @@
 /**
- * POST /api/sessions: start a Session in a World, copying every non-rejected
- * World Entry into it. 409 if the World is not set up or not
- * solvable.
+ * POST /api/sessions: start a Session in a World. The Writer writes the
+ * Opening before anything is stored. 201 with the Session and its Opening;
+ * 409 while the World's Skeleton has issues that block play.
  */
-import {
-  createSessionRequestSchema,
-  type CreateSessionResponse,
-} from "@/domain/api"
-import { startSession } from "@/sessions/start-session"
 import { getDb } from "@/db/client"
+import { createSessionRequestSchema } from "@/domain/api"
+import { startSession } from "@/play/play"
+import { serverWriter } from "@/play/writer"
 import { handle, readJson } from "@/server/http"
 
 export const POST = handle(async (request: Request) => {
   const body = await readJson(request, createSessionRequestSchema)
-  return Response.json(
-    startSession(getDb(), body) satisfies CreateSessionResponse,
-    { status: 201 }
+  const started = await startSession(
+    await getDb(),
+    serverWriter(),
+    body.worldId,
+    { signal: request.signal }
   )
+  return Response.json(started, { status: 201 })
 })
